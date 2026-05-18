@@ -5,10 +5,15 @@ import { useTranslation } from 'react-i18next';
 import { AddLessonModal } from '../components/AddLessonModal';
 import { Bidi } from '../components/Bidi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ProgressOverview } from '../components/ProgressOverview';
+import { RecentAttemptsList } from '../components/RecentAttemptsList';
 import { Toast } from '../components/Toast';
 import { api } from '../lib/api';
 import { useLessonsForStudent } from '../lib/lessons';
+import { useStudentAttempts, useStudentProgress } from '../lib/progress';
 import { buildShareUrl, useStudent } from '../lib/students';
+
+const ATTEMPTS_PAGE_SIZE = 10;
 
 export function StudentDetailPage() {
   const { t, i18n } = useTranslation();
@@ -19,6 +24,9 @@ export function StudentDetailPage() {
 
   const detail = useStudent(id);
   const lessons = useLessonsForStudent(id ? { studentId: id, page: 1, limit: 10 } : null);
+  const progress = useStudentProgress(id);
+  const [attemptsPage, setAttemptsPage] = useState(1);
+  const attempts = useStudentAttempts(id, attemptsPage, ATTEMPTS_PAGE_SIZE);
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
@@ -218,6 +226,49 @@ export function StudentDetailPage() {
           </button>
         </div>
       </div>
+
+      <section data-testid="student-progress-section" className="space-y-6">
+        <h2 className="text-lg font-semibold">{t('progress.title')}</h2>
+        {progress.isLoading ? (
+          <p className="text-sm text-slate-600">{t('common.loading')}</p>
+        ) : progress.error ? (
+          <div
+            data-testid="student-progress-error"
+            className="rounded border border-rose-200 bg-rose-50 px-3 py-4 text-sm text-rose-900"
+          >
+            {t('progress.error')}
+          </div>
+        ) : progress.data ? (
+          <ProgressOverview
+            data={progress.data}
+            rtl={(i18n.dir(i18n.resolvedLanguage) === 'rtl')}
+            locale={i18n.resolvedLanguage ?? 'en'}
+          />
+        ) : null}
+
+        <div data-testid="student-attempts-section" className="space-y-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+            {t('progress.attempts.title')}
+          </h3>
+          {attempts.isLoading ? (
+            <p className="text-sm text-slate-600">{t('common.loading')}</p>
+          ) : attempts.error ? (
+            <div
+              data-testid="student-attempts-error"
+              className="rounded border border-rose-200 bg-rose-50 px-3 py-4 text-sm text-rose-900"
+            >
+              {t('progress.error')}
+            </div>
+          ) : attempts.data ? (
+            <RecentAttemptsList
+              data={attempts.data}
+              locale={i18n.resolvedLanguage ?? 'en'}
+              page={attemptsPage}
+              onPageChange={setAttemptsPage}
+            />
+          ) : null}
+        </div>
+      </section>
 
       <div className="rounded-lg border border-slate-200 bg-white p-6" data-testid="student-lessons">
         <div className="flex flex-wrap items-center justify-between gap-2">

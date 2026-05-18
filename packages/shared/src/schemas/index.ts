@@ -18,3 +18,4 @@ export * from './games.js';
 export * from './voice.js';
 export * from './answers.js';
 export * from './attempts.js';
+export * from './progress.js';

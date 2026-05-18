@@ -16,6 +16,7 @@ import { MailerModule } from './mailer/mailer.module';
 import { MeModule } from './me/me.module';
 import { RequestIdMiddleware } from './middleware/request-id.middleware';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProgressModule } from './progress/progress.module';
 import { StudentsModule } from './students/students.module';
 import { VoiceModule } from './voice/voice.module';
 
@@ -54,6 +55,7 @@ import { VoiceModule } from './voice/voice.module';
     GamesModule,
     VoiceModule,
     AttemptsModule,
+    ProgressModule,
     QuotaModule,
   ],
   controllers: [HealthController],

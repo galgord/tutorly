@@ -364,5 +364,55 @@
     "searchPlaceholder": "Pesquisar por nome…",
     "emptyAll": "Sem alunos ainda — adicione um na página de alunos primeiro.",
     "emptySearch": "Nenhum aluno corresponde à pesquisa."
+  },
+  "progress": {
+    "title": "Progresso",
+    "error": "Não foi possível carregar o progresso — tente atualizar.",
+    "notEnoughData": "—",
+    "never": "Nunca",
+    "totals": {
+      "completedAttempts": "Tentativas",
+      "questionsAnswered": "Perguntas",
+      "overallAccuracy": "Precisão",
+      "lastActive": "Última atividade"
+    },
+    "games": {
+      "title": "Jogos ativos",
+      "empty": "Nenhum jogo atribuído ainda.",
+      "type_FILL_BLANK": "Preencher lacuna",
+      "type_TIMED_QUIZ": "Quiz cronometrado",
+      "latest": "Mais recente",
+      "best": "Melhor",
+      "attempts": "Tentativas",
+      "trendImproving": "A melhorar",
+      "trendDeclining": "A piorar",
+      "trendStable": "Estável",
+      "trendInsufficient": "Precisa de 3+ tentativas"
+    },
+    "topics": {
+      "title": "Domínio de tópicos",
+      "empty": "O domínio aparece após algumas tentativas concluídas.",
+      "chartAria": "Precisão por tópico ao longo do tempo",
+      "accuracySuffix": "({{pct}}%)"
+    },
+    "hardest": {
+      "title": "Perguntas mais difíceis"
+    },
+    "attempts": {
+      "title": "Tentativas recentes",
+      "empty": "O aluno ainda não jogou.",
+      "type_FILL_BLANK": "Preencher lacuna",
+      "type_TIMED_QUIZ": "Quiz cronometrado",
+      "correctOf": "{{correct}} / {{total}} corretas",
+      "studentAnswer": "Resposta",
+      "expected": "Esperado",
+      "timedOut": "tempo esgotado",
+      "noAnswers": "Sem respostas registadas para esta tentativa.",
+      "prev": "Anterior",
+      "next": "Seguinte",
+      "pageOf": "Página {{page}} de {{total}}",
+      "olderHistory": "Histórico antigo",
+      "monthlySummary": "{{count}} tentativas · média {{avg}}"
+    }
   }
 }

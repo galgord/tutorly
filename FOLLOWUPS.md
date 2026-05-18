@@ -47,6 +47,16 @@ Small items deferred during Phases 0-4 + 9. None are blocking; pick them up when
 - **`idb` chosen over raw IndexedDB** — adds ~1.5kB gzipped but saves us re-implementing the open/upgrade/transaction dance. If bundle size becomes critical, swap to native IndexedDB inside `attempt-buffer.ts` — surface is small.
 - **`fake-indexeddb` dev-dep** added for the buffer's vitest spec; only used in tests.
 
+## Phase 7 — handoff to later phases
+
+- **Charting**: progress dashboard ships pure SVG (`Sparkline.tsx`, `TopicMasteryChart.tsx`) — no chart-lib dep. Trade-off: limited interactivity (no tooltips on hover). If Phase 8/10 wants richer charts (e.g. tooltip showing exact attempt + date on sparkline hover), `recharts` or `visx` is the swap point — both have RTL stories that need testing. Keep the SVG components as the empty-state fallback.
+- **Topic-mastery time axis**: month buckets are UTC. A tutor in São Paulo crossing midnight will see attempts land in the next bucket depending on UTC. If timezone-correctness becomes a complaint, bucket per tutor-locale TZ — `Tutor` model doesn't carry a TZ yet so this needs a schema add.
+- **6-month attempt cutoff** is a hard constant in `progress.service.ts` (`RECENT_ATTEMPT_WINDOW_MS`). Tutors with very active long-term students may want to page further back; expose as `?since=` if requested.
+- **Trend threshold (5%)** is also a constant in `progress.aggregations.ts`. Tuning candidate — if "stable" feels too generous in early QA, lower to 3%.
+- **Hardest-questions list** uses a min 3-sample threshold. A new student who's only played once won't see a hardest-list — that's intentional (one wrong answer isn't a pattern). Document this for tutors before public launch so they don't think the section is broken.
+- **Per-question drill-down ships inline** with each attempt row (api returns the full `results` array on each item). For students with dozens of answered questions per attempt, this could bloat the response; consider a `?detail=summary` mode if payload size shows up in performance work.
+- **Sparkline tone** keys off `trend` direction (green/red/slate). Colorblind-friendliness was not specifically audited — a Phase 8 a11y polish item.
+
 ## Bigger pieces (any phase)
 
 - **`googleapis` SDK is heavy** (~20 transitive deps) — track Railway image size in Phase 10. If it becomes a problem, replace OAuth + calendar fetches with bare `fetch` calls; the surface area is small.

@@ -364,5 +364,55 @@
     "searchPlaceholder": "Search by name…",
     "emptyAll": "No students yet — add one from the students page first.",
     "emptySearch": "No students match that search."
+  },
+  "progress": {
+    "title": "Progress",
+    "error": "Couldn't load progress — try refreshing.",
+    "notEnoughData": "—",
+    "never": "Never",
+    "totals": {
+      "completedAttempts": "Attempts",
+      "questionsAnswered": "Questions",
+      "overallAccuracy": "Accuracy",
+      "lastActive": "Last active"
+    },
+    "games": {
+      "title": "Active games",
+      "empty": "No games assigned yet.",
+      "type_FILL_BLANK": "Fill-in-the-blank",
+      "type_TIMED_QUIZ": "Timed quiz",
+      "latest": "Latest",
+      "best": "Best",
+      "attempts": "Attempts",
+      "trendImproving": "Improving",
+      "trendDeclining": "Declining",
+      "trendStable": "Stable",
+      "trendInsufficient": "Need 3+ attempts"
+    },
+    "topics": {
+      "title": "Topic mastery",
+      "empty": "Topic mastery appears after a few completed attempts.",
+      "chartAria": "Per-topic accuracy over time",
+      "accuracySuffix": "({{pct}}%)"
+    },
+    "hardest": {
+      "title": "Hardest questions"
+    },
+    "attempts": {
+      "title": "Recent attempts",
+      "empty": "Student hasn't played yet.",
+      "type_FILL_BLANK": "Fill-in-the-blank",
+      "type_TIMED_QUIZ": "Timed quiz",
+      "correctOf": "{{correct}} / {{total}} correct",
+      "studentAnswer": "Answer",
+      "expected": "Expected",
+      "timedOut": "timed out",
+      "noAnswers": "No answers recorded for this attempt.",
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {{page}} of {{total}}",
+      "olderHistory": "Older history",
+      "monthlySummary": "{{count}} attempts · avg {{avg}}"
+    }
   }
 }

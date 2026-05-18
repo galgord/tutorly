@@ -364,5 +364,55 @@
     "searchPlaceholder": "חיפוש לפי שם…",
     "emptyAll": "אין עדיין תלמידים — הוסיפו אחד מדף התלמידים תחילה.",
     "emptySearch": "אין תלמידים שתואמים לחיפוש."
+  },
+  "progress": {
+    "title": "התקדמות",
+    "error": "טעינת ההתקדמות נכשלה — נסו לרענן.",
+    "notEnoughData": "—",
+    "never": "אף פעם",
+    "totals": {
+      "completedAttempts": "ניסיונות",
+      "questionsAnswered": "שאלות",
+      "overallAccuracy": "דיוק",
+      "lastActive": "פעילות אחרונה"
+    },
+    "games": {
+      "title": "משחקים פעילים",
+      "empty": "טרם הוקצו משחקים.",
+      "type_FILL_BLANK": "השלמת מילה חסרה",
+      "type_TIMED_QUIZ": "חידון מתוזמן",
+      "latest": "אחרון",
+      "best": "הטוב ביותר",
+      "attempts": "ניסיונות",
+      "trendImproving": "במגמת שיפור",
+      "trendDeclining": "במגמת ירידה",
+      "trendStable": "יציב",
+      "trendInsufficient": "דרושים 3+ ניסיונות"
+    },
+    "topics": {
+      "title": "שליטה בנושאים",
+      "empty": "שליטה בנושאים מופיעה לאחר כמה ניסיונות.",
+      "chartAria": "דיוק לפי נושא לאורך זמן",
+      "accuracySuffix": "({{pct}}%)"
+    },
+    "hardest": {
+      "title": "השאלות הקשות ביותר"
+    },
+    "attempts": {
+      "title": "ניסיונות אחרונים",
+      "empty": "התלמיד טרם שיחק.",
+      "type_FILL_BLANK": "השלמת מילה חסרה",
+      "type_TIMED_QUIZ": "חידון מתוזמן",
+      "correctOf": "{{correct}} / {{total}} נכונות",
+      "studentAnswer": "תשובה",
+      "expected": "צפוי",
+      "timedOut": "פג הזמן",
+      "noAnswers": "לא נרשמו תשובות בניסיון זה.",
+      "prev": "הקודם",
+      "next": "הבא",
+      "pageOf": "עמוד {{page}} מתוך {{total}}",
+      "olderHistory": "היסטוריה ישנה",
+      "monthlySummary": "{{count}} ניסיונות · ממוצע {{avg}}"
+    }
   }
 }

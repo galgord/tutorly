@@ -18,8 +18,10 @@ import type {
   MagicLinkRequest,
   MagicLinkResponse,
   MeResponse,
+  AttemptHistoryResponse,
   PublicStudentDashboardResponse,
   PublicStudentResponse,
+  StudentProgressResponse,
   RegenerateQuestionRequest,
   RotateTokenResponse,
   StartAttemptResponse,
@@ -128,6 +130,18 @@ export const api = {
     request(`/students/${encodeURIComponent(id)}/rotate-token`, { method: 'POST' }),
   listTrashStudents: (query?: ListStudentsQuery): Promise<StudentListResponse> =>
     request(buildListPath('/trash/students', query)),
+  studentProgress: (id: string): Promise<StudentProgressResponse> =>
+    request(`/students/${encodeURIComponent(id)}/progress`),
+  listStudentAttempts: (
+    id: string,
+    query?: { page?: number; limit?: number },
+  ): Promise<AttemptHistoryResponse> => {
+    const sp = new URLSearchParams();
+    if (query?.page != null) sp.set('page', String(query.page));
+    if (query?.limit != null) sp.set('limit', String(query.limit));
+    const s = sp.toString();
+    return request(`/students/${encodeURIComponent(id)}/attempts${s ? `?${s}` : ''}`);
+  },
 
   // Public (token-based) --------------------------------------------------
   publicStudent: (shareToken: string): Promise<PublicStudentResponse> =>

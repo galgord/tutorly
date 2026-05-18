@@ -6,7 +6,7 @@ Quickref for Claude Code / dev sessions on this repo. **Read this first** before
 
 A SaaS companion tool for private tutors of any subject. Tutor connects Google Calendar, manages students, writes feedback after lessons, and an LLM turns the feedback into practice games the student plays between sessions. Tutor sees progress.
 
-## Current state — Phases 0-6 + 9 done
+## Current state — Phases 0-7 + 9 done
 
 | # | Name | State | Notes |
 |---|---|---|---|
@@ -17,7 +17,7 @@ A SaaS companion tool for private tutors of any subject. Tutor connects Google C
 | 4 | Feedback + AI gen | ✅ done (fake LLM) | Anthropic SDK + Fake/Real swap via `LLM_CLIENT` DI token; cached system + game-type prompt blocks with strict Zod-validated output; in-process queue with retry + circuit breaker; question review modal with edit/regenerate/assign; calendar "Add feedback" student picker (Phase 3 deferral resolved). **Real-LLM smoke not run** — flagged in FOLLOWUPS.md |
 | 5 | Voice transcription | ✅ done (fake Whisper) | OpenAI SDK + Fake/Real swap via `TRANSCRIBER_CLIENT` DI token; in-browser MediaRecorder + multipart upload with server-side magic-byte MIME sniff + 25MB / 5min caps; in-process Whisper queue mirroring game-generation (retry + circuit breaker + stuck-job recovery); audio deleted post-transcription; `QuotaService.reserveWhisperMinutes` atomic-SQL minute reservation with refund-on-failure; transcript pre-fills `FeedbackEditor` as a suggestion (tutor still clicks Save). **BullMQ swap + real-Whisper smoke** flagged in FOLLOWUPS.md |
 | 6 | Game engines | ✅ done | Fill-in-blank + lives-based timed quiz; token-gated student dashboard + play routes; server-side scoring + nikud-aware Hebrew normalization via shared `scoreAnswer`; IndexedDB answer buffer with auto-flush on `online`; hourly abandoned-attempt cron. **Manual screen-reader (VoiceOver/NVDA) pass** flagged in FOLLOWUPS.md (axe gate covers structural a11y). |
-| 7 | Progress dashboard | ⬜ pending | Aggregation + sparklines + topic mastery |
+| 7 | Progress dashboard | ✅ done | `GET /students/:id/progress` (totals, per-game sparkline + trend, per-topic monthly rollup, hardest-questions) + `GET /students/:id/attempts` (paginated, monthly-aggregate collapse past 6mo). Pure-function aggregation layer property-tested. Web: tutor-facing student detail rebuilt with a progress section above lessons. Pure-SVG sparkline + topic-mastery chart so RTL is a single mirror + no chart-lib dep. 482 api tests / 96.98% lines; full Playwright suite 78/78 green. |
 | 8 | i18n + RTL + PWA | ⬜ pending | Comprehensive RTL pass + PWA install + native Hebrew QA |
 | 9 | AI quota + cost | ✅ done | Per-tutor monthly cap (default 100) via atomic `UPDATE … WHERE monthlyGenerations < cap`; refund on terminal FAILED; monthly reset cron; `/admin/usage` admin-token endpoint; UI banner with reset date. Whisper minute field scaffolded for Phase 5. |
 | 10 | Production deploy | ⬜ pending | Vercel + Railway + Resend + real Google + smoke |

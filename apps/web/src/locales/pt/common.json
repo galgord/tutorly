@@ -222,8 +222,41 @@
     "save": "Guardar feedback",
     "unsaved": "Alterações não guardadas",
     "charCount": "{{count}} / {{max}} caracteres",
+    "modeLabel": "Modo de entrada de feedback",
+    "modeText": "Escrever",
+    "modeVoice": "Gravar voz",
+    "transcribedHint": "Transcrito da sua nota de voz — reveja e edite antes de guardar.",
     "toast": {
       "saved": "Feedback guardado"
+    }
+  },
+  "voice": {
+    "title": "Feedback por voz",
+    "subtitle": "Grave até 5 minutos; transcrevemos para texto que pode editar.",
+    "start": "Iniciar gravação",
+    "stop": "Parar",
+    "submit": "Enviar para transcrição",
+    "reset": "Descartar gravação",
+    "uploading": "A enviar…",
+    "status": {
+      "pending": "Em fila para transcrição…",
+      "transcribing": "A transcrever a sua gravação…",
+      "done": "Transcrição pronta — reveja-a no editor de texto abaixo.",
+      "failedTitle": "Falha na transcrição",
+      "failedGeneric": "Não conseguimos transcrever essa gravação. Tente gravar novamente ou escreva o feedback.",
+      "failedUnavailable": "O serviço de transcrição está temporariamente indisponível. Tente novamente daqui a um minuto."
+    },
+    "error": {
+      "noMediaApi": "O seu navegador não suporta gravação no browser. Escreva o feedback.",
+      "micDenied": "Acesso ao microfone negado. Permita-o nas definições do navegador ou escreva o feedback.",
+      "empty": "Nada foi gravado. Tente novamente.",
+      "tooLarge": "Essa gravação é demasiado grande. Máx. 25 MB.",
+      "quota": "Atingiu o limite mensal de minutos de voz. Tente no próximo mês ou escreva o feedback.",
+      "rejected": "Esse ficheiro de áudio foi rejeitado. Tente uma gravação diferente.",
+      "uploadFailed": "Não foi possível enviar a gravação. Tente novamente."
+    },
+    "toast": {
+      "uploaded": "Gravação enviada — a transcrever…"
     }
   },
   "games": {

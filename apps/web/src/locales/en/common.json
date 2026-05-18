@@ -222,8 +222,41 @@
     "save": "Save feedback",
     "unsaved": "Unsaved changes",
     "charCount": "{{count}} / {{max}} characters",
+    "modeLabel": "Feedback input mode",
+    "modeText": "Type",
+    "modeVoice": "Record voice",
+    "transcribedHint": "Transcribed from your voice note — review and edit before saving.",
     "toast": {
       "saved": "Feedback saved"
+    }
+  },
+  "voice": {
+    "title": "Voice feedback",
+    "subtitle": "Record up to 5 minutes; we transcribe it to text you can edit.",
+    "start": "Start recording",
+    "stop": "Stop",
+    "submit": "Send for transcription",
+    "reset": "Discard recording",
+    "uploading": "Uploading…",
+    "status": {
+      "pending": "Queued for transcription…",
+      "transcribing": "Transcribing your recording…",
+      "done": "Transcription ready — review it in the text editor below.",
+      "failedTitle": "Transcription failed",
+      "failedGeneric": "We couldn't transcribe that recording. Try recording again, or type the feedback instead.",
+      "failedUnavailable": "The transcription service is temporarily unavailable. Try again in a minute."
+    },
+    "error": {
+      "noMediaApi": "Your browser doesn't support in-page recording. Type the feedback instead.",
+      "micDenied": "Microphone access was denied. Allow it in your browser settings, or type the feedback instead.",
+      "empty": "Nothing was recorded. Try again.",
+      "tooLarge": "That recording is too large. Max 25 MB.",
+      "quota": "You've reached your monthly voice minutes cap. Try again next month, or type the feedback.",
+      "rejected": "That audio file was rejected. Try a different recording.",
+      "uploadFailed": "Couldn't upload the recording. Try again."
+    },
+    "toast": {
+      "uploaded": "Recording uploaded — transcribing…"
     }
   },
   "games": {

@@ -16,6 +16,7 @@ import { MeModule } from './me/me.module';
 import { RequestIdMiddleware } from './middleware/request-id.middleware';
 import { PrismaModule } from './prisma/prisma.module';
 import { StudentsModule } from './students/students.module';
+import { VoiceModule } from './voice/voice.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { StudentsModule } from './students/students.module';
     GoogleIntegrationModule,
     LessonsModule,
     GamesModule,
+    VoiceModule,
     QuotaModule,
   ],
   controllers: [HealthController],

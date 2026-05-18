@@ -62,6 +62,24 @@ const EnvSchema = z.object({
   // Static admin token gating `/admin/*` routes. Optional in dev; required
   // in production by the cross-field refinement below.
   ADMIN_TOKEN: optionalString(z.string().min(16)),
+  // ---- Phase 5 — Whisper voice transcription -------------------------
+  // Optional in dev so the api boots without a real key (the
+  // FakeTranscriberClient is injected). Production smoke (Phase 10)
+  // verifies a real key is set.
+  OPENAI_API_KEY: optionalString(z.string().min(1)),
+  // Filesystem directory used to store raw audio uploads while the
+  // Whisper job is pending. Files are deleted post-transcription per
+  // spec. In dev we use a relative path under the api workdir; in prod
+  // this points at a Railway Volume mount.
+  STORAGE_DIR: z.string().min(1).default('./var/audio'),
+  // Max retries per transcription attempt before terminal failure.
+  WHISPER_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
+  // Consecutive failure count that opens the Whisper breaker (per process).
+  WHISPER_BREAKER_THRESHOLD: z.coerce.number().int().min(1).max(50).default(5),
+  // How long the Whisper breaker stays open after tripping (ms).
+  WHISPER_BREAKER_RESET_MS: z.coerce.number().int().min(1_000).max(600_000).default(60_000),
+  // In-flight job concurrency for the Whisper worker.
+  WHISPER_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

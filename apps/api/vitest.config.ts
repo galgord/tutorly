@@ -15,6 +15,7 @@ export default defineConfig({
         'src/lessons/**/*.ts',
         'src/games/**/*.ts',
         'src/quota/**/*.ts',
+        'src/voice/**/*.ts',
       ],
       exclude: [
         '**/*.test.ts',
@@ -25,10 +26,12 @@ export default defineConfig({
         'src/lessons/tenant-isolation.test.ts',
         'src/games/tenant-isolation.test.ts',
         'src/quota/quota-enforcement.test.ts',
+        'src/voice/tenant-isolation.test.ts',
         // Real provider adapters — never executed in unit tests (the fake
         // clients are injected via DI tokens instead).
         'src/integrations/google/google-calendar.real.ts',
         'src/integrations/anthropic/llm.real.ts',
+        'src/integrations/openai/whisper.real.ts',
         // Test-only seed route — used by the seed harness, not unit-tested.
         'src/integrations/google/test-fake-google.controller.ts',
       ],

@@ -6,7 +6,7 @@ Quickref for Claude Code / dev sessions on this repo. **Read this first** before
 
 A SaaS companion tool for private tutors of any subject. Tutor connects Google Calendar, manages students, writes feedback after lessons, and an LLM turns the feedback into practice games the student plays between sessions. Tutor sees progress.
 
-## Current state — Phases 0-4 + 9 done
+## Current state — Phases 0-5 + 9 done
 
 | # | Name | State | Notes |
 |---|---|---|---|
@@ -15,7 +15,7 @@ A SaaS companion tool for private tutors of any subject. Tutor connects Google C
 | 2 | Students | ✅ done | CRUD + soft delete + 30d purge cron + share token + tenant isolation |
 | 3 | Google Calendar | ✅ done (mocked) | OAuth + encrypted refresh tokens + calendar merge + manual lesson fallback. **Real Google OAuth not yet manually verified** — flagged in FOLLOWUPS.md |
 | 4 | Feedback + AI gen | ✅ done (fake LLM) | Anthropic SDK + Fake/Real swap via `LLM_CLIENT` DI token; cached system + game-type prompt blocks with strict Zod-validated output; in-process queue with retry + circuit breaker; question review modal with edit/regenerate/assign; calendar "Add feedback" student picker (Phase 3 deferral resolved). **Real-LLM smoke not run** — flagged in FOLLOWUPS.md |
-| 5 | Voice transcription | ⬜ pending | OpenAI Whisper, BullMQ job |
+| 5 | Voice transcription | ✅ done (fake Whisper) | OpenAI SDK + Fake/Real swap via `TRANSCRIBER_CLIENT` DI token; in-browser MediaRecorder + multipart upload with server-side magic-byte MIME sniff + 25MB / 5min caps; in-process Whisper queue mirroring game-generation (retry + circuit breaker + stuck-job recovery); audio deleted post-transcription; `QuotaService.reserveWhisperMinutes` atomic-SQL minute reservation with refund-on-failure; transcript pre-fills `FeedbackEditor` as a suggestion (tutor still clicks Save). **BullMQ swap + real-Whisper smoke** flagged in FOLLOWUPS.md |
 | 6 | Game engines | ⬜ pending | Fill-in-blank + lives-based timed quiz |
 | 7 | Progress dashboard | ⬜ pending | Aggregation + sparklines + topic mastery |
 | 8 | i18n + RTL + PWA | ⬜ pending | Comprehensive RTL pass + PWA install + native Hebrew QA |
@@ -176,15 +176,25 @@ Each phase has a section in the spec. Pre-phase checklist:
 
 **Calendar "Add feedback" resolution**: clicking the button opens `StudentPickerModal` (search-filtered list of the tutor's students), then creates the Lesson and navigates to its detail. Uses the canned `evt-past-1` fixture in the E2E.
 
-### Phase 5 — Voice transcription
+### Phase 5 — Voice transcription (done, reference)
 
-**Spec block**: Phase 5.
+**Where it lives**:
+- API: `apps/api/src/voice/` (controller, queue, audio-storage, audio-mime sniffer, tests), `apps/api/src/integrations/openai/` (client interface + fake + real OpenAI wrapper + module)
+- Shared: `packages/shared/src/schemas/voice.ts` + extended `LessonResponseSchema` with `transcriptionStatus`, `transcriptionError`, `hasAudio`
+- Web: `apps/web/src/components/VoiceRecorder.tsx`, `apps/web/src/lib/voice.ts`, `apps/web/src/pages/LessonDetail.tsx` (TEXT/VOICE toggle)
+- Migration: `apps/api/prisma/migrations/20260522000000_phase5_voice_transcription/` — adds `TranscriptionStatus` enum + `transcriptionStatus` / `transcriptionError` columns on Lesson (additive only)
 
-**Reference**: Phase 4's feedback service (you extend it to accept `audioUrl + transcript`).
+**Patterns Phase 6+ should mirror**:
+- **Two parallel in-process queues** (Phase 4 games, Phase 5 Whisper) share the exact same public surface: `enqueue` / `drain` / `process*` / `snapshot` + `onModuleInit` stuck-job recovery + per-process circuit breaker. BullMQ swap in Phase 10 can replace both with identical behavior.
+- **Storage seam**: `AudioStorageService` is the single point of contact with the filesystem (`save` / `absolutePath` / `delete`). Path-safety checks (no escape from `STORAGE_DIR`, sanitized filenames) live there. R2/S3 swap replaces the implementation without touching callers.
+- **MIME sniffing**: `apps/api/src/voice/audio-mime.ts` — server-side magic-byte sniff via `magic-bytes.js`. NEVER trust `Content-Type`. Allowlist: webm, ogg (returned as `ogx` by magic-bytes), mp4/m4a, wav, aac.
+- **Quota with non-unit cost**: `reserveWhisperMinutes(tutorId, minutes)` uses a raw-SQL UPDATE because Prisma doesn't expose arithmetic in `where`. The atomicity test in `quota-enforcement.test.ts` verifies 20 parallel 1-minute reserves against cap=5 produce exactly 5 successes.
+- **Transcript as suggestion, not commit**: Whisper success pre-fills `Lesson.feedbackText` and flips `transcriptionStatus = DONE` but leaves `feedbackSource` unchanged. The tutor still has to save through the existing PATCH `/lessons/:id/feedback` for the lesson to be considered "done". The web `LessonDetail` auto-switches back to the text tab and shows a "transcribed from voice" hint until save.
+- **Audit metadata never includes raw user content** — only `bytes`, `durationSeconds`, `minutesReserved`, `mime`, `localeHint`. Same boundary as Phase 4's feedback PATCH.
 
-**Build**: in-browser MediaRecorder + waveform, multipart upload, Whisper job (BullMQ), transcript review/edit before submit.
+**Web polling**: same fixed-cadence-interval discipline as Phase 4 (callback `refetchInterval` reads stale state in our setup). `useLessonAudioStatus` polls every 1.5s while the recorder is mounted; on terminal status (DONE / FAILED) it invalidates `['lesson', id]` so the editor picks up the suggestion.
 
-**Critical**: 25MB / 5min upload limits, server-side MIME sniff, audio deleted post-transcription, locale hint passed to Whisper.
+**Spec gate items**: 42 voice-specific unit tests + live-DB `voice/tenant-isolation.test.ts` (3 specs: cross-tenant 404 on upload + status, happy path) + extended `quota-enforcement.test.ts` (5 whisper-minute specs incl. atomicity) + `voice-feedback.spec.ts` Playwright (5 specs: full transcribe flow, mic-denied empty state, MIME rejection, duration cap, Hebrew + viewport flips). Real-OpenAI smoke is the one manual check called out in FOLLOWUPS.md.
 
 ### Phase 6 — Game engines
 

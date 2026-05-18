@@ -137,4 +137,105 @@ describe('Quota enforcement (live db)', () => {
     expect(agg.totalGenerationsThisMonth).toBeGreaterThanOrEqual(2);
     expect(agg.capGenerations).toBe(5);
   });
+
+  // ---- Phase 5: Whisper minute reserve/refund ---------------------------
+
+  it('whisper: sequential 5x1-minute reserves succeed, 6th refuses (under cap=60 we test a smaller cap)', async () => {
+    if (!dbReady) return;
+    // Lower the whisper cap by injecting a fresh config + service. The
+    // shared `svc` instance has cap=60 which would require too many
+    // sequential reserves to be useful.
+    const smallCapConfig = {
+      get: vi.fn((key: string) => {
+        if (key === 'GAME_GEN_MONTHLY_CAP') return 5;
+        if (key === 'WHISPER_MONTHLY_MINUTES_CAP') return 5;
+        return undefined;
+      }),
+      isProd: () => false,
+    } as unknown as ConfigService;
+    const small = new QuotaService(prisma, smallCapConfig, new AuditService(prisma));
+    for (let i = 0; i < 5; i++) {
+      const r = await small.reserveWhisperMinutes(tutorId, 1);
+      expect(r.ok, `attempt ${i + 1}`).toBe(true);
+    }
+    const over = await small.reserveWhisperMinutes(tutorId, 1);
+    expect(over.ok).toBe(false);
+    expect(over.used).toBe(5);
+    expect(over.cap).toBe(5);
+  });
+
+  it('whisper: a 3-minute reserve into a 5-cap with 4 used refuses (not partial)', async () => {
+    if (!dbReady) return;
+    const smallCapConfig = {
+      get: vi.fn((key: string) => {
+        if (key === 'GAME_GEN_MONTHLY_CAP') return 5;
+        if (key === 'WHISPER_MONTHLY_MINUTES_CAP') return 5;
+        return undefined;
+      }),
+      isProd: () => false,
+    } as unknown as ConfigService;
+    const small = new QuotaService(prisma, smallCapConfig, new AuditService(prisma));
+    await small.reserveWhisperMinutes(tutorId, 4);
+    const over = await small.reserveWhisperMinutes(tutorId, 3); // 4+3=7 > 5
+    expect(over.ok).toBe(false);
+    const after = await prisma.tutor.findUnique({
+      where: { id: tutorId },
+      select: { monthlyWhisperMinutes: true },
+    });
+    expect(after?.monthlyWhisperMinutes).toBe(4); // unchanged
+  });
+
+  it('whisper: concurrent reservations never exceed cap (atomicity)', async () => {
+    if (!dbReady) return;
+    const smallCapConfig = {
+      get: vi.fn((key: string) => {
+        if (key === 'GAME_GEN_MONTHLY_CAP') return 5;
+        if (key === 'WHISPER_MONTHLY_MINUTES_CAP') return 5;
+        return undefined;
+      }),
+      isProd: () => false,
+    } as unknown as ConfigService;
+    const small = new QuotaService(prisma, smallCapConfig, new AuditService(prisma));
+    // Fire 20 parallel 1-minute reserves against cap=5; exactly 5 succeed.
+    const attempts = await Promise.all(
+      Array.from({ length: 20 }, () => small.reserveWhisperMinutes(tutorId, 1)),
+    );
+    const ok = attempts.filter((r) => r.ok);
+    expect(ok.length).toBe(5);
+    const after = await prisma.tutor.findUnique({
+      where: { id: tutorId },
+      select: { monthlyWhisperMinutes: true },
+    });
+    expect(after?.monthlyWhisperMinutes).toBe(5);
+  });
+
+  it('whisper: refund gives minutes back; next reserve succeeds again', async () => {
+    if (!dbReady) return;
+    const smallCapConfig = {
+      get: vi.fn((key: string) => {
+        if (key === 'GAME_GEN_MONTHLY_CAP') return 5;
+        if (key === 'WHISPER_MONTHLY_MINUTES_CAP') return 5;
+        return undefined;
+      }),
+      isProd: () => false,
+    } as unknown as ConfigService;
+    const small = new QuotaService(prisma, smallCapConfig, new AuditService(prisma));
+    await small.reserveWhisperMinutes(tutorId, 5);
+    expect((await small.reserveWhisperMinutes(tutorId, 1)).ok).toBe(false);
+    await small.refundWhisperMinutes(tutorId, 2);
+    const ok = await small.reserveWhisperMinutes(tutorId, 2);
+    expect(ok.ok).toBe(true);
+  });
+
+  it('whisper: refund clamps at 0 (no negative balances)', async () => {
+    if (!dbReady) return;
+    for (let i = 0; i < 3; i++) {
+      await svc.refundWhisperMinutes(tutorId, 1);
+    }
+    const after = await prisma.tutor.findUnique({
+      where: { id: tutorId },
+      select: { monthlyWhisperMinutes: true },
+    });
+    expect(after?.monthlyWhisperMinutes).toBe(0);
+  });
 });

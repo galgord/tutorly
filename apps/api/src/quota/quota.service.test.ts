@@ -94,6 +94,86 @@ describe('QuotaService.refundGeneration', () => {
   });
 });
 
+describe('QuotaService.reserveWhisperMinutes', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('reserves when under cap (raw UPDATE returns >0 rows)', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.$executeRaw).mockResolvedValue(1 as never);
+    vi.mocked(prisma.tutor.findUnique).mockResolvedValue({
+      monthlyWhisperMinutes: 5,
+      monthlyWhisperResetAt: new Date('2026-05-01T00:00:00Z'),
+    } as never);
+    const r = await svc.reserveWhisperMinutes('tutor_a', 3);
+    expect(r.ok).toBe(true);
+    expect(r.used).toBe(5);
+    expect(r.cap).toBe(60);
+  });
+
+  it('refuses when over cap (0 rows) + audits the rejection', async () => {
+    const { svc, prisma, audit } = makeService();
+    vi.mocked(prisma.$executeRaw).mockResolvedValue(0 as never);
+    vi.mocked(prisma.tutor.findUnique).mockResolvedValue({
+      monthlyWhisperMinutes: 59,
+      monthlyWhisperResetAt: new Date('2026-05-01T00:00:00Z'),
+    } as never);
+    const r = await svc.reserveWhisperMinutes('tutor_a', 5);
+    expect(r.ok).toBe(false);
+    expect(r.used).toBe(59);
+    const auditCall = vi.mocked(audit.record).mock.calls[0]?.[0];
+    expect(auditCall?.action).toBe('quota.whisper.exceeded');
+  });
+
+  it('refuses zero / negative / non-integer minutes (defense in depth)', async () => {
+    const { svc } = makeService();
+    await expect(svc.reserveWhisperMinutes('tutor_a', 0)).rejects.toThrow(/positive integer/);
+    await expect(svc.reserveWhisperMinutes('tutor_a', -1)).rejects.toThrow(/positive integer/);
+    await expect(svc.reserveWhisperMinutes('tutor_a', 1.5)).rejects.toThrow(/positive integer/);
+  });
+
+  it('returns refused state when tutor row vanished', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.$executeRaw).mockResolvedValue(1 as never);
+    vi.mocked(prisma.tutor.findUnique).mockResolvedValue(null as never);
+    const r = await svc.reserveWhisperMinutes('tutor_a', 1);
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe('QuotaService.refundWhisperMinutes', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('decrements when balance >= refund amount + audits', async () => {
+    const { svc, prisma, audit } = makeService();
+    vi.mocked(prisma.tutor.updateMany).mockResolvedValue({ count: 1 } as never);
+    await svc.refundWhisperMinutes('tutor_a', 2);
+    const call = vi.mocked(prisma.tutor.updateMany).mock.calls[0]?.[0];
+    expect(call?.where).toEqual({ id: 'tutor_a', monthlyWhisperMinutes: { gte: 2 } });
+    expect(call?.data).toEqual({ monthlyWhisperMinutes: { decrement: 2 } });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'quota.whisper.refunded' }),
+    );
+  });
+
+  it('clamps to 0 when the gte predicate fails (no negative balances)', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.tutor.updateMany).mockResolvedValue({ count: 0 } as never);
+    vi.mocked(prisma.tutor.update).mockResolvedValue({} as never);
+    await svc.refundWhisperMinutes('tutor_a', 5);
+    expect(prisma.tutor.update).toHaveBeenCalledWith({
+      where: { id: 'tutor_a' },
+      data: { monthlyWhisperMinutes: 0 },
+    });
+  });
+
+  it('no-ops on zero / negative amounts', async () => {
+    const { svc, prisma } = makeService();
+    await svc.refundWhisperMinutes('tutor_a', 0);
+    await svc.refundWhisperMinutes('tutor_a', -1);
+    expect(prisma.tutor.updateMany).not.toHaveBeenCalled();
+  });
+});
+
 describe('QuotaService.getUsage', () => {
   beforeEach(() => vi.clearAllMocks());
 

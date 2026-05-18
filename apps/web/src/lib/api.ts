@@ -22,6 +22,7 @@ import type {
   RotateTokenResponse,
   StudentListResponse,
   StudentResponse,
+  TranscriptionStatusResponse,
   UpdateFeedbackRequest,
   UpdateGameRequest,
   UpdateLessonCalendarsRequest,
@@ -150,6 +151,38 @@ export const api = {
   },
   setLessonFeedback: (id: string, body: UpdateFeedbackRequest): Promise<LessonResponse> =>
     request(`/lessons/${encodeURIComponent(id)}/feedback`, { method: 'PATCH', body }),
+
+  // Voice (Phase 5) ------------------------------------------------------
+  uploadLessonAudio: async (
+    id: string,
+    opts: { blob: Blob; durationSeconds: number; fileName?: string },
+  ): Promise<TranscriptionStatusResponse> => {
+    const form = new FormData();
+    form.append('audio', opts.blob, opts.fileName ?? 'audio.webm');
+    form.append('durationSeconds', String(Math.ceil(opts.durationSeconds)));
+    const csrf = readCsrfToken();
+    const headers: Record<string, string> = {};
+    if (csrf) headers[CSRF_HEADER] = csrf;
+    const res = await fetch(`${API_BASE}/lessons/${encodeURIComponent(id)}/audio`, {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+      body: form,
+    });
+    if (res.status === 204) return undefined as never;
+    const text = await res.text();
+    const data = text ? (JSON.parse(text) as unknown) : undefined;
+    if (!res.ok) {
+      const message =
+        typeof data === 'object' && data && 'message' in data
+          ? String((data as { message: unknown }).message)
+          : `HTTP ${res.status}`;
+      throw new ApiError(res.status, message, data);
+    }
+    return data as TranscriptionStatusResponse;
+  },
+  lessonAudioStatus: (id: string): Promise<TranscriptionStatusResponse> =>
+    request(`/lessons/${encodeURIComponent(id)}/audio`),
 
   // Games -----------------------------------------------------------------
   listGames: (lessonId: string): Promise<GameListResponse> =>

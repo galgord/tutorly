@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FeedbackSourceSchema } from './feedback.js';
+import { TranscriptionStatusSchema } from './voice.js';
 
 // ---- Lessons -----------------------------------------------------------
 
@@ -46,6 +47,9 @@ export const LessonResponseSchema = z.object({
   googleEventId: z.string().nullable(),
   feedbackText: z.string().nullable(),
   feedbackSource: FeedbackSourceSchema,
+  transcriptionStatus: TranscriptionStatusSchema,
+  transcriptionError: z.string().nullable(),
+  hasAudio: z.boolean(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   deletedAt: z.string().datetime().nullable(),

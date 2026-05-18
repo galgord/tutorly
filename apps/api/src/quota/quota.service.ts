@@ -98,6 +98,107 @@ export class QuotaService {
     };
   }
 
+  // ---- Whisper transcription (Phase 5) --------------------------------
+
+  /**
+   * Atomic minute reservation for a Whisper job. Mirrors the
+   * `reserveGeneration` shape: an `UPDATE ... WHERE
+   * monthlyWhisperMinutes + N <= cap` predicate so concurrent uploads
+   * from the same tutor cannot blow past the cap.
+   *
+   * The `minutes` arg is the ceil() of the uploaded audio's duration in
+   * minutes (passed by the controller after the client-reported value
+   * is sanity-checked). Refunded if Whisper hits terminal failure.
+   *
+   * Implementation detail: Prisma doesn't expose arithmetic in the
+   * `where` clause, so we emit raw SQL for the check. The refund path
+   * uses Prisma's `updateMany` because the clamp is a simple `>= N`.
+   */
+  async reserveWhisperMinutes(
+    tutorId: string,
+    minutes: number,
+  ): Promise<ReserveResult> {
+    const cap = this.config.get('WHISPER_MONTHLY_MINUTES_CAP');
+    if (!Number.isInteger(minutes) || minutes <= 0) {
+      // Defense in depth — controller should have rejected non-positive
+      // values, but the quota layer enforces invariants too.
+      throw new Error('reserveWhisperMinutes: minutes must be a positive integer.');
+    }
+
+    // Atomic check + increment via raw SQL: Postgres serializes the
+    // UPDATE so 20 concurrent reserves against the same tutor can never
+    // collectively exceed the cap.
+    const rows = await this.prisma.$executeRaw`
+      UPDATE "Tutor"
+         SET "monthlyWhisperMinutes" = "monthlyWhisperMinutes" + ${minutes}
+       WHERE id = ${tutorId}
+         AND "monthlyWhisperMinutes" + ${minutes} <= ${cap}
+    `;
+
+    const after = await this.prisma.tutor.findUnique({
+      where: { id: tutorId },
+      select: { monthlyWhisperMinutes: true, monthlyWhisperResetAt: true },
+    });
+    if (!after) {
+      return { ok: false, used: cap, cap, resetsAt: new Date() };
+    }
+
+    if (rows === 0) {
+      await this.audit.record({
+        tutorId,
+        actorType: ActorType.SYSTEM,
+        action: 'quota.whisper.exceeded',
+        entityType: 'Tutor',
+        entityId: tutorId,
+        metadata: { cap, used: after.monthlyWhisperMinutes, requested: minutes },
+      });
+      return {
+        ok: false,
+        used: after.monthlyWhisperMinutes,
+        cap,
+        resetsAt: nextResetDate(after.monthlyWhisperResetAt),
+      };
+    }
+    return {
+      ok: true,
+      used: after.monthlyWhisperMinutes,
+      cap,
+      resetsAt: nextResetDate(after.monthlyWhisperResetAt),
+    };
+  }
+
+  /**
+   * Give back Whisper minutes consumed by `reserveWhisperMinutes` when
+   * the underlying job hits a terminal failure (provider outage, schema
+   * mismatch, etc.). Clamps at 0 so a concurrent reset can't drive the
+   * counter negative.
+   */
+  async refundWhisperMinutes(tutorId: string, minutes: number): Promise<void> {
+    if (!Number.isInteger(minutes) || minutes <= 0) return;
+    const result = await this.prisma.tutor.updateMany({
+      where: { id: tutorId, monthlyWhisperMinutes: { gte: minutes } },
+      data: { monthlyWhisperMinutes: { decrement: minutes } },
+    });
+    if (result.count > 0) {
+      await this.audit.record({
+        tutorId,
+        actorType: ActorType.SYSTEM,
+        action: 'quota.whisper.refunded',
+        entityType: 'Tutor',
+        entityId: tutorId,
+        metadata: { minutes },
+      });
+    } else {
+      // The tutor doesn't have enough minutes to refund — clamp to 0
+      // instead of refusing. Happens if the monthly reset cron ran
+      // between reserve and refund.
+      await this.prisma.tutor.update({
+        where: { id: tutorId },
+        data: { monthlyWhisperMinutes: 0 },
+      });
+    }
+  }
+
   /**
    * Give back a slot consumed by `reserveGeneration` when the underlying
    * generation hits a terminal failure. We don't try to be clever about

@@ -51,6 +51,7 @@ export function makePrismaMock(): PrismaService {
       findUnique: stub(),
       findMany: stub(),
       update: stub(),
+      updateMany: stub(),
       delete: stub(),
       deleteMany: stub(),
       count: stub(),
@@ -84,5 +85,7 @@ export function makePrismaMock(): PrismaService {
       deleteMany: stub(),
     },
     $transaction: vi.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
+    $executeRaw: vi.fn(async () => 0 as unknown as number),
+    $queryRaw: vi.fn(async () => [] as unknown[]),
   } as unknown as PrismaService;
 }

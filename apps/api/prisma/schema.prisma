@@ -120,25 +120,45 @@ enum FeedbackSource {
   VOICE
 }
 
+// Phase 5: lifecycle of the Whisper transcription for a lesson's audio
+// upload. Distinct from FeedbackSource (which records how the saved
+// feedback was produced) because a lesson can be in TRANSCRIBING while
+// its final feedbackText hasn't been confirmed yet.
+enum TranscriptionStatus {
+  NONE
+  PENDING
+  TRANSCRIBING
+  DONE
+  FAILED
+}
+
 model Lesson {
-  id             String         @id @default(cuid())
-  studentId      String
-  googleEventId  String?
-  source         LessonSource   @default(MANUAL)
-  title          String?
-  occurredAt     DateTime
-  feedbackText   String?
-  feedbackSource FeedbackSource @default(TEXT)
-  audioUrl       String?
-  deletedAt      DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                   String              @id @default(cuid())
+  studentId            String
+  googleEventId        String?
+  source               LessonSource        @default(MANUAL)
+  title                String?
+  occurredAt           DateTime
+  feedbackText         String?
+  feedbackSource       FeedbackSource      @default(TEXT)
+  // Phase 5: storage-relative path to the uploaded audio while
+  // transcription is pending; NULL after Whisper succeeds (audio is
+  // deleted post-transcription per spec).
+  audioUrl             String?
+  transcriptionStatus  TranscriptionStatus @default(NONE)
+  // Tutor-safe error message (no stack traces) populated only when the
+  // job hits terminal FAILED. Cleared on retry.
+  transcriptionError   String?
+  deletedAt            DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   games   Game[]
 
   @@index([studentId, occurredAt])
   @@index([deletedAt])
+  @@index([transcriptionStatus])
 }
 
 enum GameType {

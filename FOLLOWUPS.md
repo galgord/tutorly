@@ -18,16 +18,24 @@ Small items deferred during Phases 0-4 + 9. None are blocking; pick them up when
 
 ## Phase 4 → later-phase handoff (queue + LLM patterns)
 
-- **BullMQ swap (Phase 5 or 10)**: Phase 4 ships an in-process queue (`apps/api/src/games/game-generation.queue.ts`) because Phase 5 introduces Whisper which is the natural moment to bring BullMQ in. The queue's public surface — `enqueue`, `drain`, `processGeneration`, `snapshot` — should stay identical so the swap is a contained change. The stuck-job recovery in `onModuleInit` becomes a no-op once BullMQ persists jobs; remove it then.
+- **BullMQ swap (Phase 10)**: Phase 5 ships a SECOND in-process queue (`apps/api/src/voice/whisper-job.queue.ts`) using the same public surface as the games queue (`enqueue`, `drain`, `processTranscription`, `snapshot`). Both should swap to BullMQ together in Phase 10 so the deploy gains durable jobs across api restarts. Stuck-job recovery in `onModuleInit` becomes a no-op once BullMQ persists; remove it then.
 - **Single-question regenerate runs synchronously, bypassing retries**: see `GameGenerationQueue.regenerateSingle`. The tutor is staring at the review modal — quick failure beats a slow retry. If you change this, the controller's UX assumption changes too.
 - [x] **Game status FAILED is terminal but recoverable** — handled in Phase 9. The queue refunds the tutor's quota slot on terminal FAILED via the `tutorByJob` side-table. The regenerate-all path runs `reserveGeneration` BEFORE flipping status, so double-charges aren't possible.
 
 ## Phase 9 — handoff to Phase 5 (Whisper) + Phase 10 (deploy)
 
-- **Whisper minute increment lives with Phase 5**. The `Tutor.monthlyWhisperMinutes` column + `WHISPER_MONTHLY_MINUTES_CAP` env var + reset cron are scaffolded by Phase 9. Phase 5's Whisper job needs to call a new `QuotaService.reserveWhisperMinutes(tutorId, minutes)` that mirrors `reserveGeneration` (atomic UPDATE with `lt: cap` predicate). The `/admin/usage` endpoint already surfaces the aggregate sum.
+- [x] **Whisper minute increment** — wired in Phase 5 via `QuotaService.reserveWhisperMinutes` / `refundWhisperMinutes` (atomic UPDATE with `monthlyWhisperMinutes + N <= cap` raw-SQL predicate; concurrent uploads can never collectively exceed the cap, verified in `quota-enforcement.test.ts`).
 - **`ADMIN_TOKEN` must be set in production**. The env loader makes it optional in dev (the admin endpoint 403s if unset), but Phase 10's deploy checklist needs an explicit "generate + set ADMIN_TOKEN" step. Suggested entropy: `openssl rand -hex 32`.
 - **Real-Anthropic cache-hit smoke** — see also the Phase 4 follow-up. Phase 9's gate calls for verifying `usage.cache_read_input_tokens > 0` on the second call in a session. The `LlmGenerationResult.usage.cachedInputTokens` field is wired through `RealAnthropicLlmClient`; do the manual smoke once a real key is available, capture the numbers in a note.
 - **Per-tutor cost dashboard** — current `/admin/usage` is aggregate-only. Phase 10's ops checklist may want per-tutor breakdown for spike investigation. Easy to add: extend `getAggregateUsage` with a `topConsumers` slice (top N by `monthlyGenerations`).
+
+## Phase 5 — handoff to later phases
+
+- **Real-OpenAI Whisper smoke** — Phase 5 ships with `FakeTranscriberClient` so dev/CI never burns credit. One manual happy-path test against real Whisper with a sample WAV (en + he tutor locale) should run before Phase 10. The real client is at `apps/api/src/integrations/openai/whisper.real.ts` and auto-injects when `OPENAI_API_KEY` is set. Document the recording + expected transcript so it's reproducible.
+- **R2/S3 object storage migration** — v1 stores audio on local filesystem under `STORAGE_DIR` (Railway Volume in prod). The `AudioStorageService` is a single seam — replace `save` / `absolutePath` / `delete` with R2 SDK calls when storage volume / multi-region access becomes a need. Audit metadata (`bytes`, `durationSeconds`) doesn't depend on the storage backend so no DB migration required.
+- **Whisper client-side downsample to 16kHz mono opus**: the spec mentions it under cost controls. The recorder requests `audioBitsPerSecond: 24_000` and prefers `audio/webm;codecs=opus`, which MediaRecorder honors in Chrome/Firefox/Edge. Safari ignores the codec hint and produces mp4 (still accepted). True 16k mono downsampling pre-upload would need an OfflineAudioContext pass; defer until cost data shows it's worth the complexity.
+- **Audio duration trust** — the upload endpoint currently believes the client's `durationSeconds` form field (clamped to 0–300). Server-side audio decode for the true duration would be the next hardening step — would need `ffprobe` (or an equivalent JS decoder) added to the api image. Low-priority because the cap is per-tutor monthly, so over-reporting just makes the tutor hit their own cap sooner.
+- **Whisper queue concurrency env (`WHISPER_CONCURRENCY`)** is wired but not enforced (the in-process queue is single-threaded by setImmediate scheduling). BullMQ swap in Phase 10 should honor it — the worker config takes a `concurrency` option directly.
 
 ## Bigger pieces (any phase)
 

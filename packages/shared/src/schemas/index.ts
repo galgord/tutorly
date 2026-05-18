@@ -15,3 +15,4 @@ export * from './integration.js';
 export * from './lesson.js';
 export * from './feedback.js';
 export * from './games.js';
+export * from './voice.js';

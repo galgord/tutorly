@@ -15,6 +15,8 @@ function fakeLesson(over: Partial<Record<string, unknown>> = {}) {
     feedbackText: null,
     feedbackSource: 'TEXT',
     audioUrl: null,
+    transcriptionStatus: 'NONE',
+    transcriptionError: null,
     deletedAt: (over.deletedAt as Date | null | undefined) ?? null,
     createdAt: (over.createdAt as Date | undefined) ?? new Date('2026-05-01T00:00:00Z'),
     updatedAt: (over.updatedAt as Date | undefined) ?? new Date('2026-05-01T00:00:00Z'),

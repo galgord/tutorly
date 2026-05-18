@@ -20,6 +20,8 @@ function fakeLesson(over: Partial<Record<string, unknown>> = {}) {
     feedbackText: null,
     feedbackSource: 'TEXT',
     audioUrl: null,
+    transcriptionStatus: 'NONE',
+    transcriptionError: null,
     deletedAt: (over.deletedAt as Date | null | undefined) ?? null,
     createdAt: (over.createdAt as Date | undefined) ?? new Date('2026-05-01T00:00:00Z'),
     updatedAt: (over.updatedAt as Date | undefined) ?? new Date('2026-05-01T00:00:00Z'),
@@ -347,6 +349,8 @@ describe('serializeLesson', () => {
       feedbackText: null,
       feedbackSource: 'TEXT' as never,
       audioUrl: null,
+      transcriptionStatus: 'NONE' as never,
+      transcriptionError: null,
       deletedAt: null,
       createdAt: new Date('2026-05-01T00:00:00Z'),
       updatedAt: new Date('2026-05-01T00:00:00Z'),
@@ -358,5 +362,9 @@ describe('serializeLesson', () => {
     // audioUrl stays private — the public API never includes the raw URL
     // even when it's set (the asset is signed/short-lived in Phase 5).
     expect(out).not.toHaveProperty('audioUrl');
+    // Phase 5: hasAudio + transcriptionStatus are public so the UI can
+    // surface the recorder state without exposing the storage path.
+    expect(out.hasAudio).toBe(false);
+    expect(out.transcriptionStatus).toBe('NONE');
   });
 });

@@ -16,6 +16,7 @@ export default defineConfig({
         'src/games/**/*.ts',
         'src/quota/**/*.ts',
         'src/voice/**/*.ts',
+        'src/attempts/**/*.ts',
       ],
       exclude: [
         '**/*.test.ts',
@@ -27,6 +28,7 @@ export default defineConfig({
         'src/games/tenant-isolation.test.ts',
         'src/quota/quota-enforcement.test.ts',
         'src/voice/tenant-isolation.test.ts',
+        'src/attempts/tenant-isolation.test.ts',
         // Real provider adapters — never executed in unit tests (the fake
         // clients are injected via DI tokens instead).
         'src/integrations/google/google-calendar.real.ts',

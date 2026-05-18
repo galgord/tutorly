@@ -4,9 +4,10 @@ import { PublicStudentResponseSchema, type PublicStudentResponse } from '@tutor-
 import { StudentTokenGuard, type StudentTokenRequest } from './student-token.guard';
 
 /**
- * Public student dashboard endpoints. Authorized by URL share token only —
- * NO session cookie, NO tutorId scoping. Mounted under `/s/:shareToken` and
- * throttled tighter than tutor routes to slow share-token brute-forcing.
+ * Minimal "is this token live + greet by name" endpoint. Phase 6's
+ * dashboard (assigned games + best-score badges) lives in the
+ * AttemptsModule's controller to keep the StudentsModule decoupled
+ * from the games/attempts data layer.
  */
 @Controller('s/:shareToken')
 @UseGuards(StudentTokenGuard)

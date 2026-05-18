@@ -80,6 +80,14 @@ const EnvSchema = z.object({
   WHISPER_BREAKER_RESET_MS: z.coerce.number().int().min(1_000).max(600_000).default(60_000),
   // In-flight job concurrency for the Whisper worker.
   WHISPER_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+  // ---- Phase 6 — Attempts / game-engines ----------------------------
+  // Hours of inactivity before the abandoned-attempt cron force-finishes
+  // an unfinished attempt. Spec default 24h; tests stub down to seconds.
+  ATTEMPT_ABANDON_AFTER_HOURS: z.coerce.number().int().min(1).max(720).default(24),
+  // Server-side sampling size per attempt. Spec defaults: 10 fill-blank,
+  // 20 timed-quiz. Bump per env if pool sizes grow.
+  FILL_BLANK_SESSION_SIZE: z.coerce.number().int().min(1).max(50).default(10),
+  TIMED_QUIZ_SESSION_SIZE: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

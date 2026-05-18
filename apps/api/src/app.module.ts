@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
+import { AttemptsModule } from './attempts/attempts.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
@@ -52,6 +53,7 @@ import { VoiceModule } from './voice/voice.module';
     LessonsModule,
     GamesModule,
     VoiceModule,
+    AttemptsModule,
     QuotaModule,
   ],
   controllers: [HealthController],

@@ -15,6 +15,7 @@ import { DashboardPage } from './pages/Dashboard';
 import { LessonDetailPage } from './pages/LessonDetail';
 import { LoginPage } from './pages/Login';
 import { NotFoundPage } from './pages/NotFound';
+import { PlayGamePage } from './pages/PlayGame';
 import { PublicStudentPage } from './pages/PublicStudent';
 import { SettingsPage } from './pages/Settings';
 import { SettingsIntegrationsPage } from './pages/SettingsIntegrations';
@@ -126,6 +127,13 @@ const publicStudentRoute = createRoute({
   component: PublicStudentPage,
 });
 
+// Public play screen — same token gate, per-game route.
+const publicPlayRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/s/$shareToken/play/$gameId',
+  component: PlayGamePage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -140,6 +148,7 @@ const routeTree = rootRoute.addChildren([
   studentsTrashRoute,
   studentDetailRoute,
   publicStudentRoute,
+  publicPlayRoute,
 ]);
 
 export const router = createRouter({ routeTree });

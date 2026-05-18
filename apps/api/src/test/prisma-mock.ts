@@ -73,9 +73,12 @@ export function makePrismaMock(): PrismaService {
       findUnique: stub(),
       findMany: stub(),
       update: stub(),
+      updateMany: stub(),
       delete: stub(),
       deleteMany: stub(),
       count: stub(),
+      aggregate: stub(),
+      groupBy: stub(),
     },
     oAuthState: {
       create: stub(),

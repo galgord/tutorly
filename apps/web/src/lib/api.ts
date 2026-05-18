@@ -5,6 +5,7 @@ import type {
   CreateGameRequest,
   CreateLessonRequest,
   CreateStudentRequest,
+  FinishAttemptResponse,
   GameListResponse,
   GameResponse,
   IntegrationErrorResponse,
@@ -17,11 +18,15 @@ import type {
   MagicLinkRequest,
   MagicLinkResponse,
   MeResponse,
+  PublicStudentDashboardResponse,
   PublicStudentResponse,
   RegenerateQuestionRequest,
   RotateTokenResponse,
+  StartAttemptResponse,
   StudentListResponse,
   StudentResponse,
+  SubmitAnswerRequest,
+  SubmitAnswerResponse,
   TranscriptionStatusResponse,
   UpdateFeedbackRequest,
   UpdateGameRequest,
@@ -127,6 +132,27 @@ export const api = {
   // Public (token-based) --------------------------------------------------
   publicStudent: (shareToken: string): Promise<PublicStudentResponse> =>
     request(`/s/${encodeURIComponent(shareToken)}/student`),
+  publicStudentDashboard: (shareToken: string): Promise<PublicStudentDashboardResponse> =>
+    request(`/s/${encodeURIComponent(shareToken)}/dashboard`),
+  startAttempt: (shareToken: string, gameId: string): Promise<StartAttemptResponse> =>
+    request(
+      `/s/${encodeURIComponent(shareToken)}/games/${encodeURIComponent(gameId)}/attempts`,
+      { method: 'POST', body: {} },
+    ),
+  submitAttemptAnswer: (
+    shareToken: string,
+    attemptId: string,
+    body: SubmitAnswerRequest,
+  ): Promise<SubmitAnswerResponse> =>
+    request(
+      `/s/${encodeURIComponent(shareToken)}/attempts/${encodeURIComponent(attemptId)}/answers`,
+      { method: 'PATCH', body },
+    ),
+  finishAttempt: (shareToken: string, attemptId: string): Promise<FinishAttemptResponse> =>
+    request(
+      `/s/${encodeURIComponent(shareToken)}/attempts/${encodeURIComponent(attemptId)}/finish`,
+      { method: 'POST', body: {} },
+    ),
 
   // Lessons ---------------------------------------------------------------
   listLessons: (query: ListLessonsQuery): Promise<LessonListResponse> => {

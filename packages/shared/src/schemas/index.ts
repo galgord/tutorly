@@ -16,3 +16,5 @@ export * from './lesson.js';
 export * from './feedback.js';
 export * from './games.js';
 export * from './voice.js';
+export * from './answers.js';
+export * from './attempts.js';

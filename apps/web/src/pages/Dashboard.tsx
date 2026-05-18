@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Bidi } from '../components/Bidi';
+import { InstallPrompt } from '../components/InstallPrompt';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { api } from '../lib/api';
 import { useMe } from '../lib/auth';
 
@@ -33,6 +35,8 @@ export function DashboardPage() {
 
   return (
     <section data-testid="dashboard" className="space-y-6">
+      <OfflineBanner />
+      <InstallPrompt />
       <header>
         <h1 className="text-2xl font-semibold">
           {t('dashboard.welcome', { name: me.data.name ?? me.data.email.split('@')[0] }) as string}{' '}

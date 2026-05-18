@@ -3,8 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  /* Hebrew body type uses the Heebo/Rubik stack (lazy-loaded by
+     `useDirection.ts`). Slightly looser leading because Hebrew glyphs sit
+     closer to the baseline than Latin and benefit from extra vertical room. */
   html[dir='rtl'] body {
     font-family: theme('fontFamily.hebrew');
+    line-height: 1.625; /* matches Tailwind's leading-relaxed */
   }
 
   /* Hebrew has no italic glyphs — render italic as bold instead. */
@@ -19,5 +23,25 @@
      "next" arrows, etc. Non-directional icons (search, settings, trash) never get this class. */
   html[dir='rtl'] .icon-flip {
     transform: scaleX(-1);
+  }
+
+  /* Pseudo-localization mode marker — a thin striped band at the top of the
+     viewport so QA can confirm at a glance that pseudo mode is active. */
+  html.pseudo-active::before {
+    content: '';
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    inset-inline-end: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      #ec4899 0,
+      #ec4899 16px,
+      #8b5cf6 16px,
+      #8b5cf6 32px
+    );
+    z-index: 9999;
+    pointer-events: none;
   }
 }

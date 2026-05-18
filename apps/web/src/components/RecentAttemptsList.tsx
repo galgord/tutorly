@@ -141,9 +141,14 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
             type="button"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
-            className="rounded border border-slate-300 px-2 py-1 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 disabled:opacity-50"
             data-testid="attempts-prev"
           >
+            {/* Directional arrow — flipped automatically in RTL via the
+                global `.icon-flip` rule in styles.css. */}
+            <span aria-hidden="true" className="icon-flip" data-testid="attempts-prev-arrow">
+              ←
+            </span>
             {t('progress.attempts.prev')}
           </button>
           <span className="text-slate-600">
@@ -153,10 +158,13 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
             type="button"
             disabled={!data.hasMore}
             onClick={() => onPageChange(page + 1)}
-            className="rounded border border-slate-300 px-2 py-1 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 disabled:opacity-50"
             data-testid="attempts-next"
           >
             {t('progress.attempts.next')}
+            <span aria-hidden="true" className="icon-flip" data-testid="attempts-next-arrow">
+              →
+            </span>
           </button>
         </div>
       )}

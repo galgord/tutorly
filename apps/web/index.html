@@ -2,7 +2,9 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/pwa-favicon.png" />
+    <link rel="apple-touch-icon" href="/pwa-192.png" />
+    <meta name="theme-color" content="#0f172a" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Tutor App</title>
     <script>
@@ -14,10 +16,16 @@
         var stored = null;
         try { stored = localStorage.getItem('locale'); } catch (_) {}
         var nav = (navigator.language || 'en').slice(0, 2);
-        var locale = override || stored || (['en', 'pt', 'he'].indexOf(nav) >= 0 ? nav : 'en');
+        var supported = ['en', 'pt', 'he', 'pseudo'];
+        var locale = (override && supported.indexOf(override) >= 0) ? override
+          : stored && supported.indexOf(stored) >= 0 ? stored
+          : (['en', 'pt', 'he'].indexOf(nav) >= 0 ? nav : 'en');
         var dir = locale === 'he' ? 'rtl' : 'ltr';
         document.documentElement.setAttribute('lang', locale);
         document.documentElement.setAttribute('dir', dir);
+        if (locale === 'pseudo') {
+          document.documentElement.classList.add('pseudo-active');
+        }
       })();
     </script>
   </head>

@@ -195,6 +195,7 @@
       "noneSelected": "Pick at least one lesson calendar to start syncing.",
       "reconnectBanner": "Google connection expired. Reconnect to restore your calendar view.",
       "loadingCalendars": "Loading your calendars…",
+      "primaryBadge": "primary",
       "errors": {
         "quota": "Google rate-limited the request. Try again in a minute.",
         "unavailable": "Google is temporarily unavailable. Try again shortly.",
@@ -414,5 +415,14 @@
       "olderHistory": "Older history",
       "monthlySummary": "{{count}} attempts · avg {{avg}}"
     }
+  },
+  "pwa": {
+    "install": {
+      "title": "Install Tutor App",
+      "body": "Add it to your home screen for one-tap access and a full-screen experience.",
+      "cta": "Install",
+      "dismiss": "Not now"
+    },
+    "offline": "You're offline. Some actions may not work until your connection is back."
   }
 }

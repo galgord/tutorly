@@ -195,6 +195,7 @@
       "noneSelected": "Escolha pelo menos uma agenda para começar a sincronizar.",
       "reconnectBanner": "A ligação ao Google expirou. Reconecte para restaurar a visão do calendário.",
       "loadingCalendars": "A carregar as suas agendas…",
+      "primaryBadge": "principal",
       "errors": {
         "quota": "O Google limitou os pedidos. Tente novamente daqui a um minuto.",
         "unavailable": "Google está temporariamente indisponível. Tente novamente em breve.",
@@ -414,5 +415,14 @@
       "olderHistory": "Histórico antigo",
       "monthlySummary": "{{count}} tentativas · média {{avg}}"
     }
+  },
+  "pwa": {
+    "install": {
+      "title": "Instalar o Tutor App",
+      "body": "Adicione à tela inicial para acesso rápido e uma experiência em tela cheia.",
+      "cta": "Instalar",
+      "dismiss": "Agora não"
+    },
+    "offline": "Você está offline. Algumas ações podem não funcionar até a conexão voltar."
   }
 }

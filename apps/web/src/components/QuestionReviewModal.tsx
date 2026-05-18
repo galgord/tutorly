@@ -135,8 +135,19 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
         data-testid="question-review-modal"
         className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-lg bg-white p-6 shadow-xl"
       >
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-start gap-2">
+          <button
+            type="button"
+            aria-label={t('common.close')}
+            onClick={onClose}
+            // Close sits on the inline-start edge (visual-left in LTR,
+            // visual-right in RTL) per Phase 8 RTL convention.
+            className="me-1 text-slate-400 hover:text-slate-600"
+            data-testid="review-close"
+          >
+            ×
+          </button>
+          <div className="flex-1">
             <h2 id="review-title" className="text-lg font-semibold">
               {game ? <Bidi>{game.title}</Bidi> : t('review.loadingTitle')}
             </h2>
@@ -148,15 +159,6 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
                   : t('review.subtitleGeneric')}
             </p>
           </div>
-          <button
-            type="button"
-            aria-label={t('common.close')}
-            onClick={onClose}
-            className="ms-2 text-slate-400 hover:text-slate-600"
-            data-testid="review-close"
-          >
-            ×
-          </button>
         </div>
 
         {isGenerating && (

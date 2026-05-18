@@ -72,22 +72,25 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         data-testid={props.testId}
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
       >
-        <div className="flex items-start justify-between">
-          <h2
-            id="confirm-title"
-            className={`text-lg font-semibold ${props.destructive ? 'text-rose-900' : 'text-slate-900'}`}
-          >
-            {props.title}
-          </h2>
+        <div className="flex items-start gap-2">
           <button
             type="button"
             aria-label={t('common.close')}
             onClick={props.onCancel}
-            // Visual-end of header (rendered on visual right in LTR, visual left in RTL).
-            className="ms-2 text-slate-400 hover:text-slate-600"
+            // Inline-start of the header so the dismiss affordance is the
+            // first thing on the visual-left in LTR / visual-right in RTL —
+            // mirrors the macOS / iOS modal convention.
+            className="me-1 text-slate-400 hover:text-slate-600"
+            data-testid="confirm-close"
           >
             ×
           </button>
+          <h2
+            id="confirm-title"
+            className={`flex-1 text-lg font-semibold ${props.destructive ? 'text-rose-900' : 'text-slate-900'}`}
+          >
+            {props.title}
+          </h2>
         </div>
         <div className="mt-3 text-sm text-slate-700">{props.body}</div>
 

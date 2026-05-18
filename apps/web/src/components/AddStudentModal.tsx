@@ -71,18 +71,20 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
         data-testid="add-student-modal"
       >
-        <div className="flex items-start justify-between">
-          <h2 id="add-student-title" className="text-lg font-semibold">
-            {t('students.add.title')}
-          </h2>
+        <div className="flex items-start gap-2">
           <button
             type="button"
             aria-label={t('common.close')}
             onClick={onClose}
-            className="ms-2 text-slate-400 hover:text-slate-600"
+            // Close sits on the inline-start edge (visual-left in LTR,
+            // visual-right in RTL) per Phase 8 RTL convention.
+            className="me-1 text-slate-400 hover:text-slate-600"
           >
             ×
           </button>
+          <h2 id="add-student-title" className="flex-1 text-lg font-semibold">
+            {t('students.add.title')}
+          </h2>
         </div>
 
         <label htmlFor="new-student-name" className="mt-4 block text-sm font-medium">

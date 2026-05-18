@@ -168,7 +168,7 @@ export function SettingsIntegrationsPage() {
                 <Bidi>{c.summary}</Bidi>
                 {c.primary && (
                   <span className="ms-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">
-                    primary
+                    {t('integrations.google.primaryBadge')}
                   </span>
                 )}
               </label>

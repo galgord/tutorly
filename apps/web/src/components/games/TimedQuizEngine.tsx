@@ -269,11 +269,17 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
               type="button"
               data-testid="play-next"
               onClick={next}
-              className="rounded bg-slate-900 px-5 py-2 text-sm font-medium text-white"
+              className="inline-flex items-center gap-2 rounded bg-slate-900 px-5 py-2 text-sm font-medium text-white"
             >
               {answered.gameOver || answered.livesRemaining <= 0
                 ? t('play.finish')
                 : t('play.next')}
+              {!answered.gameOver && answered.livesRemaining > 0 && (
+                // Directional arrow — flipped in RTL via `.icon-flip`.
+                <span aria-hidden="true" className="icon-flip" data-testid="play-next-arrow">
+                  →
+                </span>
+              )}
             </button>
           </div>
         </div>

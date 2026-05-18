@@ -249,8 +249,11 @@
     "toast": {
       "createFailed": "Não foi possível iniciar a geração. Tente novamente.",
       "deleted": "Jogo removido",
-      "quotaExceeded": "Atingiu o limite mensal de gerações.",
       "noFeedback": "Guarde o feedback primeiro — não há nada para gerar."
+    },
+    "quotaBanner": {
+      "title": "Limite mensal de gerações atingido",
+      "body": "Usou {{used}} de {{cap}} gerações de jogo este mês. O limite reinicia em {{date}}."
     }
   },
   "review": {

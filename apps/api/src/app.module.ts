@@ -10,6 +10,7 @@ import { HealthController } from './health/health.controller';
 import { GamesModule } from './games/games.module';
 import { GoogleIntegrationModule } from './integrations/google/google-integration.module';
 import { LessonsModule } from './lessons/lessons.module';
+import { QuotaModule } from './quota/quota.module';
 import { MailerModule } from './mailer/mailer.module';
 import { MeModule } from './me/me.module';
 import { RequestIdMiddleware } from './middleware/request-id.middleware';
@@ -49,6 +50,7 @@ import { StudentsModule } from './students/students.module';
     GoogleIntegrationModule,
     LessonsModule,
     GamesModule,
+    QuotaModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

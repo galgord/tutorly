@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { GameResponse } from '@tutor-app/shared';
+import type { GameResponse, QuotaExceededResponse } from '@tutor-app/shared';
 import { ApiError, api } from '../lib/api';
 import { useLessonGames } from '../lib/games';
 import { Bidi } from './Bidi';
@@ -22,21 +22,26 @@ interface Props {
  * opens the question review modal.
  */
 export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const games = useLessonGames(lessonId);
   const [reviewGameId, setReviewGameId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // Persistent banner state when the tutor hits their monthly cap. Stays
+  // until the next successful create or until the page is reloaded —
+  // a one-shot toast disappears too fast for context this important.
+  const [quotaError, setQuotaError] = useState<QuotaExceededResponse | null>(null);
 
   const createMutation = useMutation<GameResponse, ApiError, 'FILL_BLANK' | 'TIMED_QUIZ'>({
     mutationFn: (type) => api.createGame(lessonId, { type, poolSize: 30 }),
     onSuccess: async (game) => {
+      setQuotaError(null);
       await qc.invalidateQueries({ queryKey: ['lesson-games', lessonId] });
       setReviewGameId(game.id);
     },
     onError: (err) => {
-      if (err.status === 429) {
-        setToast(t('games.toast.quotaExceeded'));
+      if (err.status === 429 && isQuotaError(err.body)) {
+        setQuotaError(err.body);
       } else if (err.status === 400) {
         setToast(t('games.toast.noFeedback'));
       } else {
@@ -44,6 +49,8 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
       }
     },
   });
+
+  const overCap = !!quotaError;
 
   const deleteMutation = useMutation<void, ApiError, string>({
     mutationFn: (id) => api.deleteGame(id),
@@ -61,7 +68,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
           <button
             type="button"
             onClick={() => createMutation.mutate('FILL_BLANK')}
-            disabled={!canGenerate || hasUnsavedFeedback || createMutation.isPending}
+            disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
             className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             data-testid="games-generate-fill-blank"
           >
@@ -70,7 +77,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
           <button
             type="button"
             onClick={() => createMutation.mutate('TIMED_QUIZ')}
-            disabled={!canGenerate || hasUnsavedFeedback || createMutation.isPending}
+            disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
             className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             data-testid="games-generate-timed-quiz"
           >
@@ -78,6 +85,25 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
           </button>
         </div>
       </header>
+
+      {quotaError && (
+        <div
+          role="alert"
+          data-testid="games-quota-banner"
+          className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        >
+          <p className="font-medium">{t('games.quotaBanner.title')}</p>
+          <p className="mt-1">
+            {t('games.quotaBanner.body', {
+              used: quotaError.used,
+              cap: quotaError.cap,
+              date: new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
+                dateStyle: 'long',
+              }).format(new Date(quotaError.resetsAt)),
+            })}
+          </p>
+        </div>
+      )}
 
       {!canGenerate && (
         <p className="mt-3 text-sm text-slate-600" data-testid="games-need-feedback">
@@ -167,6 +193,15 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="games-toast" />}
     </section>
+  );
+}
+
+function isQuotaError(body: unknown): body is QuotaExceededResponse {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'error' in body &&
+    (body as { error: unknown }).error === 'quota_exceeded'
   );
 }
 

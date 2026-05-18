@@ -51,6 +51,17 @@ const EnvSchema = z.object({
   GAME_GEN_BREAKER_THRESHOLD: z.coerce.number().int().min(1).max(50).default(5),
   // How long the breaker stays open after tripping (ms).
   GAME_GEN_BREAKER_RESET_MS: z.coerce.number().int().min(1_000).max(600_000).default(60_000),
+  // ---- Phase 9 — AI quota + cost ----------------------------------------
+  // Per-tutor monthly cap on game generations. Spec default 100; bump per
+  // env if a power-user tutor needs more.
+  GAME_GEN_MONTHLY_CAP: z.coerce.number().int().min(1).max(10_000).default(100),
+  // Per-tutor monthly cap on Whisper transcription minutes. Phase 5 wires
+  // the increment; Phase 9 scaffolds the field on Tutor so the schema is
+  // stable.
+  WHISPER_MONTHLY_MINUTES_CAP: z.coerce.number().int().min(1).max(10_000).default(60),
+  // Static admin token gating `/admin/*` routes. Optional in dev; required
+  // in production by the cross-field refinement below.
+  ADMIN_TOKEN: optionalString(z.string().min(16)),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

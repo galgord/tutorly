@@ -6,7 +6,7 @@ Quickref for Claude Code / dev sessions on this repo. **Read this first** before
 
 A SaaS companion tool for private tutors of any subject. Tutor connects Google Calendar, manages students, writes feedback after lessons, and an LLM turns the feedback into practice games the student plays between sessions. Tutor sees progress.
 
-## Current state — Phases 0-4 done
+## Current state — Phases 0-4 + 9 done
 
 | # | Name | State | Notes |
 |---|---|---|---|
@@ -19,7 +19,7 @@ A SaaS companion tool for private tutors of any subject. Tutor connects Google C
 | 6 | Game engines | ⬜ pending | Fill-in-blank + lives-based timed quiz |
 | 7 | Progress dashboard | ⬜ pending | Aggregation + sparklines + topic mastery |
 | 8 | i18n + RTL + PWA | ⬜ pending | Comprehensive RTL pass + PWA install + native Hebrew QA |
-| 9 | AI quota + cost | ⬜ pending | Per-tutor monthly cap + Claude prompt caching |
+| 9 | AI quota + cost | ✅ done | Per-tutor monthly cap (default 100) via atomic `UPDATE … WHERE monthlyGenerations < cap`; refund on terminal FAILED; monthly reset cron; `/admin/usage` admin-token endpoint; UI banner with reset date. Whisper minute field scaffolded for Phase 5. |
 | 10 | Production deploy | ⬜ pending | Vercel + Railway + Resend + real Google + smoke |
 
 ## Authoritative spec
@@ -216,13 +216,22 @@ Each phase has a section in the spec. Pre-phase checklist:
 
 **Critical**: native Hebrew QA pass is required before prod — if you don't have a native speaker, document what was tested mechanically and flag it. Pseudo-localization mode (`?lang=pseudo`) to catch hardcoded strings.
 
-### Phase 9 — AI quota + cost
+### Phase 9 — AI quota + cost (done, reference)
 
-**Spec block**: Phase 9.
+**Where it lives**:
+- `apps/api/src/quota/` — `QuotaService` (reserve/refund/getUsage/resetAll + monthly cron), `AdminController` (`GET /admin/usage` behind static `ADMIN_TOKEN`), `TestQuotaController` (non-prod seed route for E2E)
+- `apps/api/src/games/games.service.ts` — wired into `createAndEnqueue` + `regenerateAll`; throws `QuotaExceededException` → HTTP 429 with `{ error: 'quota_exceeded', cap, used, resetsAt }`
+- `apps/api/src/games/game-generation.queue.ts` — refunds the tutor's slot on terminal FAILED via the `tutorByJob` side-table
+- `apps/web/src/components/GamesPanel.tsx` — persistent over-cap banner driven by `quotaError` state
 
-**Build**: per-tutor monthly cap on game generations (default 100) + Whisper minutes (default 60); monthly reset cron; `/admin/usage` endpoint behind admin token.
+**Patterns Phase 5+ should mirror**:
+- **Atomic reserve**: `prisma.tutor.updateMany({ where: { id, monthlyGenerations: { lt: cap } }, data: { monthlyGenerations: { increment: 1 } } })` — Postgres serializes concurrent enqueues so 20 parallel calls against a cap of 5 yield exactly 5 successes (verified in `quota-enforcement.test.ts`).
+- **Refund on terminal failure, not on user error**: outages (LLM unavailable, schema mismatch) refund. The tutor's own malformed request (no feedback, etc.) doesn't burn a slot either (we throw before reserving).
+- **Phase 5 Whisper cap** uses the same shape — the `monthlyWhisperMinutes` field + `WHISPER_MONTHLY_MINUTES_CAP` env var are scaffolded; just wire the increment when the Whisper job finishes.
 
-**Critical**: atomic counter increments (`UPDATE ... RETURNING`), 429 with friendly UI banner on cap, prompt cache hit verification.
+**Admin endpoint contract**: `GET /admin/usage` with `x-admin-token: $ADMIN_TOKEN`. Returns aggregate tutor/generation/whisper counts + the queue's in-flight + breaker state. Used for "is the cost spike real?" inspection without an observability stack.
+
+**Spec gate items**: 318 api unit tests + live-DB `quota-enforcement.test.ts` (5 reservations succeed, 6th refuses, 20-parallel-against-cap-5 is exactly 5 successes), `quota.spec.ts` Playwright (over-cap banner shown, admin endpoint refuses without token). Real-Anthropic cache-hit verification is the one manual smoke called out in FOLLOWUPS.md.
 
 ### Phase 10 — Production deploy
 

@@ -249,8 +249,11 @@
     "toast": {
       "createFailed": "Couldn't start generation. Try again.",
       "deleted": "Game removed",
-      "quotaExceeded": "You've hit your monthly generation cap.",
       "noFeedback": "Save feedback first — there's nothing to generate from."
+    },
+    "quotaBanner": {
+      "title": "Monthly generation cap reached",
+      "body": "You've used {{used}} of {{cap}} game generations this month. Your cap resets on {{date}}."
     }
   },
   "review": {

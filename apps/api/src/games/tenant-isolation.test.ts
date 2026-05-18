@@ -1,10 +1,12 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { GameStatus, GameType, LessonSource } from '@prisma/client';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuditService } from '../audit/audit.service';
 import type { ConfigService } from '../config/config.service';
 import { FakeLlmClient } from '../integrations/anthropic/llm.fake';
 import { LessonService } from '../lessons/lesson.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuotaService } from '../quota/quota.service';
 import { GameGenerationQueue } from './game-generation.queue';
 import { GamesService } from './games.service';
 
@@ -17,6 +19,8 @@ function makeTestConfig(): ConfigService {
     if (key === 'GAME_GEN_MAX_RETRIES') return 3;
     if (key === 'GAME_GEN_BREAKER_THRESHOLD') return 5;
     if (key === 'GAME_GEN_BREAKER_RESET_MS') return 60_000;
+    if (key === 'GAME_GEN_MONTHLY_CAP') return 1_000; // generous; this spec isn't testing the cap
+    if (key === 'WHISPER_MONTHLY_MINUTES_CAP') return 60;
     return undefined;
   });
   return { get, isProd: () => false } as unknown as ConfigService;
@@ -55,8 +59,11 @@ describe('Game tenant isolation (live db)', () => {
       dbReady = false;
     }
     lessons = new LessonService(prisma);
-    queue = new GameGenerationQueue(llm, prisma, makeTestConfig());
-    games = new GamesService(prisma, queue);
+    const config = makeTestConfig();
+    const audit = new AuditService(prisma);
+    const quota = new QuotaService(prisma, config, audit);
+    queue = new GameGenerationQueue(llm, prisma, config, quota);
+    games = new GamesService(prisma, queue, quota);
   });
 
   beforeEach(async () => {

@@ -1,6 +1,6 @@
 # Follow-ups
 
-Small items deferred during Phases 0-4. None are blocking; pick them up whenever fits.
+Small items deferred during Phases 0-4 + 9. None are blocking; pick them up whenever fits.
 
 ## Quick wins (~5-10 min each)
 
@@ -20,7 +20,14 @@ Small items deferred during Phases 0-4. None are blocking; pick them up whenever
 
 - **BullMQ swap (Phase 5 or 10)**: Phase 4 ships an in-process queue (`apps/api/src/games/game-generation.queue.ts`) because Phase 5 introduces Whisper which is the natural moment to bring BullMQ in. The queue's public surface — `enqueue`, `drain`, `processGeneration`, `snapshot` — should stay identical so the swap is a contained change. The stuck-job recovery in `onModuleInit` becomes a no-op once BullMQ persists jobs; remove it then.
 - **Single-question regenerate runs synchronously, bypassing retries**: see `GameGenerationQueue.regenerateSingle`. The tutor is staring at the review modal — quick failure beats a slow retry. If you change this, the controller's UX assumption changes too.
-- **Game status FAILED is terminal but recoverable**: tutor clicks "Try again" → `POST /games/:id/regenerate` resets to GENERATING and re-enqueues. Phase 9's quota check must run BEFORE that reset; otherwise a failed-then-retried game could double-charge the cap.
+- [x] **Game status FAILED is terminal but recoverable** — handled in Phase 9. The queue refunds the tutor's quota slot on terminal FAILED via the `tutorByJob` side-table. The regenerate-all path runs `reserveGeneration` BEFORE flipping status, so double-charges aren't possible.
+
+## Phase 9 — handoff to Phase 5 (Whisper) + Phase 10 (deploy)
+
+- **Whisper minute increment lives with Phase 5**. The `Tutor.monthlyWhisperMinutes` column + `WHISPER_MONTHLY_MINUTES_CAP` env var + reset cron are scaffolded by Phase 9. Phase 5's Whisper job needs to call a new `QuotaService.reserveWhisperMinutes(tutorId, minutes)` that mirrors `reserveGeneration` (atomic UPDATE with `lt: cap` predicate). The `/admin/usage` endpoint already surfaces the aggregate sum.
+- **`ADMIN_TOKEN` must be set in production**. The env loader makes it optional in dev (the admin endpoint 403s if unset), but Phase 10's deploy checklist needs an explicit "generate + set ADMIN_TOKEN" step. Suggested entropy: `openssl rand -hex 32`.
+- **Real-Anthropic cache-hit smoke** — see also the Phase 4 follow-up. Phase 9's gate calls for verifying `usage.cache_read_input_tokens > 0` on the second call in a session. The `LlmGenerationResult.usage.cachedInputTokens` field is wired through `RealAnthropicLlmClient`; do the manual smoke once a real key is available, capture the numbers in a note.
+- **Per-tutor cost dashboard** — current `/admin/usage` is aggregate-only. Phase 10's ops checklist may want per-tutor breakdown for spike investigation. Easy to add: extend `getAggregateUsage` with a `topConsumers` slice (top N by `monthlyGenerations`).
 
 ## Bigger pieces (any phase)
 

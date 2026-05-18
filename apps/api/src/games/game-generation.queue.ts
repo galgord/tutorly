@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { GameStatus, GameType, type Game, type Prisma } from '@prisma/client';
 import {
   LlmGenerationResponseSchema,
@@ -17,6 +17,7 @@ import {
   LlmUnavailableError,
 } from '../integrations/anthropic/llm.client';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuotaService } from '../quota/quota.service';
 
 /**
  * Phase 4 game-generation queue.
@@ -42,6 +43,9 @@ export class GameGenerationQueue implements OnModuleInit {
   // Track all currently-running job promises so tests (and graceful
   // shutdown) can `await queue.drain()`.
   private readonly inFlight = new Map<string, Promise<void>>();
+  // Side-table of tutorId per in-flight job so we know who to refund
+  // when a job hits terminal FAILED.
+  private readonly tutorByJob = new Map<string, string>();
 
   // Circuit breaker — process-wide. Counts consecutive terminal failures.
   private consecutiveFailures = 0;
@@ -51,6 +55,9 @@ export class GameGenerationQueue implements OnModuleInit {
     @Inject(LLM_CLIENT) private readonly llm: LlmClient,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    // Optional so unit tests that don't care about quota can pass undefined.
+    // Real DI always provides it because QuotaModule is @Global.
+    @Optional() private readonly quota?: QuotaService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -82,12 +89,22 @@ export class GameGenerationQueue implements OnModuleInit {
    * worker runs on the event loop. If the circuit breaker is open, the
    * game is marked FAILED synchronously and the caller can surface that
    * via the 202 response body.
+   *
+   * The optional `tutorId` is remembered on the side-table so that when
+   * the job hits terminal FAILED we can refund the tutor's quota slot
+   * (Phase 9). Callers that don't track quota can omit it.
    */
-  enqueue(gameId: string): { accepted: boolean; breakerOpen: boolean } {
+  enqueue(
+    gameId: string,
+    opts: { tutorId?: string } = {},
+  ): { accepted: boolean; breakerOpen: boolean } {
+    if (opts.tutorId) this.tutorByJob.set(gameId, opts.tutorId);
     if (this.isBreakerOpen()) {
       // Don't even start; flip the game to FAILED so the UI shows the
-      // banner immediately on the next poll.
+      // banner immediately on the next poll. Caller is responsible for
+      // the refund (since the slot was just reserved at controller layer).
       void this.markBreakerFailure(gameId);
+      this.tutorByJob.delete(gameId);
       return { accepted: false, breakerOpen: true };
     }
     // Microtask scheduling — the controller's 202 returns first, then the
@@ -106,6 +123,7 @@ export class GameGenerationQueue implements OnModuleInit {
       })
       .finally(() => {
         this.inFlight.delete(gameId);
+        this.tutorByJob.delete(gameId);
       });
     this.inFlight.set(gameId, promise);
     return { accepted: true, breakerOpen: false };
@@ -232,6 +250,12 @@ export class GameGenerationQueue implements OnModuleInit {
       );
     }
     await this.persistFailure(game.id, classifyError(lastError));
+    // Phase 9: refund the tutor's quota slot — failures we caused
+    // (LLM outage, schema mismatch after retries) shouldn't cost them.
+    const tutorId = this.tutorByJob.get(game.id);
+    if (tutorId && this.quota) {
+      await this.quota.refundGeneration(tutorId);
+    }
   }
 
   // ---- Internals --------------------------------------------------------

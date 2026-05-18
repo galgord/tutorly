@@ -1,8 +1,9 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { GameStatus, GameType } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { QuotaService } from '../quota/quota.service';
 import type { GameGenerationQueue } from './game-generation.queue';
-import { GamesService, parsePool } from './games.service';
+import { GamesService, parsePool, QuotaExceededException } from './games.service';
 import { makePrismaMock } from '../test/prisma-mock';
 
 function fakeGame(over: Partial<Record<string, unknown>> = {}) {
@@ -51,11 +52,29 @@ function makeQueueStub(): GameGenerationQueue {
   } as unknown as GameGenerationQueue;
 }
 
-function makeService() {
+function makeQuotaStub(overrides: Partial<QuotaService> = {}): QuotaService {
+  return {
+    reserveGeneration: vi.fn(async () => ({
+      ok: true,
+      used: 1,
+      cap: 100,
+      resetsAt: new Date('2026-06-01T00:00:00Z'),
+    })),
+    refundGeneration: vi.fn(async () => undefined),
+    getUsage: vi.fn(),
+    getAggregateUsage: vi.fn(),
+    runMonthlyReset: vi.fn(),
+    resetAll: vi.fn(),
+    ...overrides,
+  } as unknown as QuotaService;
+}
+
+function makeService(opts: { quota?: QuotaService } = {}) {
   const prisma = makePrismaMock();
   const queue = makeQueueStub();
-  const svc = new GamesService(prisma, queue);
-  return { svc, prisma, queue };
+  const quota = opts.quota ?? makeQuotaStub();
+  const svc = new GamesService(prisma, queue, quota);
+  return { svc, prisma, queue, quota };
 }
 
 describe('GamesService tenant scoping', () => {
@@ -119,7 +138,7 @@ describe('GamesService.createAndEnqueue', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('creates a GENERATING game and enqueues a job', async () => {
+  it('creates a GENERATING game and enqueues a job with the tutor id', async () => {
     const { svc, prisma, queue } = makeService();
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
       feedbackText: 'real feedback',
@@ -136,11 +155,11 @@ describe('GamesService.createAndEnqueue', () => {
     });
     expect(game.status).toBe(GameStatus.GENERATING);
     expect(breakerOpen).toBe(false);
-    expect(queue.enqueue).toHaveBeenCalledWith(game.id);
+    expect(queue.enqueue).toHaveBeenCalledWith(game.id, { tutorId: 'tutor_a' });
   });
 
-  it('returns the FAILED game when breaker is open at enqueue time', async () => {
-    const { svc, prisma, queue } = makeService();
+  it('returns the FAILED game when breaker is open at enqueue time + refunds the quota slot', async () => {
+    const { svc, prisma, queue, quota } = makeService();
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
       feedbackText: 'real feedback',
     } as never);
@@ -160,6 +179,32 @@ describe('GamesService.createAndEnqueue', () => {
     });
     expect(breakerOpen).toBe(true);
     expect(game.status).toBe(GameStatus.FAILED);
+    // Outage cost — not the tutor's. Slot refunded.
+    expect(quota.refundGeneration).toHaveBeenCalledWith('tutor_a');
+  });
+
+  it('throws QuotaExceededException with payload when over cap', async () => {
+    const quota = makeQuotaStub({
+      reserveGeneration: vi.fn(async () => ({
+        ok: false,
+        used: 100,
+        cap: 100,
+        resetsAt: new Date('2026-06-01T00:00:00Z'),
+      })),
+    } as never);
+    const { svc, prisma } = makeService({ quota });
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({ feedbackText: 'fb' } as never);
+    await expect(
+      svc.createAndEnqueue({
+        lessonId: 'les_1',
+        tutorId: 'tutor_a',
+        type: GameType.FILL_BLANK,
+        poolSize: 30,
+        locale: 'en',
+      }),
+    ).rejects.toBeInstanceOf(QuotaExceededException);
+    // No game row created if we refuse.
+    expect(prisma.game.create).not.toHaveBeenCalled();
   });
 });
 
@@ -249,15 +294,33 @@ describe('GamesService.editQuestions', () => {
 describe('GamesService.regenerateAll', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('resets status to GENERATING + enqueues', async () => {
-    const { svc, prisma, queue } = makeService();
+  it('resets status to GENERATING + enqueues (counts against quota)', async () => {
+    const { svc, prisma, queue, quota } = makeService();
     vi.mocked(prisma.game.findUnique).mockResolvedValue(fakeGame() as never);
     vi.mocked(prisma.game.update).mockResolvedValue(
       fakeGame({ status: GameStatus.GENERATING }) as never,
     );
     const out = await svc.regenerateAll({ id: 'gm_1', tutorId: 'tutor_a' });
     expect(out.status).toBe(GameStatus.GENERATING);
-    expect(queue.enqueue).toHaveBeenCalledWith('gm_1');
+    expect(quota.reserveGeneration).toHaveBeenCalledWith('tutor_a');
+    expect(queue.enqueue).toHaveBeenCalledWith('gm_1', { tutorId: 'tutor_a' });
+  });
+
+  it('throws QuotaExceededException when over cap before any update', async () => {
+    const quota = makeQuotaStub({
+      reserveGeneration: vi.fn(async () => ({
+        ok: false,
+        used: 100,
+        cap: 100,
+        resetsAt: new Date('2026-06-01T00:00:00Z'),
+      })),
+    } as never);
+    const { svc, prisma } = makeService({ quota });
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(fakeGame() as never);
+    await expect(
+      svc.regenerateAll({ id: 'gm_1', tutorId: 'tutor_a' }),
+    ).rejects.toBeInstanceOf(QuotaExceededException);
+    expect(prisma.game.update).not.toHaveBeenCalled();
   });
 
   it('refuses regenerate on ARCHIVED', async () => {

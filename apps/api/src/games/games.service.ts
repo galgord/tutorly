@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -16,6 +18,7 @@ import {
 } from '@tutor-app/shared';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuotaService } from '../quota/quota.service';
 import { GameGenerationQueue } from './game-generation.queue';
 
 export interface CreateGameOpts {
@@ -36,11 +39,31 @@ export type GameWithTutorScope = Game & {
  * `getForTutorOrFail`, which walks Game → Lesson → Student → Tutor and
  * returns 404 (never 401) on cross-tenant.
  */
+/**
+ * Thrown when the tutor's monthly cap is exhausted. The controller maps it
+ * to HTTP 429 with the cap/used/resetsAt body so the UI can render a
+ * specific banner instead of a generic error.
+ */
+export class QuotaExceededException extends HttpException {
+  constructor(payload: { cap: number; used: number; resetsAt: Date }) {
+    super(
+      {
+        error: 'quota_exceeded',
+        cap: payload.cap,
+        used: payload.used,
+        resetsAt: payload.resetsAt.toISOString(),
+      },
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+}
+
 @Injectable()
 export class GamesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queue: GameGenerationQueue,
+    private readonly quota: QuotaService,
   ) {}
 
   /** Tenant-scoped single-game loader. Returns null on missing OR cross-tenant. */
@@ -86,9 +109,15 @@ export class GamesService {
    * Create a game shell and enqueue the LLM generation job. Returns the
    * GENERATING row; the client polls via GET /games/:id.
    *
-   * Refuses generation if the lesson has no feedback yet — there's nothing
-   * meaningful to generate from. The UI prevents this from happening, but
-   * we re-check here so a curl request can't shortcut it.
+   * Refuses generation if:
+   *   - the lesson has no feedback yet (nothing to generate from)
+   *   - the tutor's monthly cap is exhausted (429 with payload)
+   *
+   * Quota reservation happens BEFORE the game row exists so a refused
+   * request doesn't leave an orphan FAILED row. If the in-process queue's
+   * circuit breaker is open the row IS created (so the tutor sees a
+   * FAILED card with an actionable retry), but the slot we reserved is
+   * refunded so the breaker outage doesn't burn the tutor's cap.
    */
   async createAndEnqueue(opts: CreateGameOpts): Promise<{ game: Game; breakerOpen: boolean }> {
     const lesson = await this.assertLessonOwned({
@@ -97,6 +126,16 @@ export class GamesService {
     });
     if (!lesson.feedbackText || lesson.feedbackText.trim().length === 0) {
       throw new BadRequestException('Cannot generate a game: lesson has no feedback yet.');
+    }
+
+    // Atomic reserve — refused if the tutor would exceed cap.
+    const reservation = await this.quota.reserveGeneration(opts.tutorId);
+    if (!reservation.ok) {
+      throw new QuotaExceededException({
+        cap: reservation.cap,
+        used: reservation.used,
+        resetsAt: reservation.resetsAt,
+      });
     }
 
     const game = await this.prisma.game.create({
@@ -111,10 +150,11 @@ export class GamesService {
       },
     });
 
-    const result = this.queue.enqueue(game.id);
+    const result = this.queue.enqueue(game.id, { tutorId: opts.tutorId });
     if (result.breakerOpen) {
-      // Persisted FAILED row was already set by the queue; reflect that
-      // in the returned game so the controller can shape its 202 body.
+      // Breaker tripped before we could even attempt — refund so the
+      // outage doesn't cost the tutor a slot.
+      await this.quota.refundGeneration(opts.tutorId);
       const refreshed = await this.prisma.game.findUnique({ where: { id: game.id } });
       return { game: refreshed ?? game, breakerOpen: true };
     }
@@ -199,11 +239,23 @@ export class GamesService {
     });
   }
 
-  /** Re-run the whole pool — same path as initial creation but on an existing row. */
+  /**
+   * Re-run the whole pool — same path as initial creation but on an
+   * existing row. Counts against quota the same way (each generation
+   * costs Anthropic tokens regardless of whether the row is new).
+   */
   async regenerateAll(opts: { id: string; tutorId: string }): Promise<Game> {
     const game = await this.getForTutorOrFail({ id: opts.id, tutorId: opts.tutorId });
     if (game.status === GameStatus.ARCHIVED) {
       throw new BadRequestException('Cannot regenerate an archived game.');
+    }
+    const reservation = await this.quota.reserveGeneration(opts.tutorId);
+    if (!reservation.ok) {
+      throw new QuotaExceededException({
+        cap: reservation.cap,
+        used: reservation.used,
+        resetsAt: reservation.resetsAt,
+      });
     }
     // Reset to GENERATING so the UI shows the same spinner as initial gen.
     const updated = await this.prisma.game.update({
@@ -214,7 +266,10 @@ export class GamesService {
         questionPool: [] as unknown as Prisma.InputJsonValue,
       },
     });
-    this.queue.enqueue(opts.id);
+    const result = this.queue.enqueue(opts.id, { tutorId: opts.tutorId });
+    if (result.breakerOpen) {
+      await this.quota.refundGeneration(opts.tutorId);
+    }
     return updated;
   }
 

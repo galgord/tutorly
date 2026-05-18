@@ -27,6 +27,10 @@ export function makePrismaMock(): PrismaService {
       findUnique: stub(),
       upsert: stub(),
       update: stub(),
+      updateMany: stub(),
+      count: stub(),
+      aggregate: stub(),
+      deleteMany: stub(),
     },
     auditLog: {
       create: stub(),

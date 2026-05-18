@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Tutor App</title>
+    <script>
+      // Set <html lang/dir> early to prevent flash of LTR for Hebrew users.
+      // Reads from ?lang= override (test/QA), localStorage, or navigator.language.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var override = params.get('lang');
+        var stored = null;
+        try { stored = localStorage.getItem('locale'); } catch (_) {}
+        var nav = (navigator.language || 'en').slice(0, 2);
+        var locale = override || stored || (['en', 'pt', 'he'].indexOf(nav) >= 0 ? nav : 'en');
+        var dir = locale === 'he' ? 'rtl' : 'ltr';
+        document.documentElement.setAttribute('lang', locale);
+        document.documentElement.setAttribute('dir', dir);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

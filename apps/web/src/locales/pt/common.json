@@ -1,0 +1,217 @@
+{
+  "app": {
+    "title": "Aplicação do Tutor"
+  },
+  "common": {
+    "loading": "A carregar…",
+    "workingOn": "A processar…",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "optional": "(opcional)"
+  },
+  "login": {
+    "title": "Iniciar sessão",
+    "subtitle": "Introduza o seu email e enviaremos um link de acesso.",
+    "emailLabel": "Email",
+    "submit": "Enviar link",
+    "sending": "A enviar…",
+    "sent": {
+      "title": "Verifique o seu email",
+      "body": "Enviámos um link de acesso para {{email}}. O link expira em 15 minutos."
+    },
+    "error": {
+      "rateLimited": "Demasiados pedidos. Tente novamente daqui a um minuto.",
+      "invalidEmail": "Introduza um endereço de email válido.",
+      "generic": "Ocorreu um erro. Tente novamente."
+    }
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo,",
+    "subtitle": "Os seus alunos aparecerão aqui depois de adicionados.",
+    "emptyStudents": "Ainda sem alunos — adicione o primeiro para começar.",
+    "studentsLink": "Gerir alunos",
+    "settingsLink": "Definições da conta",
+    "logout": "Terminar sessão"
+  },
+  "settings": {
+    "title": "Definições da conta",
+    "profile": {
+      "title": "Perfil",
+      "email": "Email",
+      "name": "Nome",
+      "locale": "Idioma",
+      "save": "Guardar",
+      "saved": "Guardado"
+    },
+    "delete": {
+      "title": "Eliminar conta",
+      "warning": "Esta ação faz uma eliminação suave da sua conta e de todos os dados de alunos. A conta pode ser recuperada durante 30 dias antes da remoção definitiva.",
+      "confirmLabel": "Escreva o seu email ({{email}}) para confirmar:",
+      "button": "Eliminar conta"
+    }
+  },
+  "students": {
+    "title": "Alunos",
+    "trashLink": "Lixo",
+    "searchLabel": "Pesquisar alunos",
+    "searchPlaceholder": "Pesquisar por nome…",
+    "emptyAll": "Ainda não tem alunos. Adicione o primeiro para começar.",
+    "emptySearch": "Nenhum aluno corresponde à pesquisa.",
+    "fields": {
+      "name": "Nome",
+      "notes": "Notas"
+    },
+    "row": {
+      "lastLesson": "Adicionado em {{date}}"
+    },
+    "actions": {
+      "open": "Abrir",
+      "copyShare": "Copiar link de partilha",
+      "delete": "Eliminar",
+      "rotateToken": "Renovar link de partilha"
+    },
+    "add": {
+      "button": "Adicionar aluno",
+      "title": "Adicionar um aluno",
+      "submit": "Adicionar aluno",
+      "errors": {
+        "invalid": "Introduza um nome válido.",
+        "generic": "Não foi possível adicionar o aluno. Tente novamente."
+      }
+    },
+    "detail": {
+      "back": "Voltar aos alunos",
+      "profileTitle": "Perfil",
+      "save": "Guardar",
+      "shareTitle": "Link de partilha",
+      "shareBody": "Envie este URL ao aluno. Não precisa de conta — o próprio link é o acesso.",
+      "notFoundTitle": "Aluno não encontrado",
+      "notFoundBody": "Esse aluno não existe ou não tem acesso a ele."
+    },
+    "rotate": {
+      "title": "Renovar link de partilha?",
+      "warning": "O link de partilha atual deixará de funcionar imediatamente. Qualquer pessoa que o esteja a usar verá uma página inexistente.",
+      "button": "Renovar link"
+    },
+    "delete": {
+      "title": "Eliminar aluno",
+      "warning": "Move o aluno para o lixo. Pode ser restaurado dentro de 30 dias. Confirme escrevendo o nome do aluno:",
+      "warningGeneric": "Move o aluno para o lixo. Pode ser restaurado dentro de 30 dias; depois disso será removido permanentemente.",
+      "confirmLabel": "Escreva \"{{name}}\" para confirmar:",
+      "button": "Eliminar aluno"
+    },
+    "trash": {
+      "title": "Lixo",
+      "subtitle": "Alunos eliminados suavemente. Serão removidos definitivamente 30 dias após a eliminação.",
+      "empty": "O lixo está vazio.",
+      "back": "Voltar aos alunos",
+      "restore": "Restaurar",
+      "deletedOn": "Eliminado em {{date}}"
+    },
+    "pagination": {
+      "label": "Paginação",
+      "prev": "Anterior",
+      "next": "Seguinte",
+      "status": "Página {{page}} de {{total}}"
+    },
+    "toast": {
+      "linkCopied": "Link de partilha copiado",
+      "linkCopyFailed": "Não foi possível copiar o link. Selecione e copie manualmente.",
+      "saved": "Alterações guardadas",
+      "deleted": "Aluno movido para o lixo",
+      "restored": "Aluno restaurado",
+      "tokenRotated": "Novo link de partilha emitido"
+    }
+  },
+  "publicStudent": {
+    "greeting": "Olá,",
+    "subtitle": "Bem-vindo ao seu espaço de prática.",
+    "emptyGames": "Os seus jogos aparecerão aqui.",
+    "notFoundTitle": "Este link já não funciona",
+    "notFoundBody": "Peça ao seu tutor para enviar um link novo."
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "body": "Essa página não existe ou não tem acesso a ela.",
+    "home": "Voltar ao início"
+  },
+  "nav": {
+    "calendar": "Calendário",
+    "integrations": "Integrações"
+  },
+  "integrations": {
+    "title": "Integrações",
+    "subtitle": "Conecte serviços externos para simplificar o seu fluxo.",
+    "google": {
+      "title": "Google Agenda",
+      "description": "Lemos a sua agenda para listar aulas passadas às quais pode anexar feedback. Nunca escrevemos eventos no Google.",
+      "connect": "Conectar Google Agenda",
+      "connecting": "A redirecionar para o Google…",
+      "connectedTitle": "Google Agenda está ligada",
+      "selectLabel": "Agendas de aulas",
+      "selectHelp": "Escolha as agendas que contêm os seus eventos de aulas. Outras agendas serão ignoradas.",
+      "save": "Guardar seleção",
+      "saved": "Seleção guardada",
+      "disconnect": "Desconectar",
+      "disconnectConfirmTitle": "Desconectar Google Agenda?",
+      "disconnectConfirmBody": "As suas aulas existentes permanecem. Os eventos novos do Google não aparecerão no calendário até reconectar.",
+      "noneSelected": "Escolha pelo menos uma agenda para começar a sincronizar.",
+      "reconnectBanner": "A ligação ao Google expirou. Reconecte para restaurar a visão do calendário.",
+      "loadingCalendars": "A carregar as suas agendas…",
+      "errors": {
+        "quota": "O Google limitou os pedidos. Tente novamente daqui a um minuto.",
+        "unavailable": "Google está temporariamente indisponível. Tente novamente em breve.",
+        "loadFailed": "Não foi possível carregar as agendas. Tente novamente.",
+        "saveFailed": "Não foi possível guardar a sua seleção. Tente novamente.",
+        "callback": "O Google reportou um erro durante a ligação. Tente novamente."
+      }
+    }
+  },
+  "calendar": {
+    "title": "Calendário",
+    "subtitle": "Aulas passadas ficam no topo; eventos futuros são só de leitura.",
+    "viewWeek": "Semana",
+    "viewDay": "Dia",
+    "viewMonth": "Mês",
+    "empty": "Sem eventos neste intervalo.",
+    "emptyConnectedNoCalendars": "Escolha uma agenda de aulas nas definições para ver eventos aqui.",
+    "emptyDisconnected": "Ligue o Google Agenda ou adicione uma aula manualmente a partir da página de um aluno.",
+    "addFeedback": "Adicionar feedback",
+    "openLesson": "Abrir aula",
+    "futureBadge": "Próxima",
+    "manualBadge": "Manual",
+    "loading": "A carregar calendário…",
+    "manage": "Gerir agendas",
+    "loadError": "Não foi possível carregar o calendário. Tente novamente."
+  },
+  "lessons": {
+    "manualAdd": {
+      "button": "Adicionar aula manualmente",
+      "title": "Adicionar uma aula",
+      "submit": "Adicionar aula",
+      "occurredAtLabel": "Data e hora",
+      "titleLabel": "Título (opcional)",
+      "errors": {
+        "invalid": "Escolha uma data e hora.",
+        "generic": "Não foi possível adicionar a aula. Tente novamente."
+      }
+    },
+    "recent": {
+      "title": "Aulas recentes",
+      "empty": "Ainda não há aulas. Adicione uma para começar a registar feedback.",
+      "open": "Abrir"
+    },
+    "detail": {
+      "back": "Voltar",
+      "occurredAt": "Aula em {{date}}",
+      "studentLabel": "Aluno",
+      "sourceLabel": "Origem",
+      "sourceManual": "Adicionada manualmente",
+      "sourceGoogle": "Do Google Agenda",
+      "feedbackPlaceholderTitle": "Feedback chega na Fase 4",
+      "feedbackPlaceholderBody": "O editor de feedback e a geração de jogos chegam na próxima fase. Esta página é o marcador para os links de calendário funcionarem hoje.",
+      "notFoundTitle": "Aula não encontrada",
+      "notFoundBody": "Essa aula não existe ou não tem acesso a ela."
+    }
+  }
+}

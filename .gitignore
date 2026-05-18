@@ -1,0 +1,36 @@
+node_modules
+dist
+build
+.next
+.turbo
+coverage
+.nyc_output
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Testing
+playwright-report
+test-results
+.vitest-cache
+
+# Prisma
+apps/api/prisma/migrations/dev.db*
+
+# OS
+Thumbs.db

@@ -1,0 +1,17 @@
+{
+  "name": "eslint-plugin-direction",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.cjs",
+  "scripts": {
+    "lint": "echo 'no source to lint'",
+    "typecheck": "echo 'plain JS plugin — no typecheck'",
+    "test": "node --test test/*.test.cjs"
+  },
+  "peerDependencies": {
+    "eslint": "^8.57.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

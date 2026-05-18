@@ -1,0 +1,217 @@
+{
+  "app": {
+    "title": "Tutor App"
+  },
+  "common": {
+    "loading": "Loading…",
+    "workingOn": "Working…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "optional": "(optional)"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Enter your email and we'll send you a sign-in link.",
+    "emailLabel": "Email",
+    "submit": "Send link",
+    "sending": "Sending…",
+    "sent": {
+      "title": "Check your email",
+      "body": "We sent a sign-in link to {{email}}. The link expires in 15 minutes."
+    },
+    "error": {
+      "rateLimited": "Too many requests. Try again in a minute.",
+      "invalidEmail": "Please enter a valid email address.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome,",
+    "subtitle": "Your students will appear here once you add them.",
+    "emptyStudents": "No students yet — add your first one to get started.",
+    "studentsLink": "Manage students",
+    "settingsLink": "Account settings",
+    "logout": "Log out"
+  },
+  "settings": {
+    "title": "Account settings",
+    "profile": {
+      "title": "Profile",
+      "email": "Email",
+      "name": "Name",
+      "locale": "Language",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "delete": {
+      "title": "Delete account",
+      "warning": "This permanently soft-deletes your account and all student data. Your account is recoverable for 30 days before permanent purge.",
+      "confirmLabel": "Type your email ({{email}}) to confirm:",
+      "button": "Delete account"
+    }
+  },
+  "students": {
+    "title": "Students",
+    "trashLink": "Trash",
+    "searchLabel": "Search students",
+    "searchPlaceholder": "Search by name…",
+    "emptyAll": "No students yet. Add your first one to get started.",
+    "emptySearch": "No students match that search.",
+    "fields": {
+      "name": "Name",
+      "notes": "Notes"
+    },
+    "row": {
+      "lastLesson": "Added {{date}}"
+    },
+    "actions": {
+      "open": "Open",
+      "copyShare": "Copy share link",
+      "delete": "Delete",
+      "rotateToken": "Rotate share link"
+    },
+    "add": {
+      "button": "Add student",
+      "title": "Add a student",
+      "submit": "Add student",
+      "errors": {
+        "invalid": "Please enter a valid name.",
+        "generic": "Could not add student. Try again."
+      }
+    },
+    "detail": {
+      "back": "Back to students",
+      "profileTitle": "Profile",
+      "save": "Save",
+      "shareTitle": "Share link",
+      "shareBody": "Send this URL to the student. They don't need an account — the link itself is their access.",
+      "notFoundTitle": "Student not found",
+      "notFoundBody": "That student doesn't exist or you don't have access to it."
+    },
+    "rotate": {
+      "title": "Rotate share link?",
+      "warning": "The current share link will stop working immediately. Anyone using it will see a not-found page.",
+      "button": "Rotate link"
+    },
+    "delete": {
+      "title": "Delete student",
+      "warning": "This will move the student to trash. They can be restored within 30 days. Confirm by typing the student's name:",
+      "warningGeneric": "This moves the student to trash. They can be restored within 30 days, after which they are permanently removed.",
+      "confirmLabel": "Type \"{{name}}\" to confirm:",
+      "button": "Delete student"
+    },
+    "trash": {
+      "title": "Trash",
+      "subtitle": "Soft-deleted students. They will be permanently removed 30 days after deletion.",
+      "empty": "Trash is empty.",
+      "back": "Back to students",
+      "restore": "Restore",
+      "deletedOn": "Deleted {{date}}"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "prev": "Previous",
+      "next": "Next",
+      "status": "Page {{page}} of {{total}}"
+    },
+    "toast": {
+      "linkCopied": "Share link copied to clipboard",
+      "linkCopyFailed": "Could not copy link. Select and copy manually.",
+      "saved": "Changes saved",
+      "deleted": "Student moved to trash",
+      "restored": "Student restored",
+      "tokenRotated": "New share link issued"
+    }
+  },
+  "publicStudent": {
+    "greeting": "Hi,",
+    "subtitle": "Welcome to your practice space.",
+    "emptyGames": "Your games will appear here.",
+    "notFoundTitle": "This link no longer works",
+    "notFoundBody": "Ask your tutor to send you a fresh link."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "That page doesn't exist or you don't have access to it.",
+    "home": "Back to home"
+  },
+  "nav": {
+    "calendar": "Calendar",
+    "integrations": "Integrations"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Connect external services to streamline your workflow.",
+    "google": {
+      "title": "Google Calendar",
+      "description": "Read your calendar to surface past lessons you can attach feedback to. We never write events back to Google.",
+      "connect": "Connect Google Calendar",
+      "connecting": "Redirecting to Google…",
+      "connectedTitle": "Google Calendar is connected",
+      "selectLabel": "Lesson calendars",
+      "selectHelp": "Pick the calendars that contain your lesson events. Other calendars are ignored.",
+      "save": "Save selection",
+      "saved": "Selection saved",
+      "disconnect": "Disconnect",
+      "disconnectConfirmTitle": "Disconnect Google Calendar?",
+      "disconnectConfirmBody": "Your existing lesson records stay. New events from Google won't appear on your calendar view until you reconnect.",
+      "noneSelected": "Pick at least one lesson calendar to start syncing.",
+      "reconnectBanner": "Google connection expired. Reconnect to restore your calendar view.",
+      "loadingCalendars": "Loading your calendars…",
+      "errors": {
+        "quota": "Google rate-limited the request. Try again in a minute.",
+        "unavailable": "Google is temporarily unavailable. Try again shortly.",
+        "loadFailed": "Couldn't load calendars. Try again.",
+        "saveFailed": "Couldn't save your selection. Try again.",
+        "callback": "Google reported an error during connect. Try again."
+      }
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "subtitle": "Past lessons sit on top; future events read-only.",
+    "viewWeek": "Week",
+    "viewDay": "Day",
+    "viewMonth": "Month",
+    "empty": "No events in this range yet.",
+    "emptyConnectedNoCalendars": "Pick a lesson calendar in settings to see events here.",
+    "emptyDisconnected": "Connect Google Calendar or add a lesson manually from a student's page.",
+    "addFeedback": "Add feedback",
+    "openLesson": "Open lesson",
+    "futureBadge": "Upcoming",
+    "manualBadge": "Manual",
+    "loading": "Loading calendar…",
+    "manage": "Manage calendars",
+    "loadError": "Couldn't load the calendar. Try again."
+  },
+  "lessons": {
+    "manualAdd": {
+      "button": "Add lesson manually",
+      "title": "Add a lesson",
+      "submit": "Add lesson",
+      "occurredAtLabel": "Date and time",
+      "titleLabel": "Title (optional)",
+      "errors": {
+        "invalid": "Pick a date and time.",
+        "generic": "Could not add lesson. Try again."
+      }
+    },
+    "recent": {
+      "title": "Recent lessons",
+      "empty": "No lessons yet. Add one to start tracking feedback.",
+      "open": "Open"
+    },
+    "detail": {
+      "back": "Back",
+      "occurredAt": "Lesson on {{date}}",
+      "studentLabel": "Student",
+      "sourceLabel": "Source",
+      "sourceManual": "Added manually",
+      "sourceGoogle": "From Google Calendar",
+      "feedbackPlaceholderTitle": "Feedback coming in Phase 4",
+      "feedbackPlaceholderBody": "The feedback editor and game generation arrive in the next phase. This page is the placeholder so calendar links work today.",
+      "notFoundTitle": "Lesson not found",
+      "notFoundBody": "That lesson doesn't exist or you don't have access to it."
+    }
+  }
+}

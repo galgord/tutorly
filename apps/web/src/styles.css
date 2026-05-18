@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html[dir='rtl'] body {
+    font-family: theme('fontFamily.hebrew');
+  }
+
+  /* Hebrew has no italic glyphs — render italic as bold instead. */
+  html[dir='rtl'] em,
+  html[dir='rtl'] i,
+  html[dir='rtl'] .italic {
+    font-style: normal;
+    font-weight: 700;
+  }
+
+  /* Directional icon flip helper. Apply `.icon-flip` to chevrons, send arrows,
+     "next" arrows, etc. Non-directional icons (search, settings, trash) never get this class. */
+  html[dir='rtl'] .icon-flip {
+    transform: scaleX(-1);
+  }
+}

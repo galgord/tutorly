@@ -1,0 +1,209 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1 — auth, sessions, audit
+// ---------------------------------------------------------------------------
+
+model Tutor {
+  id                         String    @id @default(cuid())
+  email                      String    @unique
+  name                       String?
+  locale                     String    @default("en") // en | pt | he
+  monthlyGenerations         Int       @default(0)
+  monthlyGenerationsResetAt  DateTime  @default(now())
+  // Filled in Phase 3.
+  googleRefreshToken         String?
+  lessonCalendarIds          String[]  @default([])
+  deletedAt                  DateTime? // soft delete; cron purges after grace
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  sessions Session[]
+  students Student[]
+
+  @@index([deletedAt])
+}
+
+model MagicLink {
+  token      String    @id
+  email      String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+}
+
+model Session {
+  token     String   @id
+  tutorId   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+
+  tutor Tutor @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@index([tutorId])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  tutorId    String?
+  actorType  ActorType
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([tutorId, createdAt])
+  @@index([entityType, entityId])
+}
+
+enum ActorType {
+  TUTOR
+  STUDENT
+  SYSTEM
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2+ — students, lessons, games, attempts. Defined upfront so later
+// migrations are additive only.
+// ---------------------------------------------------------------------------
+
+model Student {
+  id                  String    @id @default(cuid())
+  tutorId             String
+  name                String
+  shareToken          String    @unique
+  shareTokenRotatedAt DateTime  @default(now())
+  notes               String?
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  tutor    Tutor     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+  attempts Attempt[]
+
+  @@index([tutorId])
+  @@index([deletedAt])
+}
+
+enum LessonSource {
+  GOOGLE_CALENDAR
+  MANUAL
+}
+
+enum FeedbackSource {
+  TEXT
+  VOICE
+}
+
+model Lesson {
+  id             String         @id @default(cuid())
+  studentId      String
+  googleEventId  String?
+  source         LessonSource   @default(MANUAL)
+  title          String?
+  occurredAt     DateTime
+  feedbackText   String?
+  feedbackSource FeedbackSource @default(TEXT)
+  audioUrl       String?
+  deletedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  games   Game[]
+
+  @@index([studentId, occurredAt])
+  @@index([deletedAt])
+}
+
+enum GameType {
+  FILL_BLANK
+  TIMED_QUIZ
+}
+
+enum GameStatus {
+  DRAFT
+  ASSIGNED
+  ARCHIVED
+}
+
+model Game {
+  id                   String     @id @default(cuid())
+  lessonId             String
+  type                 GameType
+  title                String
+  status               GameStatus @default(DRAFT)
+  questionPool         Json
+  poolSize             Int
+  generationPromptHash String?
+  locale               String     @default("en")
+  deletedAt            DateTime?
+  assignedAt           DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  attempts Attempt[]
+
+  @@index([lessonId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model Attempt {
+  id              String    @id @default(cuid())
+  gameId          String
+  studentId       String
+  startedAt       DateTime
+  finishedAt      DateTime?
+  score           Int       @default(0)
+  livesLost       Int       @default(0)
+  questionResults Json      @default("[]")
+  createdAt       DateTime  @default(now())
+
+  game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, studentId])
+  @@index([studentId, startedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — Google OAuth CSRF state
+// ---------------------------------------------------------------------------
+
+// One-time-use state values for the Google OAuth handshake. The /connect
+// endpoint stores a random state keyed to the issuing tutor; /callback
+// verifies it and consumes the row. Rows are pruned on consume + a TTL
+// sweep can drop expired-and-unused rows.
+model OAuthState {
+  state      String   @id // random URL-safe token, 32 bytes base64url
+  tutorId    String
+  provider   String   @default("google")
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([tutorId])
+  @@index([expiresAt])
+}

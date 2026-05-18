@@ -1,0 +1,27 @@
+{
+  "name": "tutor-app",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @tutor-app/shared build && pnpm -r --parallel --stream dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm --filter @tutor-app/shared build && pnpm -r typecheck",
+    "test": "pnpm --filter @tutor-app/shared build && pnpm -r test",
+    "test:e2e": "pnpm --filter @tutor-app/shared build && pnpm --filter web test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}

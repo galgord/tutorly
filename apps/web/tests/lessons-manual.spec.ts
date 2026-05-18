@@ -30,7 +30,7 @@ async function createStudent(page: Page, name: string): Promise<string> {
 }
 
 test.describe('manual lesson creation (no Google connection)', () => {
-  test('add lesson manually → appears in recent → opens lesson detail placeholder', async ({
+  test('add lesson manually → appears in recent → opens lesson detail with feedback editor', async ({
     page,
     request,
   }) => {
@@ -48,11 +48,12 @@ test.describe('manual lesson creation (no Google connection)', () => {
     await page.getByTestId('add-lesson-title').fill('first session');
     await page.getByTestId('add-lesson-submit').click();
 
-    // On success the modal closes and we navigate to /lessons/:id.
+    // On success the modal closes and we navigate to /lessons/:id where the
+    // Phase 4 feedback editor + games panel are now mounted.
     await page.waitForURL(/\/lessons\/[^/]+/);
     await expect(page.getByTestId('lesson-detail')).toBeVisible();
-    await expect(page.getByTestId('lesson-feedback-placeholder')).toBeVisible();
-    await expect(page.getByText('Feedback coming in Phase 4')).toBeVisible();
+    await expect(page.getByTestId('feedback-editor')).toBeVisible();
+    await expect(page.getByTestId('games-panel')).toBeVisible();
   });
 });
 

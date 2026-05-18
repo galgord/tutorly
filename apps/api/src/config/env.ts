@@ -1,15 +1,23 @@
 import { z } from 'zod';
 
+/**
+ * Convenience for "optional env var" fields. Treats empty string the same
+ * as missing — important because some shells (and `pnpm`'s .env loader)
+ * inject `VAR=""` globally, which would otherwise trip a `.min(1)` check.
+ */
+const optionalString = (inner: z.ZodTypeAny) =>
+  z.preprocess((v) => (v === '' ? undefined : v), inner.optional());
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url().optional(),
+  REDIS_URL: optionalString(z.string().url()),
   SESSION_COOKIE_SECRET: z
     .string()
     .min(32, 'SESSION_COOKIE_SECRET must be at least 32 chars (used to sign cookies).'),
   MAILER: z.enum(['console', 'resend']).default('console'),
-  RESEND_API_KEY: z.string().optional(),
+  RESEND_API_KEY: optionalString(z.string()),
   MAIL_FROM: z.string().email().default('noreply@tutor-app.dev'),
   WEB_ORIGIN: z.string().url().default('http://localhost:5174'),
   PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:3000'),
@@ -18,17 +26,31 @@ const EnvSchema = z.object({
   // Google project. If any one of GOOGLE_CLIENT_ID/SECRET/REDIRECT is set
   // OR NODE_ENV=production with Google envs present, the cross-field
   // refinement below requires the full set + the encryption key.
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
-  GOOGLE_OAUTH_REDIRECT_URI: z.string().url().optional(),
+  GOOGLE_CLIENT_ID: optionalString(z.string().min(1)),
+  GOOGLE_CLIENT_SECRET: optionalString(z.string().min(1)),
+  GOOGLE_OAUTH_REDIRECT_URI: optionalString(z.string().url()),
   /**
    * 32-byte key in hex (64 hex chars) used for chacha20-poly1305 encryption
    * of stored Google refresh tokens. Required if any Google envs set.
    */
-  INTEGRATION_TOKEN_ENCRYPTION_KEY: z
-    .string()
-    .regex(/^[0-9a-fA-F]{64}$/, 'INTEGRATION_TOKEN_ENCRYPTION_KEY must be 64 hex chars (32 bytes).')
-    .optional(),
+  INTEGRATION_TOKEN_ENCRYPTION_KEY: optionalString(
+    z
+      .string()
+      .regex(/^[0-9a-fA-F]{64}$/, 'INTEGRATION_TOKEN_ENCRYPTION_KEY must be 64 hex chars (32 bytes).'),
+  ),
+  // ---- Phase 4 — Anthropic / game generation -----------------------------
+  // Optional in dev so the api boots without a real key (the FakeLlmClient
+  // is injected). Production smoke (Phase 10) verifies a real key is set.
+  ANTHROPIC_API_KEY: optionalString(z.string().min(1)),
+  // Game generation worker concurrency. 1 is plenty for v1; bump if pool
+  // gen latency becomes a UX issue.
+  GAME_GEN_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+  // Max retries per generation attempt before giving up (spec calls for 3).
+  GAME_GEN_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
+  // Consecutive failure count that opens the circuit (per process).
+  GAME_GEN_BREAKER_THRESHOLD: z.coerce.number().int().min(1).max(50).default(5),
+  // How long the breaker stays open after tripping (ms).
+  GAME_GEN_BREAKER_RESET_MS: z.coerce.number().int().min(1_000).max(600_000).default(60_000),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

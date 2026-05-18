@@ -182,7 +182,8 @@
     "manualBadge": "ידני",
     "loading": "טוען יומן…",
     "manage": "ניהול יומנים",
-    "loadError": "לא ניתן לטעון את היומן. נסו שוב."
+    "loadError": "לא ניתן לטעון את היומן. נסו שוב.",
+    "attachError": "לא ניתן לצרף את האירוע. נסו שוב."
   },
   "lessons": {
     "manualAdd": {
@@ -204,14 +205,91 @@
     "detail": {
       "back": "חזרה",
       "occurredAt": "שיעור ב-{{date}}",
+      "dateLabel": "תאריך",
       "studentLabel": "תלמיד",
       "sourceLabel": "מקור",
       "sourceManual": "נוסף ידנית",
       "sourceGoogle": "מ-Google Calendar",
-      "feedbackPlaceholderTitle": "משוב יגיע בשלב 4",
-      "feedbackPlaceholderBody": "עורך המשוב ויצירת המשחקים מגיעים בשלב הבא. דף זה הוא מצין מקום כדי שקישורים מהיומן יעבדו כבר עכשיו.",
       "notFoundTitle": "השיעור לא נמצא",
       "notFoundBody": "השיעור הזה אינו קיים או שאין לכם גישה אליו."
     }
+  },
+  "feedback": {
+    "title": "משוב על השיעור",
+    "subtitle": "תארו מה קרה בשיעור — פערים, טעויות, מה צריך לתרגל. הבינה המלאכותית משתמשת בזה כדי ליצור את המשחק.",
+    "label": "משוב",
+    "placeholder": "שרה התבלבלה היום בין ser ל-estar. לתרגל מצב פיזי מול רגשי.",
+    "save": "שמור משוב",
+    "unsaved": "שינויים שלא נשמרו",
+    "charCount": "{{count}} / {{max}} תווים",
+    "toast": {
+      "saved": "המשוב נשמר"
+    }
+  },
+  "games": {
+    "title": "משחקי תרגול",
+    "generateFillBlank": "צור השלמת מילים",
+    "generateTimedQuiz": "צור חידון על הזמן",
+    "needFeedback": "שמרו תחילה משוב — הבינה המלאכותית מייצרת ממה שכתבתם.",
+    "saveFirst": "יש שינויים במשוב שלא נשמרו — שמרו אותם לפני יצירת משחק.",
+    "empty": "אין עדיין משחקים. לחצו על כפתור יצירה כדי להוסיף אחד.",
+    "typeFillBlank": "השלמת מילים",
+    "typeTimedQuiz": "חידון על הזמן",
+    "questionCount": "{{count}} שאלות",
+    "review": "סקירה",
+    "view": "צפייה",
+    "delete": "מחק",
+    "status": {
+      "DRAFT": "טיוטה",
+      "GENERATING": "ביצירה…",
+      "FAILED": "נכשל",
+      "ASSIGNED": "הוקצה",
+      "ARCHIVED": "בארכיון"
+    },
+    "toast": {
+      "createFailed": "לא ניתן להתחיל יצירה. נסו שוב.",
+      "deleted": "המשחק הוסר",
+      "quotaExceeded": "הגעתם למכסה החודשית של יצירות.",
+      "noFeedback": "שמרו תחילה משוב — אין ממה לייצר."
+    }
+  },
+  "review": {
+    "loadingTitle": "טוען משחק…",
+    "subtitleFillBlank": "ערכו כל שאלה או צרו מחדש את אלה שלא אהבתם. הקצו לתלמיד כשתסיימו.",
+    "subtitleTimedQuiz": "ערכו את השאלה, התשובה והמסיחים. הקצו לתלמיד כשתסיימו.",
+    "subtitleGeneric": "סקרו וערכו את השאלות שנוצרו ואז הקצו לתלמיד.",
+    "generating": "יוצר שאלות…",
+    "generatingHint": "זה לרוב לוקח כמה שניות.",
+    "failedTitle": "היצירה נכשלה",
+    "failedGeneric": "לא ניתן ליצור את המאגר הזה. נסו שוב או נסחו מחדש את המשוב באופן ספציפי יותר.",
+    "failedBreaker": "שירות הבינה המלאכותית אינו זמין כרגע. המתינו דקה ונסו שוב.",
+    "retry": "נסה שוב",
+    "questionLabel": "שאלה {{n}}",
+    "regenerateOne": "צור מחדש שאלה זו",
+    "regenerateAll": "צור הכול מחדש",
+    "saveEdits": "שמור שינויים",
+    "assign": "הקצה לתלמיד",
+    "reassign": "הקצה מחדש",
+    "distractorsHint": "מסיח אחד בכל שורה.",
+    "alternatesHint": "תשובות נוספות שיתקבלו — אחת בכל שורה.",
+    "fields": {
+      "prompt": "שאלה",
+      "answer": "התשובה הנכונה",
+      "distractors": "אפשרויות שגויות",
+      "alternates": "גם לקבל"
+    },
+    "toast": {
+      "saved": "השינויים נשמרו",
+      "regenerating": "יוצר את המאגר מחדש…",
+      "assigned": "הוקצה לתלמיד"
+    }
+  },
+  "studentPicker": {
+    "title": "לאיזה תלמיד שייך השיעור הזה?",
+    "contextLine": "מצרף:",
+    "searchLabel": "מציאת תלמיד",
+    "searchPlaceholder": "חיפוש לפי שם…",
+    "emptyAll": "אין עדיין תלמידים — הוסיפו אחד מדף התלמידים תחילה.",
+    "emptySearch": "אין תלמידים שתואמים לחיפוש."
   }
 }

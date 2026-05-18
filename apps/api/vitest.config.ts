@@ -13,6 +13,7 @@ export default defineConfig({
         'src/students/**/*.ts',
         'src/integrations/**/*.ts',
         'src/lessons/**/*.ts',
+        'src/games/**/*.ts',
       ],
       exclude: [
         '**/*.test.ts',
@@ -21,9 +22,11 @@ export default defineConfig({
         // coverage stays meaningful (they cannot run when Postgres is offline).
         'src/students/tenant-isolation.test.ts',
         'src/lessons/tenant-isolation.test.ts',
-        // Real Google SDK adapter — never executed in unit tests (the fake
-        // client is injected via GOOGLE_CALENDAR_CLIENT instead).
+        'src/games/tenant-isolation.test.ts',
+        // Real provider adapters — never executed in unit tests (the fake
+        // clients are injected via DI tokens instead).
         'src/integrations/google/google-calendar.real.ts',
+        'src/integrations/anthropic/llm.real.ts',
         // Test-only seed route — used by the seed harness, not unit-tested.
         'src/integrations/google/test-fake-google.controller.ts',
       ],

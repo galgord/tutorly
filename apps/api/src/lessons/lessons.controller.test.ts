@@ -46,6 +46,7 @@ function makeController(overrides: {
     softDelete: vi.fn().mockResolvedValue(fakeLesson({ deletedAt: new Date() })),
     restore: vi.fn().mockResolvedValue(fakeLesson()),
     listLocalLessonsInRange: vi.fn().mockResolvedValue([]),
+    updateFeedback: vi.fn().mockResolvedValue(fakeLesson({ feedbackText: 'saved' })),
     ...overrides.lessons,
   } as unknown as LessonService;
   const audit = { record: vi.fn().mockResolvedValue(undefined) } as unknown as AuditService;
@@ -295,8 +296,47 @@ describe('LessonsController.calendar (merge logic)', () => {
   });
 });
 
+describe('LessonsController.setFeedback', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('400 on missing feedbackText', async () => {
+    const { controller } = makeController();
+    await expect(
+      controller.setFeedback(tutorA, 'les_1', {}, fakeReq()),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('400 on whitespace-only feedback', async () => {
+    const { controller } = makeController();
+    await expect(
+      controller.setFeedback(tutorA, 'les_1', { feedbackText: '   ' }, fakeReq()),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('forwards to service and audits with length (not raw text)', async () => {
+    const { controller, lessons, audit } = makeController();
+    await controller.setFeedback(
+      tutorA,
+      'les_1',
+      { feedbackText: 'Sara confused ser/estar.' },
+      fakeReq(),
+    );
+    expect(lessons.updateFeedback).toHaveBeenCalledWith({
+      id: 'les_1',
+      tutorId: 'tutor_a',
+      feedbackText: 'Sara confused ser/estar.',
+      source: 'TEXT',
+    });
+    const auditCall = vi.mocked(audit.record).mock.calls[0]?.[0];
+    expect(auditCall?.action).toBe('lesson.feedback.updated');
+    expect((auditCall?.metadata as Record<string, unknown>).length).toBe(24);
+    // PII: raw feedback text must NEVER appear in audit metadata.
+    expect(JSON.stringify(auditCall?.metadata)).not.toContain('Sara');
+  });
+});
+
 describe('serializeLesson', () => {
-  it('emits ISO strings and never leaks audio/feedbackSource', () => {
+  it('emits ISO strings, includes feedbackSource, and never leaks audioUrl', () => {
     const out = serializeLesson({
       id: 'les_1',
       studentId: 'stu_1',
@@ -312,7 +352,11 @@ describe('serializeLesson', () => {
       updatedAt: new Date('2026-05-01T00:00:00Z'),
     });
     expect(out.occurredAt).toBe('2026-05-01T10:00:00.000Z');
-    expect(out).not.toHaveProperty('feedbackSource');
+    // Phase 4: feedbackSource is part of the public response so the UI can
+    // distinguish TEXT vs VOICE-derived feedback when Phase 5 lands.
+    expect(out.feedbackSource).toBe('TEXT');
+    // audioUrl stays private — the public API never includes the raw URL
+    // even when it's set (the asset is signed/short-lived in Phase 5).
     expect(out).not.toHaveProperty('audioUrl');
   });
 });

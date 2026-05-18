@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FeedbackSourceSchema } from './feedback.js';
 
 // ---- Lessons -----------------------------------------------------------
 
@@ -44,6 +45,7 @@ export const LessonResponseSchema = z.object({
   occurredAt: z.string().datetime(),
   googleEventId: z.string().nullable(),
   feedbackText: z.string().nullable(),
+  feedbackSource: FeedbackSourceSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   deletedAt: z.string().datetime().nullable(),

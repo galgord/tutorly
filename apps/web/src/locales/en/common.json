@@ -182,7 +182,8 @@
     "manualBadge": "Manual",
     "loading": "Loading calendar…",
     "manage": "Manage calendars",
-    "loadError": "Couldn't load the calendar. Try again."
+    "loadError": "Couldn't load the calendar. Try again.",
+    "attachError": "Couldn't attach the event. Try again."
   },
   "lessons": {
     "manualAdd": {
@@ -204,14 +205,91 @@
     "detail": {
       "back": "Back",
       "occurredAt": "Lesson on {{date}}",
+      "dateLabel": "Date",
       "studentLabel": "Student",
       "sourceLabel": "Source",
       "sourceManual": "Added manually",
       "sourceGoogle": "From Google Calendar",
-      "feedbackPlaceholderTitle": "Feedback coming in Phase 4",
-      "feedbackPlaceholderBody": "The feedback editor and game generation arrive in the next phase. This page is the placeholder so calendar links work today.",
       "notFoundTitle": "Lesson not found",
       "notFoundBody": "That lesson doesn't exist or you don't have access to it."
     }
+  },
+  "feedback": {
+    "title": "Lesson feedback",
+    "subtitle": "Describe what happened in the lesson — gaps, mistakes, what to drill. The AI uses this to generate the practice game.",
+    "label": "Feedback",
+    "placeholder": "Sara mixed up ser/estar today. Drill physical vs emotional state.",
+    "save": "Save feedback",
+    "unsaved": "Unsaved changes",
+    "charCount": "{{count}} / {{max}} characters",
+    "toast": {
+      "saved": "Feedback saved"
+    }
+  },
+  "games": {
+    "title": "Practice games",
+    "generateFillBlank": "Generate Fill-in-Blank",
+    "generateTimedQuiz": "Generate Timed Quiz",
+    "needFeedback": "Save feedback first — the AI generates from what you wrote.",
+    "saveFirst": "You have unsaved feedback edits — save them before generating.",
+    "empty": "No games yet. Click a generate button to create one.",
+    "typeFillBlank": "Fill-in-the-blank",
+    "typeTimedQuiz": "Timed quiz",
+    "questionCount": "{{count}} questions",
+    "review": "Review",
+    "view": "View",
+    "delete": "Delete",
+    "status": {
+      "DRAFT": "Draft",
+      "GENERATING": "Generating…",
+      "FAILED": "Failed",
+      "ASSIGNED": "Assigned",
+      "ARCHIVED": "Archived"
+    },
+    "toast": {
+      "createFailed": "Couldn't start generation. Try again.",
+      "deleted": "Game removed",
+      "quotaExceeded": "You've hit your monthly generation cap.",
+      "noFeedback": "Save feedback first — there's nothing to generate from."
+    }
+  },
+  "review": {
+    "loadingTitle": "Loading game…",
+    "subtitleFillBlank": "Edit each question, or regenerate any you don't like. Assign when ready.",
+    "subtitleTimedQuiz": "Edit the prompt, answer, and distractors. Assign when ready.",
+    "subtitleGeneric": "Review and edit the generated questions, then assign to your student.",
+    "generating": "Generating questions…",
+    "generatingHint": "This typically takes a few seconds.",
+    "failedTitle": "Generation failed",
+    "failedGeneric": "We couldn't generate this pool. Try again, or rephrase your feedback to be more specific.",
+    "failedBreaker": "The AI service is temporarily unavailable. Wait a minute and try again.",
+    "retry": "Try again",
+    "questionLabel": "Question {{n}}",
+    "regenerateOne": "Regenerate this one",
+    "regenerateAll": "Regenerate all",
+    "saveEdits": "Save edits",
+    "assign": "Assign to student",
+    "reassign": "Re-assign",
+    "distractorsHint": "One distractor per line.",
+    "alternatesHint": "Other accepted answers — one per line.",
+    "fields": {
+      "prompt": "Question",
+      "answer": "Correct answer",
+      "distractors": "Wrong-answer choices",
+      "alternates": "Also accept"
+    },
+    "toast": {
+      "saved": "Edits saved",
+      "regenerating": "Regenerating pool…",
+      "assigned": "Assigned to student"
+    }
+  },
+  "studentPicker": {
+    "title": "Which student is this lesson for?",
+    "contextLine": "Attaching:",
+    "searchLabel": "Find student",
+    "searchPlaceholder": "Search by name…",
+    "emptyAll": "No students yet — add one from the students page first.",
+    "emptySearch": "No students match that search."
   }
 }

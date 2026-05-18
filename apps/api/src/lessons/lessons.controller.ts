@@ -6,13 +6,14 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ActorType, LessonSource, type Lesson } from '@prisma/client';
+import { ActorType, FeedbackSource, LessonSource, type Lesson } from '@prisma/client';
 import {
   CalendarMergeResponseSchema,
   CalendarRangeQuerySchema,
@@ -20,6 +21,7 @@ import {
   LessonListResponseSchema,
   LessonResponseSchema,
   ListLessonsQuerySchema,
+  UpdateFeedbackRequestSchema,
   type CalendarItem,
   type LessonResponse,
 } from '@tutor-app/shared';
@@ -250,6 +252,40 @@ export class LessonsController {
     });
     return serializeLesson(lesson);
   }
+
+  @Patch(':id/feedback')
+  @HttpCode(200)
+  @UseGuards(CsrfGuard)
+  async setFeedback(
+    @CurrentTutor() tutor: CurrentTutorPayload,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: AuthedRequest,
+  ): Promise<LessonResponse> {
+    const parsed = UpdateFeedbackRequestSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues);
+
+    const lesson = await this.lessons.updateFeedback({
+      id,
+      tutorId: tutor.id,
+      feedbackText: parsed.data.feedbackText,
+      source: FeedbackSource.TEXT,
+    });
+
+    await this.audit.record({
+      tutorId: tutor.id,
+      actorType: ActorType.TUTOR,
+      action: 'lesson.feedback.updated',
+      entityType: 'Lesson',
+      entityId: lesson.id,
+      // Length only — never the body itself (PII).
+      metadata: { length: parsed.data.feedbackText.length, source: 'TEXT' },
+      ipAddress: clientIp(req),
+      userAgent: req.header('user-agent') ?? null,
+    });
+
+    return serializeLesson(lesson);
+  }
 }
 
 export function serializeLesson(l: Lesson): LessonResponse {
@@ -261,6 +297,7 @@ export function serializeLesson(l: Lesson): LessonResponse {
     occurredAt: l.occurredAt.toISOString(),
     googleEventId: l.googleEventId,
     feedbackText: l.feedbackText,
+    feedbackSource: l.feedbackSource,
     createdAt: l.createdAt.toISOString(),
     updatedAt: l.updatedAt.toISOString(),
     deletedAt: l.deletedAt ? l.deletedAt.toISOString() : null,
@@ -277,6 +314,7 @@ export function serializeLessonWithStudent(l: LessonWithStudent): LessonResponse
     occurredAt: l.occurredAt.toISOString(),
     googleEventId: l.googleEventId,
     feedbackText: l.feedbackText,
+    feedbackSource: l.feedbackSource,
     createdAt: l.createdAt.toISOString(),
     updatedAt: l.updatedAt.toISOString(),
     deletedAt: l.deletedAt ? l.deletedAt.toISOString() : null,

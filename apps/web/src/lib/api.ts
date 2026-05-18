@@ -2,8 +2,11 @@ import type {
   CalendarMergeResponse,
   CalendarRangeQuery,
   ConnectIntegrationResponse,
+  CreateGameRequest,
   CreateLessonRequest,
   CreateStudentRequest,
+  GameListResponse,
+  GameResponse,
   IntegrationErrorResponse,
   IntegrationStatusResponse,
   LessonListResponse,
@@ -15,9 +18,12 @@ import type {
   MagicLinkResponse,
   MeResponse,
   PublicStudentResponse,
+  RegenerateQuestionRequest,
   RotateTokenResponse,
   StudentListResponse,
   StudentResponse,
+  UpdateFeedbackRequest,
+  UpdateGameRequest,
   UpdateLessonCalendarsRequest,
   UpdateStudentRequest,
   UpdateTutorRequest,
@@ -142,6 +148,26 @@ export const api = {
     const sp = new URLSearchParams({ from: query.from, to: query.to });
     return request(`/lessons/calendar?${sp.toString()}`);
   },
+  setLessonFeedback: (id: string, body: UpdateFeedbackRequest): Promise<LessonResponse> =>
+    request(`/lessons/${encodeURIComponent(id)}/feedback`, { method: 'PATCH', body }),
+
+  // Games -----------------------------------------------------------------
+  listGames: (lessonId: string): Promise<GameListResponse> =>
+    request(`/lessons/${encodeURIComponent(lessonId)}/games`),
+  createGame: (lessonId: string, body: CreateGameRequest): Promise<GameResponse> =>
+    request(`/lessons/${encodeURIComponent(lessonId)}/games`, { method: 'POST', body }),
+  getGame: (id: string): Promise<GameResponse> =>
+    request(`/games/${encodeURIComponent(id)}`),
+  updateGame: (id: string, body: UpdateGameRequest): Promise<GameResponse> =>
+    request(`/games/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  regenerateGame: (id: string): Promise<GameResponse> =>
+    request(`/games/${encodeURIComponent(id)}/regenerate`, { method: 'POST', body: {} }),
+  regenerateGameQuestion: (id: string, body: RegenerateQuestionRequest): Promise<GameResponse> =>
+    request(`/games/${encodeURIComponent(id)}/regenerate-question`, { method: 'POST', body }),
+  assignGame: (id: string): Promise<GameResponse> =>
+    request(`/games/${encodeURIComponent(id)}/assign`, { method: 'POST', body: {} }),
+  deleteGame: (id: string): Promise<void> =>
+    request(`/games/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   // Integrations: Google Calendar ----------------------------------------
   integrationStatus: (): Promise<IntegrationStatusResponse> =>

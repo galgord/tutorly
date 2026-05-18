@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+  FeedbackSource,
   type Lesson,
   type LessonSource,
   type Prisma,
@@ -167,6 +168,28 @@ export class LessonService {
       },
       include: { student: { select: { id: true, name: true, tutorId: true } } },
       orderBy: { occurredAt: 'asc' },
+    });
+  }
+
+  /**
+   * Phase 4: persist tutor-written free-text feedback for a lesson.
+   * Always re-asserts tenant ownership; tutor B can never write feedback
+   * on tutor A's lesson. Voice-source updates (Phase 5) take the same
+   * path with `source = FeedbackSource.VOICE`.
+   */
+  async updateFeedback(opts: {
+    id: string;
+    tutorId: string;
+    feedbackText: string;
+    source?: FeedbackSource;
+  }): Promise<Lesson> {
+    await this.getLessonForTutorOrFail({ id: opts.id, tutorId: opts.tutorId });
+    return this.prisma.lesson.update({
+      where: { id: opts.id },
+      data: {
+        feedbackText: opts.feedbackText,
+        feedbackSource: opts.source ?? FeedbackSource.TEXT,
+      },
     });
   }
 }

@@ -145,6 +145,8 @@ enum GameStatus {
   DRAFT
   ASSIGNED
   ARCHIVED
+  GENERATING
+  FAILED
 }
 
 model Game {
@@ -157,6 +159,9 @@ model Game {
   poolSize             Int
   generationPromptHash String?
   locale               String     @default("en")
+  // Phase 4: human-readable reason a FAILED job set, so the tutor sees more
+  // than just "failed" in the UI. Kept short + tutor-safe (no stack traces).
+  generationError      String?
   deletedAt            DateTime?
   assignedAt           DateTime?
   createdAt            DateTime   @default(now())

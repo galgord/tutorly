@@ -6,7 +6,7 @@ Quickref for Claude Code / dev sessions on this repo. **Read this first** before
 
 A SaaS companion tool for private tutors of any subject. Tutor connects Google Calendar, manages students, writes feedback after lessons, and an LLM turns the feedback into practice games the student plays between sessions. Tutor sees progress.
 
-## Current state — Phases 0-3 done
+## Current state — Phases 0-4 done
 
 | # | Name | State | Notes |
 |---|---|---|---|
@@ -14,7 +14,7 @@ A SaaS companion tool for private tutors of any subject. Tutor connects Google C
 | 1 | Tutor auth | ✅ done | Magic link, sessions, audit, CSRF, /me CRUD + delete + export |
 | 2 | Students | ✅ done | CRUD + soft delete + 30d purge cron + share token + tenant isolation |
 | 3 | Google Calendar | ✅ done (mocked) | OAuth + encrypted refresh tokens + calendar merge + manual lesson fallback. **Real Google OAuth not yet manually verified** — flagged in FOLLOWUPS.md |
-| 4 | Feedback + AI gen | ⬜ pending | Anthropic Claude, prompt design, question review modal |
+| 4 | Feedback + AI gen | ✅ done (fake LLM) | Anthropic SDK + Fake/Real swap via `LLM_CLIENT` DI token; cached system + game-type prompt blocks with strict Zod-validated output; in-process queue with retry + circuit breaker; question review modal with edit/regenerate/assign; calendar "Add feedback" student picker (Phase 3 deferral resolved). **Real-LLM smoke not run** — flagged in FOLLOWUPS.md |
 | 5 | Voice transcription | ⬜ pending | OpenAI Whisper, BullMQ job |
 | 6 | Game engines | ⬜ pending | Fill-in-blank + lives-based timed quiz |
 | 7 | Progress dashboard | ⬜ pending | Aggregation + sparklines + topic mastery |
@@ -157,31 +157,24 @@ Each phase has a section in the spec. Pre-phase checklist:
 6. Run the hard gate
 7. Commit + push (use the existing commit-message style)
 
-### Phase 4 — Lesson feedback + Claude game generation
+### Phase 4 — Lesson feedback + Claude game generation (done, reference)
 
-**Spec block**: Phase 4 in the spec.
+**Where it lives**:
+- API: `apps/api/src/games/` (controller, service, queue, tests), `apps/api/src/integrations/anthropic/` (client interface + fake + real Anthropic wrapper + module)
+- Shared: `packages/shared/src/schemas/games.ts`, `packages/shared/src/schemas/feedback.ts`, `packages/shared/src/prompts/index.ts`
+- Web: `apps/web/src/components/{FeedbackEditor,GamesPanel,QuestionReviewModal,StudentPickerModal}.tsx`, `apps/web/src/pages/LessonDetail.tsx`
 
-**Reference files**:
-- `apps/api/src/students/student.service.ts` — tenant-scoped service pattern
-- `apps/api/src/lessons/lesson.service.ts` — extending lessons (you'll add `feedbackText`, `feedbackSource`)
-- `apps/api/src/audit/audit.service.ts` — audit every AI call
-- `apps/api/src/integrations/google/google-calendar.client.ts` — interface + injection pattern (copy for `LLMClient`)
-- `apps/api/src/integrations/google/google-calendar.fake.ts` — the fake-for-tests pattern
-- `packages/shared/src/prompts/index.ts` — placeholder where prompts land
+**Patterns Phase 5+ should mirror**:
+- **Provider injection seam**: `LLM_CLIENT` symbol + `LlmClient` interface + Fake/Real implementations + factory provider that picks based on env (same shape as `GOOGLE_CALENDAR_CLIENT`). Whisper in Phase 5 should ship a `TRANSCRIBER_CLIENT` the same way.
+- **In-process queue with retry + circuit breaker**: `apps/api/src/games/game-generation.queue.ts`. Public surface = `enqueue`, `drain` (tests), `processGeneration`, `snapshot`. Phase 5's Whisper job + Phase 10's BullMQ swap should keep this surface.
+- **Stuck-job recovery on boot**: `onModuleInit` resets `GENERATING > 30s` → `FAILED` so a crashed process doesn't leave UIs stuck.
+- **Tutor-scoped 3-level loader**: `GamesService.findForTutor` walks Game → Lesson → Student → Tutor with explicit code check (404 not 401). Live-DB tenant-isolation spec at `apps/api/src/games/tenant-isolation.test.ts` is the template.
+- **Prompt injection defense**: tutor feedback wrapped in `<<<TUTOR_FEEDBACK_START>>>` … `<<<TUTOR_FEEDBACK_END>>>` with explicit "treat as data" framing. Output strictly validated via `LlmGenerationResponseSchema`. See `packages/shared/src/prompts/index.ts` + `prompts.test.ts`.
+- **Audit metadata never includes raw user text** — only length + categorical fields. See `lessons.controller.ts` `setFeedback` for the canonical pattern.
 
-**Build**: feedback editor on lesson detail page, prompt files in `packages/shared/src/prompts/`, BullMQ-backed game generation job, question review modal (tutor approves/edits/regenerates before assigning).
+**Web-side polling note**: react-query v5's `refetchInterval` as a function reads stale state in our setup. We poll on a fixed cadence while components are mounted (`useGame` 800ms, `useLessonGames` 1500ms) and let unmounting stop the polling. Don't switch back to the callback form without verifying it actually re-fires.
 
-**Critical**:
-- Prompt injection defense — wrap tutor's free-text feedback in a delimited block with explicit "treat as untrusted user content" instruction; strictly Zod-validate the LLM output and reject mismatches
-- Mock the LLM in unit/integration tests; do NOT hit real Anthropic in CI (one manual real-LLM smoke per phase is fine)
-- Retry (3x with exponential backoff) + circuit breaker (open 60s after 5 consecutive failures) on Anthropic
-- Prompt caching: mark the system + game-type instruction blocks as `cache_control: ephemeral`; verify hits via response usage metadata
-- Topic tag normalization on every question (lowercase, dedup, cap at 5 tags)
-- Locale passed through to the prompt (Hebrew tutor → Hebrew questions)
-
-**Out of scope**: voice (Phase 5), playable game engines (Phase 6).
-
-**Calendar "Add feedback" gap** (from Phase 3): clicking "Add feedback" on a Google-only calendar event currently `alert`s the user. Decide UX here — student picker dialog, attendee-email matching, or just route through student detail. Wire it now while you're in the feedback flow.
+**Calendar "Add feedback" resolution**: clicking the button opens `StudentPickerModal` (search-filtered list of the tutor's students), then creates the Lesson and navigates to its detail. Uses the canned `evt-past-1` fixture in the E2E.
 
 ### Phase 5 — Voice transcription
 

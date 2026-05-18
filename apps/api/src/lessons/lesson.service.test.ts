@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { LessonSource } from '@prisma/client';
+import { FeedbackSource, LessonSource } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makePrismaMock } from '../test/prisma-mock';
 import { LessonService } from './lesson.service';
@@ -246,5 +246,48 @@ describe('LessonService.listLocalLessonsInRange', () => {
     expect((where.student as Record<string, unknown>).tutorId).toBe('tutor_a');
     expect((where.student as Record<string, unknown>).deletedAt).toBeNull();
     expect(where.deletedAt).toBeNull();
+  });
+});
+
+describe('LessonService.updateFeedback', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('refuses cross-tenant lesson with NotFound', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue(null as never);
+    await expect(
+      svc.updateFeedback({ id: 'les_1', tutorId: 'tutor_a', feedbackText: 'hi' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.lesson.update).not.toHaveBeenCalled();
+  });
+
+  it('persists feedback text and defaults source to TEXT', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      ...fakeLesson(),
+      student: { id: 'stu_1', name: 'Sara', tutorId: 'tutor_a' },
+    } as never);
+    vi.mocked(prisma.lesson.update).mockResolvedValue(fakeLesson() as never);
+    await svc.updateFeedback({ id: 'les_1', tutorId: 'tutor_a', feedbackText: 'pay attention to ser/estar' });
+    const data = vi.mocked(prisma.lesson.update).mock.calls[0]?.[0]?.data;
+    expect(data?.feedbackText).toBe('pay attention to ser/estar');
+    expect(data?.feedbackSource).toBe(FeedbackSource.TEXT);
+  });
+
+  it('explicit VOICE source flows through', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      ...fakeLesson(),
+      student: { id: 'stu_1', name: 'Sara', tutorId: 'tutor_a' },
+    } as never);
+    vi.mocked(prisma.lesson.update).mockResolvedValue(fakeLesson() as never);
+    await svc.updateFeedback({
+      id: 'les_1',
+      tutorId: 'tutor_a',
+      feedbackText: 'transcribed text',
+      source: FeedbackSource.VOICE,
+    });
+    const data = vi.mocked(prisma.lesson.update).mock.calls[0]?.[0]?.data;
+    expect(data?.feedbackSource).toBe(FeedbackSource.VOICE);
   });
 });

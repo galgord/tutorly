@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -9,7 +9,9 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CalendarItem } from '@tutor-app/shared';
 import { Bidi } from '../components/Bidi';
-import { api } from '../lib/api';
+import { StudentPickerModal } from '../components/StudentPickerModal';
+import { Toast } from '../components/Toast';
+import { ApiError, api } from '../lib/api';
 import { useCalendar } from '../lib/lessons';
 import { useIntegrationStatus } from '../lib/integrations';
 
@@ -30,6 +32,7 @@ import { useIntegrationStatus } from '../lib/integrations';
 export function CalendarPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   // 7-day window each side of today. Tests fix occurrences within this range.
   const range = useMemo(() => {
@@ -41,16 +44,33 @@ export function CalendarPage() {
 
   const data = useCalendar(range);
   const status = useIntegrationStatus();
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  // The Google-only event the tutor clicked "Add feedback" on — opens the
+  // student-picker modal so we can attach it before creating the local
+  // Lesson row.
+  const [pendingPick, setPendingPick] = useState<CalendarItem | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const createMutation = useMutation({
-    mutationFn: (item: CalendarItem) =>
+  const createMutation = useMutation<
+    Awaited<ReturnType<typeof api.createLesson>>,
+    ApiError,
+    { item: CalendarItem; studentId: string }
+  >({
+    mutationFn: ({ item, studentId }) =>
       api.createLesson({
-        studentId: '', // populated after we pick a student — see comment below
+        studentId,
         occurredAt: item.startsAt,
         title: item.title,
         googleEventId: item.googleEventId ?? undefined,
       }),
+    onSuccess: async (lesson) => {
+      await qc.invalidateQueries({ queryKey: ['calendar'] });
+      setPendingPick(null);
+      void navigate({ to: '/lessons/$id', params: { id: lesson.id } });
+    },
+    onError: () => {
+      setToast(t('calendar.attachError'));
+      setPendingPick(null);
+    },
   });
 
   const isRtl =
@@ -87,15 +107,9 @@ export function CalendarPage() {
       void navigate({ to: '/lessons/$id', params: { id: item.localLessonId } });
       return;
     }
-    // The merge endpoint never returns a Google-only event with a known student;
-    // the tutor must attach it from the student page. For now, show a hint via
-    // alert so the path is discoverable in the test/UI without leaving the
-    // calendar.
-    setPendingId(item.googleEventId ?? null);
-    // Without student context we can't create the local lesson here; navigate
-    // to the integrations page hint. The Playwright E2E covers the
-    // "navigate from student page" flow.
-    window.alert(t('calendar.openLesson'));
+    // Google-only event — needs a student association. Pop the picker;
+    // the modal's onPicked handler creates the Lesson and navigates.
+    setPendingPick(item);
   };
 
   return (
@@ -199,14 +213,9 @@ export function CalendarPage() {
                     <button
                       type="button"
                       data-testid={`calendar-add-feedback-${id}`}
-                      disabled={createMutation.isPending && pendingId === id}
-                      onClick={() => {
-                        // Without a student selection prompt this is best-
-                        // effort. The E2E covers the in-flow path from the
-                        // student page where studentId is known.
-                        setPendingId(id);
-                      }}
-                      className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white"
+                      disabled={createMutation.isPending}
+                      onClick={() => setPendingPick(item)}
+                      className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
                     >
                       {t('calendar.addFeedback')}
                     </button>
@@ -241,6 +250,21 @@ export function CalendarPage() {
           }}
         />
       </div>
+
+      <StudentPickerModal
+        open={!!pendingPick}
+        contextLabel={pendingPick?.title ?? null}
+        onClose={() => {
+          if (createMutation.isPending) return;
+          setPendingPick(null);
+        }}
+        onPicked={(studentId) => {
+          if (!pendingPick) return;
+          createMutation.mutate({ item: pendingPick, studentId });
+        }}
+      />
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="calendar-toast" />}
     </section>
   );
 }

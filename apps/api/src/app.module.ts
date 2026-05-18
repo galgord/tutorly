@@ -7,6 +7,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { HealthController } from './health/health.controller';
+import { GamesModule } from './games/games.module';
 import { GoogleIntegrationModule } from './integrations/google/google-integration.module';
 import { LessonsModule } from './lessons/lessons.module';
 import { MailerModule } from './mailer/mailer.module';
@@ -47,6 +48,7 @@ import { StudentsModule } from './students/students.module';
     StudentsModule,
     GoogleIntegrationModule,
     LessonsModule,
+    GamesModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

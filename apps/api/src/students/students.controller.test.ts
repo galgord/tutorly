@@ -12,6 +12,7 @@ function fakeStudent(over: Partial<Record<string, unknown>> = {}) {
     tutorId: over.tutorId ?? 'tutor_a',
     name: (over.name as string | undefined) ?? 'Sara',
     notes: (over.notes as string | null | undefined) ?? null,
+    nativeLanguage: (over.nativeLanguage as string | null | undefined) ?? null,
     shareToken: (over.shareToken as string | undefined) ?? 'tok-aaaaaaaaaa',
     shareTokenRotatedAt: (over.shareTokenRotatedAt as Date | undefined) ?? new Date('2026-05-01T00:00:00Z'),
     createdAt: (over.createdAt as Date | undefined) ?? new Date('2026-05-01T00:00:00Z'),
@@ -59,6 +60,22 @@ describe('StudentsController.create', () => {
       tutorId: 'tutor_a',
       name: 'Sara',
       notes: undefined,
+      nativeLanguage: undefined,
+    });
+  });
+
+  it('passes nativeLanguage through when provided', async () => {
+    const { controller, students } = makeController();
+    await controller.create(
+      tutorA,
+      { name: 'Sara', nativeLanguage: 'he' },
+      fakeReq() as never,
+    );
+    expect(students.create).toHaveBeenCalledWith({
+      tutorId: 'tutor_a',
+      name: 'Sara',
+      notes: undefined,
+      nativeLanguage: 'he',
     });
   });
 

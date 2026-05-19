@@ -2,6 +2,16 @@
   "app": {
     "title": "אפליקציית עזר למורה"
   },
+  "languages": {
+    "en": "אנגלית",
+    "pt": "פורטוגזית",
+    "he": "עברית",
+    "es": "ספרדית",
+    "fr": "צרפתית",
+    "de": "גרמנית",
+    "it": "איטלקית",
+    "ar": "ערבית"
+  },
   "common": {
     "loading": "טוען…",
     "workingOn": "עובד…",
@@ -41,6 +51,12 @@
       "email": "דוא\"ל",
       "name": "שם",
       "locale": "שפה",
+      "subject": "המקצוע שאני מלמד",
+      "subjectPlaceholder": "לדוגמה: פורטוגזית, מתמטיקה, פסנתר",
+      "subjectHint": "עוזר ל-AI לכתוב שאלות על הנושא הנכון.",
+      "teachingLanguage": "שפת השיעורים",
+      "teachingLanguageHint": "שאלות התרגול ייכתבו בשפה זו, גם אם תקליטו את הפידבק בשפה אחרת.",
+      "teachingLanguageNone": "כמו שפת הממשק",
       "save": "שמור",
       "saved": "נשמר"
     },
@@ -60,7 +76,10 @@
     "emptySearch": "אין תלמידים שתואמים לחיפוש.",
     "fields": {
       "name": "שם",
-      "notes": "הערות"
+      "notes": "הערות",
+      "nativeLanguage": "שפת אם",
+      "nativeLanguageHint": "עוזר להתאים שאלות לתלמיד. אופציונלי.",
+      "nativeLanguageNone": "לא הוגדר"
     },
     "row": {
       "lastLesson": "נוסף בתאריך {{date}}"

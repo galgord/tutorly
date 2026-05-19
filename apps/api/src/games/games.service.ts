@@ -14,7 +14,7 @@ import {
 import {
   type GameQuestion,
   GameQuestionSchema,
-  type Locale,
+  type Language,
 } from '@tutor-app/shared';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,7 +26,10 @@ export interface CreateGameOpts {
   tutorId: string;
   type: GameType;
   poolSize: number;
-  locale: Locale;
+  /** Output language for the game — Phase 11 widened from `Locale` to
+   *  `Language` to accommodate tutors teaching languages outside the
+   *  three UI locales (es, fr, …). */
+  locale: Language;
 }
 
 export type GameWithTutorScope = Game & {
@@ -225,7 +228,7 @@ export class GamesService {
     const newQuestion = await this.queue.regenerateSingle({
       gameId: game.id,
       gameType: game.type,
-      locale: game.locale as Locale,
+      locale: game.locale as Language,
     });
     if (!newQuestion) {
       throw new BadRequestException('AI service unavailable — try again shortly.');

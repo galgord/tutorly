@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Locale } from '@tutor-app/shared';
+import type { Language, Locale } from '@tutor-app/shared';
+import { LanguageSelect } from '../components/LanguageSelect';
 import { api } from '../lib/api';
 import { useMe } from '../lib/auth';
 
@@ -14,17 +15,29 @@ export function SettingsPage() {
 
   const [name, setName] = useState('');
   const [locale, setLocale] = useState<Locale>('en');
+  const [subject, setSubject] = useState('');
+  const [teachingLanguage, setTeachingLanguage] = useState<Language | null>(null);
   const [confirmDeleteText, setConfirmDeleteText] = useState('');
 
   useEffect(() => {
     if (me.data) {
       setName(me.data.name ?? '');
       setLocale(me.data.locale);
+      setSubject(me.data.subject ?? '');
+      setTeachingLanguage(me.data.teachingLanguage ?? null);
     }
   }, [me.data]);
 
   const saveMutation = useMutation({
-    mutationFn: () => api.updateMe({ name: name.trim() || undefined, locale }),
+    mutationFn: () =>
+      api.updateMe({
+        name: name.trim() || undefined,
+        locale,
+        // `null` clears the field; empty string from the text input also
+        // maps to `null` so the tutor can blank out a previously-set subject.
+        subject: subject.trim() === '' ? null : subject.trim(),
+        teachingLanguage,
+      }),
     onSuccess: async (updated) => {
       qc.setQueryData(['me'], updated);
       await i18n.changeLanguage(updated.locale);
@@ -101,6 +114,36 @@ export function SettingsPage() {
           <option value="pt">Português</option>
           <option value="he">עברית</option>
         </select>
+
+        <label htmlFor="subject" className="mt-4 block text-sm font-medium">
+          {t('settings.profile.subject')}
+        </label>
+        <input
+          id="subject"
+          type="text"
+          dir="auto"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder={t('settings.profile.subjectPlaceholder')}
+          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          data-testid="settings-subject"
+          maxLength={80}
+        />
+        <p className="mt-1 text-xs text-slate-500">{t('settings.profile.subjectHint')}</p>
+
+        <label htmlFor="teachingLanguage" className="mt-4 block text-sm font-medium">
+          {t('settings.profile.teachingLanguage')}
+        </label>
+        <LanguageSelect
+          id="teachingLanguage"
+          value={teachingLanguage}
+          emptyLabel={t('settings.profile.teachingLanguageNone')}
+          onChange={setTeachingLanguage}
+          testId="settings-teaching-language"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          {t('settings.profile.teachingLanguageHint')}
+        </p>
 
         <button
           type="submit"

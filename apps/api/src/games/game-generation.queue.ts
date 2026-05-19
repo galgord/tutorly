@@ -4,7 +4,7 @@ import {
   LlmGenerationResponseSchema,
   buildGenerationPrompt,
   type GameQuestion,
-  type Locale,
+  type Language,
 } from '@tutor-app/shared';
 import { randomBytes } from 'node:crypto';
 import { ConfigService } from '../config/config.service';
@@ -146,7 +146,7 @@ export class GameGenerationQueue implements OnModuleInit {
   async regenerateSingle(opts: {
     gameId: string;
     gameType: GameType;
-    locale: Locale;
+    locale: Language;
   }): Promise<GameQuestion | null> {
     if (this.isBreakerOpen()) return null;
     const game = await this.loadGame(opts.gameId);
@@ -154,10 +154,15 @@ export class GameGenerationQueue implements OnModuleInit {
 
     const prompt = buildGenerationPrompt({
       gameType: opts.gameType === GameType.FILL_BLANK ? 'FILL_BLANK' : 'TIMED_QUIZ',
-      locale: opts.locale,
+      // `locale` is the schema-narrow fallback; `targetLanguage` (Phase 11)
+      // carries the actual output language and overrides it when set.
+      locale: 'en',
+      targetLanguage: opts.locale,
       // Ask for 1 question; the model often over-shoots so we keep just the first.
       poolSize: 1,
       feedbackText: game.lesson.feedbackText,
+      subject: game.lesson.student.tutor?.subject ?? null,
+      studentL1: (game.lesson.student.nativeLanguage as Language | null) ?? null,
     });
 
     try {
@@ -262,7 +267,14 @@ export class GameGenerationQueue implements OnModuleInit {
 
   private async loadGame(gameId: string): Promise<
     | (Game & {
-        lesson: { feedbackText: string | null; student: { tutorId: string } } | null;
+        lesson: {
+          feedbackText: string | null;
+          student: {
+            tutorId: string;
+            nativeLanguage: string | null;
+            tutor: { subject: string | null } | null;
+          };
+        } | null;
       })
     | null
   > {
@@ -272,7 +284,15 @@ export class GameGenerationQueue implements OnModuleInit {
         lesson: {
           select: {
             feedbackText: true,
-            student: { select: { tutorId: true } },
+            student: {
+              select: {
+                tutorId: true,
+                // Phase 11: thread student L1 + tutor subject through to
+                // the prompt builder.
+                nativeLanguage: true,
+                tutor: { select: { subject: true } },
+              },
+            },
           },
         },
       },
@@ -281,7 +301,14 @@ export class GameGenerationQueue implements OnModuleInit {
 
   private async attemptOnce(
     game: Game & {
-      lesson: { feedbackText: string | null; student: { tutorId: string } } | null;
+      lesson: {
+        feedbackText: string | null;
+        student: {
+          tutorId: string;
+          nativeLanguage: string | null;
+          tutor: { subject: string | null } | null;
+        };
+      } | null;
     },
   ): Promise<GameQuestion[]> {
     const feedback = (game.lesson?.feedbackText ?? '').trim();
@@ -289,9 +316,15 @@ export class GameGenerationQueue implements OnModuleInit {
 
     const prompt = buildGenerationPrompt({
       gameType: game.type === GameType.FILL_BLANK ? 'FILL_BLANK' : 'TIMED_QUIZ',
-      locale: (game.locale as Locale) ?? 'en',
+      // `locale` is the schema-narrow baseline; `targetLanguage` carries
+      // the actual output language (Phase 11). game.locale is set at
+      // create time from tutor.teachingLanguage > tutor.locale.
+      locale: 'en',
+      targetLanguage: (game.locale as Language) ?? 'en',
       poolSize: game.poolSize,
       feedbackText: feedback,
+      subject: game.lesson?.student.tutor?.subject ?? null,
+      studentL1: (game.lesson?.student.nativeLanguage as Language | null) ?? null,
     });
 
     const result = await this.llm.generate({ prompt });

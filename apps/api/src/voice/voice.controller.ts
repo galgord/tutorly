@@ -130,8 +130,11 @@ export class VoiceController {
       );
     }
 
-    // 5. Resolve locale: tutor's stored preference. The fake transcriber
-    //    is locale-aware; the real Whisper uses it as the `language` hint.
+    // 5. Resolve locale for the Whisper hint. We use `tutor.locale` (the
+    //    tutor's UI/recording language) — NOT `teachingLanguage`. A
+    //    Hebrew-speaking Portuguese tutor records lesson feedback in
+    //    Hebrew about Portuguese content; the prompt builder downstream
+    //    is what makes the generated questions Portuguese.
     const tutorRow = await this.prisma.tutor.findUnique({
       where: { id: tutor.id },
       select: { locale: true },

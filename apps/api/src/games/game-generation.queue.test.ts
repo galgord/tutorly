@@ -29,7 +29,11 @@ function fakeGame(over: Partial<Record<string, unknown>> = {}) {
     generationPromptHash: null,
     lesson: {
       feedbackText,
-      student: { tutorId: 'tutor_a' },
+      student: {
+        tutorId: 'tutor_a',
+        nativeLanguage: null,
+        tutor: { subject: null },
+      },
     },
   };
 }

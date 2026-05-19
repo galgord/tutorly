@@ -38,11 +38,27 @@ export class MeController {
 
   @Get()
   async me(@CurrentTutor() tutor: CurrentTutorPayload) {
+    // The auth guard's payload doesn't carry subject/teachingLanguage (they
+    // were added in Phase 11), so we re-read them from the DB. Cheap (single
+    // row, indexed) and avoids growing the session payload.
+    const row = await this.prisma.tutor.findUnique({
+      where: { id: tutor.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        locale: true,
+        subject: true,
+        teachingLanguage: true,
+      },
+    });
     return MeResponseSchema.parse({
-      id: tutor.id,
-      email: tutor.email,
-      name: tutor.name,
-      locale: tutor.locale,
+      id: row?.id ?? tutor.id,
+      email: row?.email ?? tutor.email,
+      name: row?.name ?? tutor.name,
+      locale: row?.locale ?? tutor.locale,
+      subject: row?.subject ?? null,
+      teachingLanguage: row?.teachingLanguage ?? null,
     });
   }
 
@@ -61,8 +77,26 @@ export class MeController {
       data: {
         name: parsed.data.name ?? undefined,
         locale: parsed.data.locale ?? undefined,
+        // `null` is meaningful (clear the field); `undefined` (key absent)
+        // leaves it untouched. Zod gives us `undefined` when the key wasn't
+        // sent, so the ternary is safe.
+        subject:
+          parsed.data.subject === undefined
+            ? undefined
+            : parsed.data.subject === null
+              ? null
+              : parsed.data.subject.trim(),
+        teachingLanguage:
+          parsed.data.teachingLanguage === undefined ? undefined : parsed.data.teachingLanguage,
       },
-      select: { id: true, email: true, name: true, locale: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        locale: true,
+        subject: true,
+        teachingLanguage: true,
+      },
     });
 
     await this.audit.record({

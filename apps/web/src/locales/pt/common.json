@@ -2,6 +2,16 @@
   "app": {
     "title": "Aplicação do Tutor"
   },
+  "languages": {
+    "en": "Inglês",
+    "pt": "Português",
+    "he": "Hebraico",
+    "es": "Espanhol",
+    "fr": "Francês",
+    "de": "Alemão",
+    "it": "Italiano",
+    "ar": "Árabe"
+  },
   "common": {
     "loading": "A carregar…",
     "workingOn": "A processar…",
@@ -41,6 +51,12 @@
       "email": "Email",
       "name": "Nome",
       "locale": "Idioma",
+      "subject": "Disciplina que ensina",
+      "subjectPlaceholder": "ex.: Português, Matemática, Piano",
+      "subjectHint": "Ajuda a IA a criar questões sobre o tópico correto.",
+      "teachingLanguage": "Idioma das aulas",
+      "teachingLanguageHint": "As questões de prática serão geradas neste idioma, mesmo que o feedback seja gravado noutro.",
+      "teachingLanguageNone": "Igual ao idioma da interface",
       "save": "Guardar",
       "saved": "Guardado"
     },
@@ -60,7 +76,10 @@
     "emptySearch": "Nenhum aluno corresponde à pesquisa.",
     "fields": {
       "name": "Nome",
-      "notes": "Notas"
+      "notes": "Notas",
+      "nativeLanguage": "Idioma materno",
+      "nativeLanguageHint": "Ajuda a personalizar as questões para este aluno. Opcional.",
+      "nativeLanguageNone": "Não definido"
     },
     "row": {
       "lastLesson": "Adicionado em {{date}}"

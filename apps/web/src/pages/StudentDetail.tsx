@@ -2,9 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Language } from '@tutor-app/shared';
 import { AddLessonModal } from '../components/AddLessonModal';
 import { Bidi } from '../components/Bidi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { LanguageSelect } from '../components/LanguageSelect';
 import { ProgressOverview } from '../components/ProgressOverview';
 import { RecentAttemptsList } from '../components/RecentAttemptsList';
 import { Toast } from '../components/Toast';
@@ -31,6 +33,7 @@ export function StudentDetailPage() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
+  const [nativeLanguage, setNativeLanguage] = useState<Language | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [rotateOpen, setRotateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -40,6 +43,7 @@ export function StudentDetailPage() {
     if (detail.data && !editing) {
       setName(detail.data.name);
       setNotes(detail.data.notes ?? '');
+      setNativeLanguage(detail.data.nativeLanguage ?? null);
     }
   }, [detail.data, editing]);
 
@@ -48,6 +52,7 @@ export function StudentDetailPage() {
       api.updateStudent(id, {
         name: name.trim() || undefined,
         notes: notes.trim() === '' ? null : notes.trim(),
+        nativeLanguage,
       }),
     onSuccess: async (updated) => {
       qc.setQueryData(['student', id], updated);
@@ -171,6 +176,21 @@ export function StudentDetailPage() {
           data-testid="student-notes-input"
         />
 
+        <label htmlFor="student-native-language" className="mt-4 block text-sm font-medium">
+          {t('students.fields.nativeLanguage')}
+        </label>
+        <LanguageSelect
+          id="student-native-language"
+          value={nativeLanguage}
+          emptyLabel={t('students.fields.nativeLanguageNone')}
+          onChange={(next) => {
+            setNativeLanguage(next);
+            setEditing(true);
+          }}
+          testId="student-native-language-input"
+        />
+        <p className="mt-1 text-xs text-slate-500">{t('students.fields.nativeLanguageHint')}</p>
+
         <div className="mt-6 flex items-center gap-2">
           <button
             type="submit"
@@ -187,6 +207,7 @@ export function StudentDetailPage() {
                 setEditing(false);
                 setName(student.name);
                 setNotes(student.notes ?? '');
+                setNativeLanguage(student.nativeLanguage ?? null);
               }}
               className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
               data-testid="student-cancel-edit"

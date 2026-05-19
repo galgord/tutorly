@@ -16,7 +16,17 @@ model Tutor {
   id                         String    @id @default(cuid())
   email                      String    @unique
   name                       String?
-  locale                     String    @default("en") // en | pt | he
+  locale                     String    @default("en") // en | pt | he — UI direction
+  // Phase 11: what the tutor teaches (free text, e.g. "Portuguese", "Math").
+  // Shown to the LLM as context so it generates subject-appropriate
+  // questions, not just questions in the tutor's UI locale.
+  subject                    String?
+  // Phase 11: the language the LESSONS are in (== output language for game
+  // generation). A Hebrew-speaking Portuguese tutor has locale=he but
+  // teachingLanguage=pt. Distinct from `locale` (UI) so a tutor can write
+  // Hebrew feedback about a Portuguese lesson and still get Portuguese
+  // questions.
+  teachingLanguage           String?
   monthlyGenerations         Int       @default(0)
   monthlyGenerationsResetAt  DateTime  @default(now())
   // Phase 9: separate Whisper minute cap; incremented in Phase 5 when
@@ -98,6 +108,10 @@ model Student {
   shareToken          String    @unique
   shareTokenRotatedAt DateTime  @default(now())
   notes               String?
+  // Phase 11: student's L1 (e.g. "he", "pt", "en"). Passed to the LLM as
+  // context so generated questions can frame instructions / accept
+  // alternates in the student's native language when helpful.
+  nativeLanguage      String?
   deletedAt           DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

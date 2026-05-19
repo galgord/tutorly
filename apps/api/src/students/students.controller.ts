@@ -58,6 +58,7 @@ export class StudentsController {
       tutorId: tutor.id,
       name: parsed.data.name,
       notes: parsed.data.notes,
+      nativeLanguage: parsed.data.nativeLanguage,
     });
 
     await this.audit.record({
@@ -119,6 +120,7 @@ export class StudentsController {
       tutorId: tutor.id,
       name: parsed.data.name,
       notes: parsed.data.notes,
+      nativeLanguage: parsed.data.nativeLanguage,
     });
 
     await this.audit.record({
@@ -233,6 +235,7 @@ export function serializeStudent(s: {
   id: string;
   name: string;
   notes: string | null;
+  nativeLanguage: string | null;
   shareToken: string;
   shareTokenRotatedAt: Date;
   createdAt: Date;
@@ -243,6 +246,7 @@ export function serializeStudent(s: {
     id: s.id,
     name: s.name,
     notes: s.notes,
+    nativeLanguage: s.nativeLanguage,
     shareToken: s.shareToken,
     shareTokenRotatedAt: s.shareTokenRotatedAt.toISOString(),
     createdAt: s.createdAt.toISOString(),

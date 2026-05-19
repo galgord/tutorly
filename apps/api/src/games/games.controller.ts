@@ -23,7 +23,7 @@ import {
   UpdateGameRequestSchema,
   type GameListResponse,
   type GameResponse,
-  type Locale,
+  type Language,
 } from '@tutor-app/shared';
 import type { Request, Response } from 'express';
 import { AuditService } from '../audit/audit.service';
@@ -72,12 +72,22 @@ export class GamesController {
     const parsed = CreateGameRequestSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.issues);
 
-    // Resolve locale: per-request override > tutor's preference.
+    // Resolve output language for the generated questions:
+    //   per-request override (legacy `locale` body field) >
+    //   tutor.teachingLanguage (Phase 11) >
+    //   tutor.locale (UI language fallback) >
+    //   'en'.
+    // This decouples *what language the questions are in* from *what
+    // language the tutor's UI is in*, so an Israeli Portuguese tutor
+    // (locale=he, teachingLanguage=pt) gets Portuguese questions.
     const tutorRow = await this.prisma.tutor.findUnique({
       where: { id: tutor.id },
-      select: { locale: true },
+      select: { locale: true, teachingLanguage: true },
     });
-    const locale: Locale = (parsed.data.locale ?? (tutorRow?.locale as Locale)) ?? 'en';
+    const locale: Language =
+      ((parsed.data.locale ??
+        tutorRow?.teachingLanguage ??
+        tutorRow?.locale) as Language | undefined) ?? 'en';
 
     const { game, breakerOpen } = await this.games.createAndEnqueue({
       lessonId,

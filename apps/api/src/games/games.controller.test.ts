@@ -27,7 +27,9 @@ function fakeGame(over: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-function makeController(opts: { tutorLocale?: string } = {}) {
+function makeController(
+  opts: { tutorLocale?: string; tutorTeachingLanguage?: string | null } = {},
+) {
   const games = {
     createAndEnqueue: vi.fn(),
     listForLesson: vi.fn(),
@@ -42,7 +44,11 @@ function makeController(opts: { tutorLocale?: string } = {}) {
   const audit = { record: vi.fn() } as unknown as AuditService;
   const prisma = {
     tutor: {
-      findUnique: vi.fn().mockResolvedValue({ locale: opts.tutorLocale ?? 'en' }),
+      findUnique: vi.fn().mockResolvedValue({
+        locale: opts.tutorLocale ?? 'en',
+        teachingLanguage:
+          opts.tutorTeachingLanguage === undefined ? null : opts.tutorTeachingLanguage,
+      }),
     },
   } as unknown as PrismaService;
   const ctrl = new GamesController(games, audit, prisma);
@@ -93,6 +99,38 @@ describe('GamesController.create', () => {
     await ctrl.create(tutor, 'les_1', { type: 'TIMED_QUIZ', locale: 'he' }, fakeReq(), fakeRes());
     expect(games.createAndEnqueue).toHaveBeenCalledWith(
       expect.objectContaining({ locale: 'he', type: GameType.TIMED_QUIZ }),
+    );
+  });
+
+  it('prefers tutor.teachingLanguage over tutor.locale when no per-request override', async () => {
+    // A Hebrew-speaking Portuguese tutor: UI locale is he, but the
+    // generated questions should be in Portuguese.
+    const { ctrl, games } = makeController({
+      tutorLocale: 'he',
+      tutorTeachingLanguage: 'pt',
+    });
+    vi.mocked(games.createAndEnqueue).mockResolvedValue({
+      game: fakeGame() as never,
+      breakerOpen: false,
+    });
+    await ctrl.create(tutor, 'les_1', { type: 'FILL_BLANK' }, fakeReq(), fakeRes());
+    expect(games.createAndEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'pt' }),
+    );
+  });
+
+  it('falls back to tutor.locale when teachingLanguage is unset', async () => {
+    const { ctrl, games } = makeController({
+      tutorLocale: 'pt',
+      tutorTeachingLanguage: null,
+    });
+    vi.mocked(games.createAndEnqueue).mockResolvedValue({
+      game: fakeGame() as never,
+      breakerOpen: false,
+    });
+    await ctrl.create(tutor, 'les_1', { type: 'FILL_BLANK' }, fakeReq(), fakeRes());
+    expect(games.createAndEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'pt' }),
     );
   });
 

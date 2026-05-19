@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LanguageSchema } from './locale.js';
 
 // ---- Field-level building blocks ----------------------------------------
 
@@ -29,6 +30,9 @@ export type Pagination = z.infer<typeof PaginationSchema>;
 export const CreateStudentRequestSchema = z.object({
   name: NameField,
   notes: NotesField.optional(),
+  // Phase 11: student's L1. Optional at create time — the tutor can fill
+  // it in later. `null` is treated as "unknown".
+  nativeLanguage: LanguageSchema.nullable().optional(),
 });
 export type CreateStudentRequest = z.infer<typeof CreateStudentRequestSchema>;
 
@@ -36,6 +40,7 @@ export const UpdateStudentRequestSchema = z
   .object({
     name: NameField.optional(),
     notes: NotesField.nullable().optional(),
+    nativeLanguage: LanguageSchema.nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'At least one field required.' });
 export type UpdateStudentRequest = z.infer<typeof UpdateStudentRequestSchema>;
@@ -51,6 +56,7 @@ export const StudentResponseSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
   notes: z.string().nullable(),
+  nativeLanguage: LanguageSchema.nullable(),
   shareToken: z.string().min(1),
   shareTokenRotatedAt: z.string().datetime(),
   createdAt: z.string().datetime(),

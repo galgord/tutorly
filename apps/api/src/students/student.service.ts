@@ -45,12 +45,18 @@ export class StudentService {
     return student;
   }
 
-  async create(opts: { tutorId: string; name: string; notes?: string | null }): Promise<Student> {
+  async create(opts: {
+    tutorId: string;
+    name: string;
+    notes?: string | null;
+    nativeLanguage?: string | null;
+  }): Promise<Student> {
     return this.prisma.student.create({
       data: {
         tutorId: opts.tutorId,
         name: opts.name,
         notes: normalizeNotes(opts.notes),
+        nativeLanguage: opts.nativeLanguage ?? null,
         // 256-bit share token — long, URL-safe, unique by schema constraint.
         shareToken: generateToken(),
         shareTokenRotatedAt: new Date(),
@@ -58,7 +64,13 @@ export class StudentService {
     });
   }
 
-  async update(opts: { id: string; tutorId: string; name?: string; notes?: string | null }): Promise<Student> {
+  async update(opts: {
+    id: string;
+    tutorId: string;
+    name?: string;
+    notes?: string | null;
+    nativeLanguage?: string | null;
+  }): Promise<Student> {
     // Ensure the student exists AND belongs to this tutor before issuing the
     // update. Prisma's updateMany would silently no-op on a cross-tenant id
     // instead of 404-ing, so we read first.
@@ -69,6 +81,7 @@ export class StudentService {
       data: {
         name: opts.name ?? undefined,
         notes: opts.notes === undefined ? undefined : normalizeNotes(opts.notes),
+        nativeLanguage: opts.nativeLanguage === undefined ? undefined : opts.nativeLanguage,
       },
     });
   }

@@ -2,6 +2,16 @@
   "app": {
     "title": "Tutor App"
   },
+  "languages": {
+    "en": "English",
+    "pt": "Portuguese (Brazilian)",
+    "he": "Hebrew",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "ar": "Arabic"
+  },
   "common": {
     "loading": "Loading…",
     "workingOn": "Working…",
@@ -41,6 +51,12 @@
       "email": "Email",
       "name": "Name",
       "locale": "Language",
+      "subject": "Subject you teach",
+      "subjectPlaceholder": "e.g. Portuguese, Math, Piano",
+      "subjectHint": "Helps the AI write questions on the right topic.",
+      "teachingLanguage": "Lesson language",
+      "teachingLanguageHint": "Practice questions will be generated in this language, even if you record feedback in a different one.",
+      "teachingLanguageNone": "Same as my UI language",
       "save": "Save",
       "saved": "Saved"
     },
@@ -60,7 +76,10 @@
     "emptySearch": "No students match that search.",
     "fields": {
       "name": "Name",
-      "notes": "Notes"
+      "notes": "Notes",
+      "nativeLanguage": "Native language",
+      "nativeLanguageHint": "Helps tailor questions for this student. Optional.",
+      "nativeLanguageNone": "Not set"
     },
     "row": {
       "lastLesson": "Added {{date}}"

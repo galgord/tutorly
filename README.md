@@ -24,8 +24,11 @@ pnpm --filter api prisma:generate
 # 3. Start everything
 pnpm dev                         # api on :3000, web on :5174
 
-# 4. Sign in (no real email needed — the magic link is logged + returned in the response in dev)
-#    Open http://localhost:5174, enter any email, click the link Vite shows.
+# 4. Sign in (no real email needed in dev)
+#    Open http://localhost:5174 and submit any email. The magic link prints in the
+#    `pnpm dev` terminal as `MAGIC_LINK to=... url=...` (the console mailer) and is
+#    also returned in the POST /auth/magic-link response body as `devMagicLinkUrl`.
+#    Open the url in the same browser to land signed in.
 
 # 5. Run the full gate to confirm nothing is broken
 pnpm typecheck && pnpm lint && pnpm test

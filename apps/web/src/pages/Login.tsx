@@ -9,6 +9,14 @@ export function LoginPage() {
 
   const mutation = useMutation({
     mutationFn: (e: string) => api.requestMagicLink({ email: e }),
+    onSuccess: (data) => {
+      // Dev affordance: the API echoes the magic-link URL back in non-prod so
+      // we can skip the "check your email" interstitial entirely. In prod the
+      // field is stripped and the user follows the email link as normal.
+      if (data.devMagicLinkUrl) {
+        window.location.replace(data.devMagicLinkUrl);
+      }
+    },
   });
 
   const onSubmit = (e: FormEvent) => {

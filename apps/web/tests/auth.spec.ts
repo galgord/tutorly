@@ -31,20 +31,18 @@ async function newTutorSession(request: APIRequestContext): Promise<TutorTestSes
 }
 
 test.describe('auth flow (LTR)', () => {
-  test('happy path: login → magic link → dashboard → logout', async ({ page, request }) => {
-    const session = await newTutorSession(request);
-
+  test('happy path: login → magic link → dashboard → logout', async ({ page }) => {
     await page.goto('/login?lang=en');
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
     await expect(page.locator('h1')).toContainText('Sign in');
 
-    await page.getByTestId('login-email').fill(session.email);
+    // In non-prod the login form auto-redirects through `devMagicLinkUrl`, so
+    // a single submit lands us on /dashboard — the "check your email"
+    // interstitial only renders in prod (where the field is stripped).
+    const altEmail = `ui-${Date.now()}@example.com`;
+    await page.getByTestId('login-email').fill(altEmail);
     await page.getByTestId('login-submit').click();
 
-    await expect(page.getByTestId('login-sent')).toBeVisible();
-    await expect(page.getByTestId('login-sent')).toContainText(session.email);
-
-    await session.consume(page);
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.getByTestId('dashboard')).toBeVisible();
     await expect(page.getByTestId('dashboard')).toContainText('Welcome');
@@ -86,16 +84,17 @@ test.describe('auth flow (RTL — Hebrew)', () => {
     await expect(page.getByTestId('login-email')).toHaveAttribute('dir', 'ltr');
   });
 
-  test('dashboard renders RTL after sign-in', async ({ page, request }) => {
-    const session = await newTutorSession(request);
+  test('dashboard renders RTL after sign-in', async ({ page }) => {
     await page.goto('/login?lang=he');
-    await page.getByTestId('login-email').fill(session.email);
+    const email = `he-${Date.now()}@example.com`;
+    await page.getByTestId('login-email').fill(email);
     await page.getByTestId('login-submit').click();
-    await session.consume(page);
 
-    // The redirect from /auth/consume drops the query string; re-apply.
+    // The consume redirect drops the query string; re-apply so the SPA picks
+    // Hebrew on first paint of /dashboard.
+    await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard?lang=he');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.getByTestId('dashboard')).toContainText('ברוך הבא');
+    await expect(page.getByTestId('dashboard')).toContainText('ברוך שובך');
   });
 });

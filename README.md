@@ -14,6 +14,7 @@ Subject-agnostic. Designed for English, Brazilian Portuguese, and Hebrew (RTL) f
 # 1. Install deps + bring up Postgres (5433) + Redis (6380)
 pnpm install
 cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
 pnpm docker:up
 
 # 2. Run the migrations + generate the Prisma client

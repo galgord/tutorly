@@ -1,22 +1,26 @@
 import {
+  Link,
   Outlet,
   RouterProvider,
   createRootRoute,
   createRoute,
   createRouter,
   redirect,
+  useLocation,
 } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { AppShell } from './components/AppShell';
 import { LocaleSwitcher } from './components/LocaleSwitcher';
 import { useDirection } from './hooks/useDirection';
 import { api } from './lib/api';
-import { CalendarPage } from './pages/Calendar';
 import { DashboardPage } from './pages/Dashboard';
+import { GamePreviewPage } from './pages/GamePreview';
 import { LessonDetailPage } from './pages/LessonDetail';
 import { LoginPage } from './pages/Login';
 import { NotFoundPage } from './pages/NotFound';
 import { PlayGamePage } from './pages/PlayGame';
 import { PublicStudentPage } from './pages/PublicStudent';
+import { SchedulePage } from './pages/Schedule';
 import { SettingsPage } from './pages/Settings';
 import { SettingsIntegrationsPage } from './pages/SettingsIntegrations';
 import { StudentDetailPage } from './pages/StudentDetail';
@@ -83,11 +87,21 @@ const settingsIntegrationsRoute = createRoute({
   component: SettingsIntegrationsPage,
 });
 
-const calendarRoute = createRoute({
+const scheduleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/schedule',
+  beforeLoad: requireAuth,
+  component: SchedulePage,
+});
+
+// Back-compat: the previous URL was /calendar. Bookmarks redirect to /schedule.
+const calendarRedirectRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/calendar',
-  beforeLoad: requireAuth,
-  component: CalendarPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/schedule' });
+  },
+  component: () => null,
 });
 
 const lessonDetailRoute = createRoute({
@@ -95,6 +109,13 @@ const lessonDetailRoute = createRoute({
   path: '/lessons/$id',
   beforeLoad: requireAuth,
   component: LessonDetailPage,
+});
+
+const gamePreviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/games/$id/preview',
+  beforeLoad: requireAuth,
+  component: GamePreviewPage,
 });
 
 // --- Students -------------------------------------------------------------
@@ -142,8 +163,10 @@ const routeTree = rootRoute.addChildren([
   // (and "/students/trash" before "/students/$id" likewise).
   settingsIntegrationsRoute,
   settingsRoute,
-  calendarRoute,
+  scheduleRoute,
+  calendarRedirectRoute,
   lessonDetailRoute,
+  gamePreviewRoute,
   studentsListRoute,
   studentsTrashRoute,
   studentDetailRoute,
@@ -164,15 +187,30 @@ export function AppRouter() {
 }
 
 function RootLayout() {
-  const { t } = useTranslation();
   useDirection();
+  const location = useLocation();
+  // Public routes keep the bare layout — no sidebar.
+  const isPublic =
+    location.pathname === '/' ||
+    location.pathname === '/login' ||
+    location.pathname.startsWith('/s/');
+  if (isPublic) return <BareLayout />;
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
+}
+
+function BareLayout() {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen bg-surface-muted text-ink">
+      <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <a href="/" className="text-lg font-semibold">
+          <Link to="/" className="text-lg font-semibold">
             {t('app.title')}
-          </a>
+          </Link>
           <LocaleSwitcher />
         </div>
       </header>

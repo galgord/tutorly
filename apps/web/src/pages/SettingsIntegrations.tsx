@@ -261,10 +261,10 @@ export function SettingsIntegrationsPage() {
                 {t('integrations.google.disconnect')}
               </button>
               <Link
-                to="/calendar"
+                to="/schedule"
                 className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
               >
-                {t('nav.calendar')}
+                {t('nav.schedule')}
               </Link>
             </div>
             {saveMutation.error instanceof ApiError && (

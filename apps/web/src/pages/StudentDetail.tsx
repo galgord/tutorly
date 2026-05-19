@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { Language } from '@tutor-app/shared';
 import { AddLessonModal } from '../components/AddLessonModal';
 import { Bidi } from '../components/Bidi';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LanguageSelect } from '../components/LanguageSelect';
 import { ProgressOverview } from '../components/ProgressOverview';
@@ -121,19 +122,83 @@ export function StudentDetailPage() {
 
   return (
     <section data-testid="student-detail" className="space-y-6">
-      <Link
-        to="/students"
-        className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
-        data-testid="student-back"
-      >
-        {t('students.detail.back')}
-      </Link>
+      <Breadcrumbs
+        crumbs={[
+          { label: t('nav.students'), to: '/students' },
+          { label: <Bidi>{student.name}</Bidi>, current: true },
+        ]}
+      />
 
       <header>
         <h1 className="text-2xl font-semibold">
           <Bidi>{student.name}</Bidi>
         </h1>
       </header>
+
+      <div className="rounded-lg border border-line bg-surface p-6" data-testid="student-lessons">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold text-ink">{t('lessons.recent.title')}</h2>
+          <button
+            type="button"
+            onClick={() => setAddLessonOpen(true)}
+            className="rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-brand-600"
+            data-testid="student-add-lesson"
+          >
+            {t('lessons.manualAdd.button')}
+          </button>
+        </div>
+
+        {lessons.isLoading && (
+          <p className="mt-4 text-sm text-ink-muted">{t('common.loading')}</p>
+        )}
+
+        {!lessons.isLoading && lessons.data && lessons.data.items.length === 0 && (
+          <p
+            data-testid="student-lessons-empty"
+            className="mt-4 rounded-md border border-dashed border-line bg-surface-muted px-3 py-4 text-center text-sm text-ink-muted"
+          >
+            {t('lessons.recent.empty')}
+          </p>
+        )}
+
+        {lessons.data && lessons.data.items.length > 0 && (
+          <ul
+            data-testid="student-lessons-list"
+            className="mt-4 divide-y divide-line rounded-md border border-line"
+          >
+            {lessons.data.items.map((l) => {
+              const dateFmt = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              });
+              return (
+                <li
+                  key={l.id}
+                  data-testid={`student-lesson-row-${l.id}`}
+                  className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-ink">
+                      {l.title ? <Bidi>{l.title}</Bidi> : dateFmt.format(new Date(l.occurredAt))}
+                    </p>
+                    {l.title && (
+                      <p className="text-xs text-ink-muted">{dateFmt.format(new Date(l.occurredAt))}</p>
+                    )}
+                  </div>
+                  <Link
+                    to="/lessons/$id"
+                    params={{ id: l.id }}
+                    className="rounded-md border border-line px-2 py-1 text-xs text-ink hover:bg-surface-sunken"
+                    data-testid={`student-lesson-open-${l.id}`}
+                  >
+                    {t('lessons.recent.open')}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
       <form
         onSubmit={(e) => {
@@ -290,71 +355,6 @@ export function StudentDetailPage() {
           ) : null}
         </div>
       </section>
-
-      <div className="rounded-lg border border-slate-200 bg-white p-6" data-testid="student-lessons">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">{t('lessons.recent.title')}</h2>
-          <button
-            type="button"
-            onClick={() => setAddLessonOpen(true)}
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white"
-            data-testid="student-add-lesson"
-          >
-            {t('lessons.manualAdd.button')}
-          </button>
-        </div>
-
-        {lessons.isLoading && (
-          <p className="mt-4 text-sm text-slate-600">{t('common.loading')}</p>
-        )}
-
-        {!lessons.isLoading && lessons.data && lessons.data.items.length === 0 && (
-          <p
-            data-testid="student-lessons-empty"
-            className="mt-4 rounded border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-600"
-          >
-            {t('lessons.recent.empty')}
-          </p>
-        )}
-
-        {lessons.data && lessons.data.items.length > 0 && (
-          <ul
-            data-testid="student-lessons-list"
-            className="mt-4 divide-y divide-slate-200 rounded border border-slate-200"
-          >
-            {lessons.data.items.map((l) => {
-              const dateFmt = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              });
-              return (
-                <li
-                  key={l.id}
-                  data-testid={`student-lesson-row-${l.id}`}
-                  className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">
-                      {l.title ? <Bidi>{l.title}</Bidi> : dateFmt.format(new Date(l.occurredAt))}
-                    </p>
-                    {l.title && (
-                      <p className="text-xs text-slate-500">{dateFmt.format(new Date(l.occurredAt))}</p>
-                    )}
-                  </div>
-                  <Link
-                    to="/lessons/$id"
-                    params={{ id: l.id }}
-                    className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
-                    data-testid={`student-lesson-open-${l.id}`}
-                  >
-                    {t('lessons.recent.open')}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
 
       <div className="rounded-lg border border-rose-200 bg-rose-50 p-6">
         <h2 className="text-lg font-semibold text-rose-900">{t('students.delete.title')}</h2>

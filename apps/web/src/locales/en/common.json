@@ -38,11 +38,26 @@
   },
   "dashboard": {
     "welcome": "Welcome,",
-    "subtitle": "Your students will appear here once you add them.",
+    "welcomeName": "Welcome back, {{name}}",
+    "subtitle": "Quick look at your students and how to invite the ones who haven't joined yet.",
+    "studentsTitle": "Your students",
+    "viewAllStudents": "View all",
     "emptyStudents": "No students yet — add your first one to get started.",
     "studentsLink": "Manage students",
     "settingsLink": "Account settings",
-    "logout": "Log out"
+    "logout": "Log out",
+    "kpi": {
+      "activeStudents": "Active students"
+    },
+    "student": {
+      "l1": "L1 · {{code}}",
+      "invite": "Copy invite link",
+      "inviteHint": "Share this link with the student so they can play their games."
+    },
+    "toast": {
+      "inviteCopied": "Invite link copied",
+      "inviteCopyFailed": "Couldn't copy the link. Open the student's page to copy it manually."
+    }
   },
   "settings": {
     "title": "Account settings",
@@ -82,11 +97,21 @@
       "nativeLanguageNone": "Not set"
     },
     "row": {
-      "lastLesson": "Added {{date}}"
+      "lastLesson": "Added {{date}}",
+      "menuLabel": "Open student actions menu",
+      "l1": "L1 {{code}}"
+    },
+    "indicators": {
+      "mastery": "{{pct}}% mastery",
+      "masteryEmpty": "No mastery yet",
+      "games": "{{count}} games",
+      "games_one": "{{count}} game",
+      "neverPlayed": "Hasn't played yet"
     },
     "actions": {
       "open": "Open",
       "copyShare": "Copy share link",
+      "invite": "Copy invite link",
       "delete": "Delete",
       "rotateToken": "Rotate share link"
     },
@@ -192,8 +217,46 @@
     "home": "Back to home"
   },
   "nav": {
+    "primary": "Primary navigation",
+    "openMenu": "Open menu",
+    "dashboard": "Dashboard",
+    "students": "Students",
     "calendar": "Calendar",
+    "schedule": "Schedule",
+    "settings": "Settings",
     "integrations": "Integrations"
+  },
+  "breadcrumbs": {
+    "label": "Breadcrumb"
+  },
+  "preview": {
+    "title": "Preview",
+    "subtitle": "Play this game exactly as your student will. Nothing is saved to their history.",
+    "banner": "Preview mode · attempts are not saved",
+    "lessonCrumb": "Lesson",
+    "notFoundTitle": "Game not found",
+    "notFoundBody": "That game doesn't exist or you don't have access to it.",
+    "progress": "Question {{idx}} of {{total}}",
+    "score": "Score: {{score}}",
+    "summary": {
+      "title": "Preview complete",
+      "score": "{{score}} / {{total}}",
+      "body": "Nothing was saved. Use this to sanity-check the game before assigning.",
+      "again": "Play again",
+      "back": "Back to lesson"
+    }
+  },
+  "schedule": {
+    "title": "Schedule",
+    "subtitle": "Lessons you've added — past and upcoming. Use your Google Calendar for your day-to-day calendar.",
+    "addCta": "Add a lesson",
+    "open": "Open",
+    "empty": "No lessons yet. Add one from a student's page.",
+    "loadError": "Couldn't load the schedule. Try again.",
+    "groups": {
+      "upcoming": "Upcoming",
+      "past": "Past"
+    }
   },
   "integrations": {
     "title": "Integrations",
@@ -328,6 +391,7 @@
     "questionCount": "{{count}} questions",
     "review": "Review",
     "view": "View",
+    "preview": "Play as student",
     "delete": "Delete",
     "status": {
       "DRAFT": "Draft",

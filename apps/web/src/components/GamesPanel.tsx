@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GameResponse, QuotaExceededResponse } from '@tutor-app/shared';
@@ -166,6 +167,16 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
                     ? t('games.review')
                     : t('games.view')}
                 </button>
+                {g.questionPool.length > 0 && (
+                  <Link
+                    to="/games/$id/preview"
+                    params={{ id: g.id }}
+                    className="rounded border border-line bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                    data-testid={`games-preview-${g.id}`}
+                  >
+                    {t('games.preview')}
+                  </Link>
+                )}
                 {g.status !== 'ARCHIVED' && (
                   <button
                     type="button"

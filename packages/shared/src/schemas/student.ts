@@ -65,8 +65,29 @@ export const StudentResponseSchema = z.object({
 });
 export type StudentResponse = z.infer<typeof StudentResponseSchema>;
 
+/** Per-student engagement summary attached to list responses. Used by the
+ *  tutor-facing students list + dashboard cards to show mastery / activity /
+ *  assignment counts without an N+1 fetch on `/students/:id/progress`. */
+export const StudentSummarySchema = z.object({
+  /** Count of completed (finished) attempts. */
+  totalAttempts: z.number().int().min(0),
+  /** Most recent finished-attempt timestamp; null = student has never played. */
+  lastAttemptAt: z.string().datetime().nullable(),
+  /** Correct answers / total answered, across all completed attempts. Null
+   *  when the student has no answered questions. */
+  overallAccuracy: z.number().min(0).max(1).nullable(),
+  /** Practice games currently assigned to the student (status=ASSIGNED). */
+  assignedGamesCount: z.number().int().min(0),
+});
+export type StudentSummary = z.infer<typeof StudentSummarySchema>;
+
+export const StudentListItemSchema = StudentResponseSchema.extend({
+  summary: StudentSummarySchema,
+});
+export type StudentListItem = z.infer<typeof StudentListItemSchema>;
+
 export const StudentListResponseSchema = z.object({
-  items: z.array(StudentResponseSchema),
+  items: z.array(StudentListItemSchema),
   total: z.number().int().min(0),
   page: z.number().int().min(1),
   limit: z.number().int().min(1),

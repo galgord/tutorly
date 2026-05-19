@@ -38,11 +38,26 @@
   },
   "dashboard": {
     "welcome": "ברוך הבא,",
-    "subtitle": "התלמידים שלך יופיעו כאן לאחר ההוספה.",
+    "welcomeName": "ברוך שובך, {{name}}",
+    "subtitle": "מבט מהיר על התלמידים שלך ואיך להזמין את מי שעוד לא התחיל.",
+    "studentsTitle": "התלמידים שלך",
+    "viewAllStudents": "הצג הכל",
     "emptyStudents": "אין תלמידים עדיין — הוסף את הראשון כדי להתחיל.",
     "studentsLink": "ניהול תלמידים",
     "settingsLink": "הגדרות חשבון",
-    "logout": "התנתק"
+    "logout": "התנתק",
+    "kpi": {
+      "activeStudents": "תלמידים פעילים"
+    },
+    "student": {
+      "l1": "שפת אם · {{code}}",
+      "invite": "העתק קישור הזמנה",
+      "inviteHint": "שתפו את הקישור עם התלמיד כדי שיוכל לשחק במשחקים שלו."
+    },
+    "toast": {
+      "inviteCopied": "קישור ההזמנה הועתק",
+      "inviteCopyFailed": "לא ניתן להעתיק את הקישור. פתחו את עמוד התלמיד והעתיקו ידנית."
+    }
   },
   "settings": {
     "title": "הגדרות חשבון",
@@ -82,11 +97,21 @@
       "nativeLanguageNone": "לא הוגדר"
     },
     "row": {
-      "lastLesson": "נוסף בתאריך {{date}}"
+      "lastLesson": "נוסף בתאריך {{date}}",
+      "menuLabel": "פתיחת תפריט פעולות לתלמיד",
+      "l1": "שפת אם {{code}}"
+    },
+    "indicators": {
+      "mastery": "{{pct}}% שליטה",
+      "masteryEmpty": "אין נתוני שליטה",
+      "games": "{{count}} משחקים",
+      "games_one": "משחק אחד",
+      "neverPlayed": "עוד לא שיחק"
     },
     "actions": {
       "open": "פתח",
       "copyShare": "העתק קישור שיתוף",
+      "invite": "העתק קישור הזמנה",
       "delete": "מחק",
       "rotateToken": "החלף קישור שיתוף"
     },
@@ -192,8 +217,46 @@
     "home": "חזרה לעמוד הבית"
   },
   "nav": {
+    "primary": "ניווט ראשי",
+    "openMenu": "פתח תפריט",
+    "dashboard": "לוח בקרה",
+    "students": "תלמידים",
     "calendar": "יומן",
+    "schedule": "סדר יום",
+    "settings": "הגדרות",
     "integrations": "אינטגרציות"
+  },
+  "breadcrumbs": {
+    "label": "פירורי לחם"
+  },
+  "preview": {
+    "title": "תצוגה מקדימה",
+    "subtitle": "שחק במשחק בדיוק כמו שהתלמיד שלך ישחק. שום דבר לא נשמר בהיסטוריה שלו.",
+    "banner": "מצב תצוגה מקדימה · הניסיונות לא נשמרים",
+    "lessonCrumb": "שיעור",
+    "notFoundTitle": "המשחק לא נמצא",
+    "notFoundBody": "המשחק אינו קיים או שאין לכם גישה אליו.",
+    "progress": "שאלה {{idx}} מתוך {{total}}",
+    "score": "ניקוד: {{score}}",
+    "summary": {
+      "title": "התצוגה המקדימה הסתיימה",
+      "score": "{{score}} / {{total}}",
+      "body": "שום דבר לא נשמר. השתמשו בזה לבדיקה לפני שמשייכים לתלמיד.",
+      "again": "שחק שוב",
+      "back": "חזרה לשיעור"
+    }
+  },
+  "schedule": {
+    "title": "סדר יום",
+    "subtitle": "השיעורים שהוספת — בעבר ובעתיד. השתמש ב-Google Calendar ליומן היומיומי שלך.",
+    "addCta": "הוספת שיעור",
+    "open": "פתח",
+    "empty": "אין שיעורים עדיין. הוסיפו אחד מעמוד התלמיד.",
+    "loadError": "לא ניתן לטעון את סדר היום. נסו שוב.",
+    "groups": {
+      "upcoming": "קרובים",
+      "past": "עבר"
+    }
   },
   "integrations": {
     "title": "אינטגרציות",
@@ -328,6 +391,7 @@
     "questionCount": "{{count}} שאלות",
     "review": "סקירה",
     "view": "צפייה",
+    "preview": "שחק כמו תלמיד",
     "delete": "מחק",
     "status": {
       "DRAFT": "טיוטה",

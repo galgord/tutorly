@@ -21,6 +21,19 @@ function fakeStudent(over: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function fakeListItem(over: Partial<Record<string, unknown>> = {}) {
+  const summary = (over.summary as Record<string, unknown> | undefined) ?? {};
+  return {
+    ...fakeStudent(over),
+    summary: {
+      totalAttempts: (summary.totalAttempts as number | undefined) ?? 0,
+      lastAttemptAt: (summary.lastAttemptAt as Date | null | undefined) ?? null,
+      overallAccuracy: (summary.overallAccuracy as number | null | undefined) ?? null,
+      assignedGamesCount: (summary.assignedGamesCount as number | undefined) ?? 0,
+    },
+  };
+}
+
 const tutorA: CurrentTutorPayload = { id: 'tutor_a', email: 'a@example.com', name: 'A', locale: 'en' };
 
 function fakeReq(): Request {
@@ -35,7 +48,7 @@ function makeController(overrides: Partial<StudentService> = {}) {
     softDelete: vi.fn().mockResolvedValue(fakeStudent({ deletedAt: new Date() })),
     restore: vi.fn().mockResolvedValue(fakeStudent()),
     rotateToken: vi.fn().mockResolvedValue(fakeStudent({ shareToken: 'new-token' })),
-    list: vi.fn().mockResolvedValue({ items: [fakeStudent()], total: 1 }),
+    list: vi.fn().mockResolvedValue({ items: [fakeListItem()], total: 1 }),
     listTrash: vi.fn().mockResolvedValue({ items: [], total: 0 }),
     ...overrides,
   } as unknown as StudentService;
@@ -170,7 +183,7 @@ describe('TrashStudentsController', () => {
 
   it('lists soft-deleted students for the tutor', async () => {
     const students = {
-      listTrash: vi.fn().mockResolvedValue({ items: [fakeStudent({ deletedAt: new Date() })], total: 1 }),
+      listTrash: vi.fn().mockResolvedValue({ items: [fakeListItem({ deletedAt: new Date() })], total: 1 }),
     } as unknown as StudentService;
     const controller = new TrashStudentsController(students);
     const res = await controller.list(tutorA, { page: '1', limit: '10' });

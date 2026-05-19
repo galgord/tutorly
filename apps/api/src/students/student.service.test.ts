@@ -207,6 +207,10 @@ describe('StudentService.list', () => {
   function bindList(prisma: PrismaService, items: Array<ReturnType<typeof fakeStudent>>, total = items.length) {
     vi.mocked(prisma.student.findMany).mockResolvedValue(items as never);
     vi.mocked(prisma.student.count).mockResolvedValue(total as never);
+    // Summary-aggregation queries; default to empty so existing list tests
+    // don't need to care about the summary surface.
+    vi.mocked(prisma.attempt.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.game.findMany).mockResolvedValue([] as never);
   }
 
   it('scopes by tutorId, filters out deleted, paginates', async () => {
@@ -236,6 +240,48 @@ describe('StudentService.list', () => {
     // Ângela and André collate adjacent regardless of accents in pt.
     expect(names[0]).toMatch(/^(Ângela|André)$/);
     expect(names[2]).toBe('Bruno');
+  });
+
+  it('attaches a per-student summary aggregating completed attempts + assigned games', async () => {
+    const { service, prisma } = makeService();
+    bindList(prisma, [fakeStudent({ id: 'stu_1' }), fakeStudent({ id: 'stu_2', name: 'Bea' })]);
+
+    vi.mocked(prisma.attempt.findMany).mockResolvedValue([
+      // stu_1 — two finished attempts; 4 of 5 answers correct → 0.8 accuracy.
+      {
+        studentId: 'stu_1',
+        score: 3,
+        questionResults: { results: [{ correct: true }, { correct: true }, { correct: true }] },
+        finishedAt: new Date('2026-05-10T10:00:00Z'),
+      },
+      {
+        studentId: 'stu_1',
+        score: 1,
+        questionResults: { results: [{ correct: true }, { correct: false }] },
+        finishedAt: new Date('2026-05-12T10:00:00Z'),
+      },
+    ] as never);
+    vi.mocked(prisma.game.findMany).mockResolvedValue([
+      { lesson: { studentId: 'stu_1' } },
+      { lesson: { studentId: 'stu_1' } },
+      { lesson: { studentId: 'stu_2' } },
+    ] as never);
+
+    const { items } = await service.list({ tutorId: 'tutor_a', page: 1, limit: 10, locale: 'en' });
+    const byId = new Map(items.map((s) => [s.id, s]));
+    expect(byId.get('stu_1')?.summary).toEqual({
+      totalAttempts: 2,
+      lastAttemptAt: new Date('2026-05-12T10:00:00Z'),
+      overallAccuracy: 0.8,
+      assignedGamesCount: 2,
+    });
+    // stu_2 never played → null accuracy, zeros elsewhere; still gets the 1 assigned game.
+    expect(byId.get('stu_2')?.summary).toEqual({
+      totalAttempts: 0,
+      lastAttemptAt: null,
+      overallAccuracy: null,
+      assignedGamesCount: 1,
+    });
   });
 });
 

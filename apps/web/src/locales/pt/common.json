@@ -38,11 +38,26 @@
   },
   "dashboard": {
     "welcome": "Bem-vindo,",
-    "subtitle": "Os seus alunos aparecerão aqui depois de adicionados.",
+    "welcomeName": "Bem-vindo de volta, {{name}}",
+    "subtitle": "Visão rápida dos seus alunos e de como convidar os que ainda não entraram.",
+    "studentsTitle": "Seus alunos",
+    "viewAllStudents": "Ver todos",
     "emptyStudents": "Ainda sem alunos — adicione o primeiro para começar.",
     "studentsLink": "Gerir alunos",
     "settingsLink": "Definições da conta",
-    "logout": "Terminar sessão"
+    "logout": "Terminar sessão",
+    "kpi": {
+      "activeStudents": "Alunos ativos"
+    },
+    "student": {
+      "l1": "L1 · {{code}}",
+      "invite": "Copiar convite",
+      "inviteHint": "Compartilhe este link com o aluno para que ele possa jogar."
+    },
+    "toast": {
+      "inviteCopied": "Link de convite copiado",
+      "inviteCopyFailed": "Não foi possível copiar o link. Abra a página do aluno para copiar manualmente."
+    }
   },
   "settings": {
     "title": "Definições da conta",
@@ -82,11 +97,21 @@
       "nativeLanguageNone": "Não definido"
     },
     "row": {
-      "lastLesson": "Adicionado em {{date}}"
+      "lastLesson": "Adicionado em {{date}}",
+      "menuLabel": "Abrir menu de ações do aluno",
+      "l1": "L1 {{code}}"
+    },
+    "indicators": {
+      "mastery": "{{pct}}% de domínio",
+      "masteryEmpty": "Sem domínio ainda",
+      "games": "{{count}} jogos",
+      "games_one": "{{count}} jogo",
+      "neverPlayed": "Ainda não jogou"
     },
     "actions": {
       "open": "Abrir",
       "copyShare": "Copiar link de partilha",
+      "invite": "Copiar convite",
       "delete": "Eliminar",
       "rotateToken": "Renovar link de partilha"
     },
@@ -192,8 +217,46 @@
     "home": "Voltar ao início"
   },
   "nav": {
+    "primary": "Navegação principal",
+    "openMenu": "Abrir menu",
+    "dashboard": "Painel",
+    "students": "Alunos",
     "calendar": "Calendário",
+    "schedule": "Agenda",
+    "settings": "Configurações",
     "integrations": "Integrações"
+  },
+  "breadcrumbs": {
+    "label": "Trilho de navegação"
+  },
+  "preview": {
+    "title": "Pré-visualização",
+    "subtitle": "Jogue este jogo exatamente como o seu aluno irá jogar. Nada é guardado no histórico dele.",
+    "banner": "Modo de pré-visualização · as tentativas não são guardadas",
+    "lessonCrumb": "Aula",
+    "notFoundTitle": "Jogo não encontrado",
+    "notFoundBody": "Esse jogo não existe ou você não tem acesso a ele.",
+    "progress": "Pergunta {{idx}} de {{total}}",
+    "score": "Pontuação: {{score}}",
+    "summary": {
+      "title": "Pré-visualização concluída",
+      "score": "{{score}} / {{total}}",
+      "body": "Nada foi guardado. Use isto para revisar o jogo antes de atribuir.",
+      "again": "Jogar novamente",
+      "back": "Voltar à aula"
+    }
+  },
+  "schedule": {
+    "title": "Agenda",
+    "subtitle": "Aulas que adicionou — passadas e próximas. Use o Google Agenda para o seu calendário do dia a dia.",
+    "addCta": "Adicionar aula",
+    "open": "Abrir",
+    "empty": "Ainda sem aulas. Adicione uma a partir da página de um aluno.",
+    "loadError": "Não foi possível carregar a agenda. Tente novamente.",
+    "groups": {
+      "upcoming": "Próximas",
+      "past": "Anteriores"
+    }
   },
   "integrations": {
     "title": "Integrações",
@@ -328,6 +391,7 @@
     "questionCount": "{{count}} perguntas",
     "review": "Rever",
     "view": "Ver",
+    "preview": "Jogar como aluno",
     "delete": "Eliminar",
     "status": {
       "DRAFT": "Rascunho",

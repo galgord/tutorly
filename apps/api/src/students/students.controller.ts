@@ -21,6 +21,7 @@ import {
   StudentListResponseSchema,
   StudentResponseSchema,
   UpdateStudentRequestSchema,
+  type StudentListItem,
   type StudentResponse,
 } from '@tutor-app/shared';
 import { AuditService } from '../audit/audit.service';
@@ -88,7 +89,7 @@ export class StudentsController {
     });
 
     return StudentListResponseSchema.parse({
-      items: items.map(serializeStudent),
+      items: items.map(serializeStudentListItem),
       total,
       page: parsed.data.page,
       limit: parsed.data.limit,
@@ -223,12 +224,40 @@ export class TrashStudentsController {
     });
 
     return StudentListResponseSchema.parse({
-      items: items.map(serializeStudent),
+      items: items.map(serializeStudentListItem),
       total,
       page: parsed.data.page,
       limit: parsed.data.limit,
     });
   }
+}
+
+export function serializeStudentListItem(s: {
+  id: string;
+  name: string;
+  notes: string | null;
+  nativeLanguage: string | null;
+  shareToken: string;
+  shareTokenRotatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  summary: {
+    totalAttempts: number;
+    lastAttemptAt: Date | null;
+    overallAccuracy: number | null;
+    assignedGamesCount: number;
+  };
+}): StudentListItem {
+  return {
+    ...serializeStudent(s),
+    summary: {
+      totalAttempts: s.summary.totalAttempts,
+      lastAttemptAt: s.summary.lastAttemptAt ? s.summary.lastAttemptAt.toISOString() : null,
+      overallAccuracy: s.summary.overallAccuracy,
+      assignedGamesCount: s.summary.assignedGamesCount,
+    },
+  };
 }
 
 export function serializeStudent(s: {

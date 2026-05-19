@@ -47,7 +47,7 @@ export function LessonDetailPage() {
         <p className="mt-2 text-sm text-slate-600">{t('lessons.detail.notFoundBody')}</p>
         <button
           type="button"
-          onClick={() => navigate({ to: '/calendar' })}
+          onClick={() => navigate({ to: '/schedule' })}
           className="mt-4 rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
         >
           {t('lessons.detail.back')}

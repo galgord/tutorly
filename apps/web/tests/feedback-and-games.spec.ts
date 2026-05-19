@@ -237,7 +237,10 @@ test.describe('lesson feedback (RTL)', () => {
 });
 
 test.describe('calendar Add feedback student picker (Phase 3 deferred)', () => {
-  test('Google-only event → student picker → creates lesson → lands on detail', async ({
+  // Skipped during the Calendar → Schedule rewrite: the new /schedule view
+  // intentionally hides Google-only events while we re-design the attach flow.
+  // Re-enable once the schedule surfaces Google events again.
+  test.skip('Google-only event → student picker → creates lesson → lands on detail', async ({
     page,
     request,
   }) => {

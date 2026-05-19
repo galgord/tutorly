@@ -48,7 +48,10 @@ async function seedGoogleConnection(page: Page, calendarIds: string[]): Promise<
 }
 
 test.describe('Google integrations (mocked)', () => {
-  test('connect → pick calendar → calendar renders events → open lesson detail', async ({
+  // Skipped during the Calendar → Schedule rewrite: the new /schedule no
+  // longer renders Google-only events (deferred). Re-enable once that flow
+  // is re-introduced in a follow-up.
+  test.skip('connect → pick calendar → calendar renders events → open lesson detail', async ({
     page,
     request,
   }) => {
@@ -149,7 +152,10 @@ test.describe('integrations RTL', () => {
     }
   });
 
-  test('calendar page renders FullCalendar with direction=rtl in Hebrew', async ({
+  // FullCalendar was removed in the Schedule rewrite — the new /schedule is a
+  // plain list. Replace this test with an RTL check on /schedule when the
+  // Google-events-in-schedule flow returns.
+  test.skip('calendar page renders FullCalendar with direction=rtl in Hebrew', async ({
     page,
     request,
   }) => {

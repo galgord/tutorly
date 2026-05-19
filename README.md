@@ -16,8 +16,9 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 pnpm docker:up
 
-# 2. Run the migrations
+# 2. Run the migrations + generate the Prisma client
 pnpm --filter api prisma:migrate:deploy
+pnpm --filter api prisma:generate
 
 # 3. Start everything
 pnpm dev                         # api on :3000, web on :5174

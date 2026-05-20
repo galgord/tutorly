@@ -91,12 +91,16 @@ export class PublicAttemptsController {
       locale: r.locale,
       livesAllowed: r.livesAllowed,
       perQuestionSeconds: r.perQuestionSeconds,
+      level: r.level,
+      levelMax: r.levelMax,
       questions: r.questions.map((q) =>
         PublicQuestionSchema.parse({
           id: q.id,
           prompt: q.prompt,
           choices: r.type === GameType.TIMED_QUIZ ? choicesByQuestion[q.id] ?? [] : [],
           topicTags: q.topicTags,
+          difficulty: q.difficulty,
+          isReview: r.bucketByQuestion?.[q.id] === 'review',
         }),
       ),
     });
@@ -175,6 +179,9 @@ export class PublicAttemptsController {
       livesLost: r.attempt.livesLost,
       finishedAt: (r.attempt.finishedAt ?? new Date()).toISOString(),
       bestEver: r.bestEver,
+      level: r.level,
+      nextLevel: r.nextLevel,
+      leveledUp: r.leveledUp,
     });
   }
 }

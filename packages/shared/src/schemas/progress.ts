@@ -149,3 +149,30 @@ export const AttemptHistoryResponseSchema = z.object({
   monthlyCutoff: z.string().datetime(),
 });
 export type AttemptHistoryResponse = z.infer<typeof AttemptHistoryResponseSchema>;
+
+// Phase 12: read-only adaptive-engine view for the tutor — per-game current
+// level + plays + due reviews, plus the tutor's background top-up budget. The
+// tutor cannot change any of this; escalation is automatic.
+
+export const StudentGameProgressItemSchema = z.object({
+  gameId: z.string().min(1),
+  title: z.string(),
+  type: GameTypeSchema,
+  currentLevel: z.number().int().min(1).max(5),
+  playsCompleted: z.number().int().min(0),
+  lastPlayedAt: z.string().datetime().nullable(),
+  dueReviewCount: z.number().int().min(0),
+  poolSize: z.number().int().min(0),
+  poolTargetSize: z.number().int().min(0),
+});
+export type StudentGameProgressItem = z.infer<typeof StudentGameProgressItemSchema>;
+
+export const StudentGameProgressResponseSchema = z.object({
+  games: z.array(StudentGameProgressItemSchema),
+  budget: z.object({
+    topUpUsed: z.number().int().min(0),
+    topUpCap: z.number().int().min(0),
+    topUpResetsAt: z.string().datetime(),
+  }),
+});
+export type StudentGameProgressResponse = z.infer<typeof StudentGameProgressResponseSchema>;

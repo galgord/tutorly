@@ -9,9 +9,13 @@ async function signIn(page: Page, request: APIRequestContext, lang = 'en'): Prom
   const body = (await res.json()) as { ok: true; devMagicLinkUrl?: string };
   expect(body.devMagicLinkUrl).toBeTruthy();
   await page.goto(`/login?lang=${lang}`);
-  await page.getByTestId('login-email').fill(email);
-  await page.getByTestId('login-submit').click();
-  await page.goto(body.devMagicLinkUrl!);
+  // Consume the API-issued link directly. Submitting the login form instead
+  // fires window.location.replace, which races this navigation → net::ERR_ABORTED
+  // under parallel workers. One navigation; tolerate a superseded redirect and
+  // assert the destination below.
+  await page.goto(body.devMagicLinkUrl!, { waitUntil: 'commit' }).catch((err) => {
+    if (!String(err).includes('net::ERR_ABORTED')) throw err;
+  });
   await page.waitForURL(/\/dashboard/);
 }
 
@@ -20,10 +24,11 @@ async function createStudent(page: Page, name: string): Promise<string> {
   await page.getByTestId('students-add-button').click();
   await page.getByTestId('add-student-name').fill(name);
   await page.getByTestId('add-student-submit').click();
-  // Navigate to detail by clicking the row.
+  // Navigate to detail by clicking the student name (the row is a link; clicking
+  // the name navigates and avoids the row's invite/menu buttons on narrow widths).
   const row = page.locator('[data-testid^="student-row-"]', { hasText: name }).first();
   await expect(row).toBeVisible();
-  await row.getByText('Open').click();
+  await row.locator('[data-testid^="student-name-"]').click();
   await page.waitForURL(/\/students\/[^/]+/);
   const url = page.url();
   return url.split('/students/')[1]!;

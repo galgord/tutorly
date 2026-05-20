@@ -14,6 +14,18 @@ export function useStudentProgress(studentId: string | null) {
   });
 }
 
+/** Phase 12 read-only adaptive view: per-game level + due reviews + budget. */
+export function useStudentGameProgress(studentId: string | null) {
+  return useQuery({
+    queryKey: ['student-game-progress', studentId],
+    enabled: !!studentId,
+    queryFn: () => api.studentGameProgress(studentId!),
+    staleTime: 30_000,
+    retry: (failureCount, err) =>
+      err instanceof ApiError && err.status >= 500 && failureCount < 2,
+  });
+}
+
 /** Paginated recent attempts (with per-question detail inline). */
 export function useStudentAttempts(
   studentId: string | null,

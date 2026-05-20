@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   type Attempt,
@@ -27,16 +28,30 @@ import {
 } from '@tutor-app/shared';
 import { ConfigService } from '../config/config.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  type AdaptiveSelectInput,
+  type AdaptiveSelection,
+  type SelectionBucket,
+} from './adaptive-selector';
+import {
+  computeLevelOutcome,
+  MAX_LEVEL,
+  MIN_LEVEL,
+  type LevelPolicyConfig,
+} from './level-policy';
+import { BankTopupService } from '../games/bank-topup.service';
+import { freshenRecycled } from './procedural-variation';
+import { QuestionReviewService } from './question-review.service';
+import { StudentGameProgressService } from './student-game-progress.service';
 
 /**
- * DI token for tests that need a deterministic RNG when sampling
- * questions. Production binds the default (crypto-seeded) sampler.
+ * DI token for the adaptive question selector (Phase 12). Production binds the
+ * crypto-seeded `selectAttemptQuestions`; tests inject a seeded-RNG variant for
+ * determinism. Replaces the flat Phase-6 sampler — `sampleQuestions` lives on
+ * as the selector's inner shuffler.
  */
-export const ATTEMPT_SAMPLER = Symbol('ATTEMPT_SAMPLER');
-export type Sampler = (opts: {
-  pool: readonly GameQuestion[];
-  sessionSize: number;
-}) => GameQuestion[];
+export const ADAPTIVE_SELECTOR = Symbol('ADAPTIVE_SELECTOR');
+export type Selector = (input: AdaptiveSelectInput) => AdaptiveSelection;
 
 /**
  * Attempt CRUD scoped through the student's share token. Every loader
@@ -54,10 +69,25 @@ export class AttemptService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    // Bound to `sampleQuestions` in AttemptsModule. Tests construct
-    // the service directly and pass a deterministic sampler.
-    @Inject(ATTEMPT_SAMPLER) private readonly sampler: Sampler,
+    // Bound to `selectAttemptQuestions` in AttemptsModule. Tests construct
+    // the service directly and pass a deterministic (seeded) selector.
+    @Inject(ADAPTIVE_SELECTOR) private readonly selector: Selector,
+    private readonly progress: StudentGameProgressService,
+    private readonly review: QuestionReviewService,
+    // Optional so unit tests (which construct the service directly) skip the
+    // background top-up trigger. Real DI always provides it.
+    @Optional() private readonly bankTopup?: BankTopupService,
   ) {}
+
+  private levelPolicyConfig(): LevelPolicyConfig {
+    return {
+      advanceThreshold: this.config.get('LEVEL_ADVANCE_THRESHOLD'),
+      holdFloor: this.config.get('LEVEL_HOLD_FLOOR'),
+      nudgeEveryN: this.config.get('LEVEL_NUDGE_EVERY_N'),
+      minSample: this.config.get('LEVEL_MIN_SAMPLE'),
+      allowDown: this.config.get('LEVEL_ALLOW_DOWN'),
+    };
+  }
 
   // ---- Game listing for the dashboard --------------------------------
 
@@ -72,6 +102,7 @@ export class AttemptService {
       game: Game;
       lastPlayedAt: Date | null;
       bestScore: number | null;
+      currentLevel: number;
     }>
   > {
     const games = await this.prisma.game.findMany({
@@ -84,22 +115,31 @@ export class AttemptService {
       take: 50,
     });
     if (games.length === 0) return [];
-    const attemptRollups = await this.prisma.attempt.groupBy({
-      by: ['gameId'],
-      where: {
-        studentId: student.id,
-        gameId: { in: games.map((g) => g.id) },
-        finishedAt: { not: null },
-      },
-      _max: { finishedAt: true, score: true },
-    });
+    const gameIds = games.map((g) => g.id);
+    const [attemptRollups, progressRows] = await Promise.all([
+      this.prisma.attempt.groupBy({
+        by: ['gameId'],
+        where: {
+          studentId: student.id,
+          gameId: { in: gameIds },
+          finishedAt: { not: null },
+        },
+        _max: { finishedAt: true, score: true },
+      }),
+      this.prisma.studentGameProgress.findMany({
+        where: { studentId: student.id, gameId: { in: gameIds } },
+        select: { gameId: true, currentLevel: true },
+      }),
+    ]);
     const rollupByGame = new Map(attemptRollups.map((r) => [r.gameId, r]));
+    const levelByGame = new Map(progressRows.map((r) => [r.gameId, r.currentLevel]));
     return games.map((game) => {
       const r = rollupByGame.get(game.id);
       return {
         game,
         lastPlayedAt: r?._max.finishedAt ?? null,
         bestScore: r?._max.score ?? null,
+        currentLevel: levelByGame.get(game.id) ?? MIN_LEVEL,
       };
     });
   }
@@ -122,6 +162,9 @@ export class AttemptService {
     questions: GameQuestion[];
     livesAllowed: number;
     perQuestionSeconds: number;
+    level: number;
+    levelMax: number;
+    bucketByQuestion: Record<string, SelectionBucket>;
   }> {
     const game = await this.loadGameForStudent(opts.student.id, opts.gameId);
     if (!game) throw new NotFoundException('Game not found.');
@@ -136,7 +179,37 @@ export class AttemptService {
     }
 
     const sessionSize = this.sessionSizeFor(game.type);
-    const sampled = this.sampler({ pool, sessionSize });
+    // Phase 12: difficulty is fixed for this play at the student's current
+    // cross-play level; unseen questions in a band around it are preferred so
+    // replays don't repeat, blended with spaced-repetition reviews that are due.
+    const progress = await this.progress.loadState(opts.student.id, game.id);
+    const dueIds = await this.review.dueReviews({
+      studentId: opts.student.id,
+      gameId: game.id,
+      limit: sessionSize,
+    });
+    // Map due ids to live pool questions; drop ids no longer in the pool
+    // (orphaned after a tutor regenerated the game).
+    const byId = new Map(pool.map((q) => [q.id, q]));
+    const dueReviews = dueIds
+      .map((id) => byId.get(id))
+      .filter((q): q is GameQuestion => q !== undefined);
+    const selection = this.selector({
+      pool,
+      sessionSize,
+      level: progress.level,
+      seen: new Set(progress.seen),
+      dueReviews,
+      reviewFraction: this.config.get('REVIEW_FRACTION'),
+    });
+    // Freshen recycled (drained-pool) questions where it's safe (TIMED_QUIZ
+    // distractor swap); non-recycle and FILL_BLANK pass through unchanged.
+    const sampled = freshenRecycled({
+      questions: selection.questions,
+      bucketByQuestion: selection.bucketByQuestion,
+      pool,
+      gameType: game.type,
+    });
 
     const livesAllowed = game.type === GameType.TIMED_QUIZ ? TIMED_QUIZ_LIVES : 0;
     const perQuestionSeconds =
@@ -165,6 +238,11 @@ export class AttemptService {
       locale: (game.locale as Locale) ?? 'en',
       livesAllowed,
       perQuestionSeconds,
+      // Phase 12: freeze the level + per-question bucket so finish can compute
+      // the level outcome over the NON-REVIEW slots only.
+      level: progress.level,
+      bucketByQuestion: selection.bucketByQuestion,
+      reviewQuestionIds: selection.reviewQuestionIds,
     };
 
     const attempt = await this.prisma.attempt.create({
@@ -186,6 +264,9 @@ export class AttemptService {
       questions: sampled,
       livesAllowed,
       perQuestionSeconds,
+      level: progress.level,
+      levelMax: MAX_LEVEL,
+      bucketByQuestion: selection.bucketByQuestion,
     };
   }
 
@@ -346,19 +427,76 @@ export class AttemptService {
     attempt: Attempt;
     bestEver: number;
     totalQuestions: number;
+    level: number;
+    nextLevel: number;
+    leveledUp: boolean;
   }> {
     const attempt = await this.loadAttemptForStudent(opts.student.id, opts.attemptId);
     if (!attempt) throw new NotFoundException('Attempt not found.');
     const header = readHeader(attempt.questionResults);
     if (!header) throw new BadRequestException('Attempt is corrupted.');
 
+    const levelBefore = header.level ?? MIN_LEVEL;
+
     let final = attempt;
+    // On a re-finish (buffered retry, or after the abandoned cron set
+    // finishedAt) reconstruct the outcome from the header — never re-run the
+    // write-back. `levelAfter` is absent for cron-finished attempts, so a late
+    // manual finish reports "no change", which is the intended behaviour.
+    let levelAfter = header.levelAfter ?? levelBefore;
+
     if (!attempt.finishedAt) {
-      final = await this.prisma.attempt.update({
-        where: { id: attempt.id },
-        data: { finishedAt: new Date() },
+      // First finish — compute the cross-play level outcome over NON-REVIEW
+      // slots and write it back. This is the single idempotency anchor: the
+      // abandoned-attempt cron sets finishedAt via bulk updateMany and never
+      // reaches this branch, so abandoned plays carry no level/seen signal.
+      const tally = tallyNonReview(header);
+      const progress = await this.progress.loadState(opts.student.id, attempt.gameId);
+      const outcome = computeLevelOutcome({
+        state: { level: levelBefore, nudgeCounter: progress.nudgeCounter },
+        correctNonReview: tally.correct,
+        answeredNonReview: tally.answered,
+        config: this.levelPolicyConfig(),
+      });
+      levelAfter = outcome.level;
+
+      const now = new Date();
+      const updatedHeader: AttemptHeader = { ...header, levelAfter };
+      // One transaction: finishedAt + level write-back + spaced-repetition
+      // write-back all commit together. This is the single idempotency anchor —
+      // the abandoned-attempt cron sets finishedAt via bulk updateMany and never
+      // reaches here, so abandoned plays carry no level/seen/review signal.
+      final = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.attempt.update({
+          where: { id: attempt.id },
+          data: {
+            finishedAt: now,
+            questionResults: updatedHeader as unknown as Prisma.InputJsonValue,
+          },
+        });
+        await this.progress.applyFinish({
+          studentId: opts.student.id,
+          gameId: attempt.gameId,
+          newLevel: outcome.level,
+          nudgeCounter: outcome.nudgeCounter,
+          lastLevelDelta: outcome.delta,
+          lastAccuracy: tally.answered > 0 ? tally.correct / tally.answered : null,
+          newlyAnsweredIds: header.results.map((r) => r.questionId),
+          now,
+          tx,
+        });
+        await this.review.recordResults({
+          studentId: opts.student.id,
+          gameId: attempt.gameId,
+          results: header.results.map((r) => ({ questionId: r.questionId, correct: r.correct })),
+          intervals: this.config.get('SR_BOX_INTERVALS_DAYS'),
+          now,
+          tx,
+        });
+        return updated;
       });
     }
+
     // bestEver across PRIOR finished attempts (exclude the current one
     // so "you beat your best!" copy on the game-over screen is true).
     const best = await this.prisma.attempt.aggregate({
@@ -370,10 +508,18 @@ export class AttemptService {
       },
       _max: { score: true },
     });
+
+    // Fire-and-forget: top up this game's bank for next time. Never blocks or
+    // fails the finish response; no-op when the trigger isn't wired (unit tests).
+    void this.bankTopup?.maybeTopUp(final.gameId);
+
     return {
       attempt: final,
       bestEver: best._max.score ?? 0,
       totalQuestions: header.sampledIds.length,
+      level: levelBefore,
+      nextLevel: levelAfter,
+      leveledUp: levelAfter > levelBefore,
     };
   }
 
@@ -539,6 +685,15 @@ interface AttemptHeader {
   perQuestionSeconds: number;
   /** TIMED_QUIZ only — pre-shuffled choices the client renders. */
   choicesByQuestion?: Record<string, string[]>;
+  // ---- Phase 12 ----
+  /** Difficulty level (1..5) this play was sampled at; frozen for the play. */
+  level?: number;
+  /** Per-question selection bucket — drives the non-review accuracy tally. */
+  bucketByQuestion?: Record<string, SelectionBucket>;
+  /** Ids served as spaced-repetition reviews this play. */
+  reviewQuestionIds?: string[];
+  /** Level the NEXT play will start at; stamped once on first finish. */
+  levelAfter?: number;
 }
 
 interface AttemptQuestionKey {
@@ -566,7 +721,30 @@ function readHeader(raw: unknown): AttemptHeader | null {
     perQuestionSeconds:
       typeof obj.perQuestionSeconds === 'number' ? obj.perQuestionSeconds : 0,
     choicesByQuestion: obj.choicesByQuestion as Record<string, string[]> | undefined,
+    level: typeof obj.level === 'number' ? obj.level : undefined,
+    bucketByQuestion: obj.bucketByQuestion as Record<string, SelectionBucket> | undefined,
+    reviewQuestionIds: Array.isArray(obj.reviewQuestionIds)
+      ? (obj.reviewQuestionIds as string[])
+      : undefined,
+    levelAfter: typeof obj.levelAfter === 'number' ? obj.levelAfter : undefined,
   };
+}
+
+/**
+ * Tally correct/answered over the session's NON-REVIEW slots — the level
+ * outcome must reflect mastery of newly-served target-difficulty questions,
+ * not resurfaced reviews. Results with no recorded bucket (pre-Phase-12
+ * attempts) count as non-review.
+ */
+function tallyNonReview(header: AttemptHeader): { correct: number; answered: number } {
+  let correct = 0;
+  let answered = 0;
+  for (const r of header.results) {
+    if (header.bucketByQuestion?.[r.questionId] === 'review') continue;
+    answered += 1;
+    if (r.correct) correct += 1;
+  }
+  return { correct, answered };
 }
 
 function parsePool(raw: unknown): GameQuestion[] {

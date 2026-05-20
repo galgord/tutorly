@@ -19,9 +19,13 @@ async function signInAsTutor(
   const body = (await res.json()) as { ok: true; devMagicLinkUrl?: string };
   expect(body.devMagicLinkUrl).toBeTruthy();
   await page.goto(`/login?lang=${lang}`);
-  await page.getByTestId('login-email').fill(email);
-  await page.getByTestId('login-submit').click();
-  await page.goto(body.devMagicLinkUrl!);
+  // Consume the API-issued link directly. Submitting the login form instead
+  // fires window.location.replace, which races this navigation → net::ERR_ABORTED
+  // under parallel workers. One navigation; tolerate a superseded redirect and
+  // assert the destination below.
+  await page.goto(body.devMagicLinkUrl!, { waitUntil: 'commit' }).catch((err) => {
+    if (!String(err).includes('net::ERR_ABORTED')) throw err;
+  });
   await page.waitForURL(/\/dashboard/);
 }
 
@@ -120,11 +124,17 @@ test.describe('student plays an assigned FILL_BLANK game (LTR)', () => {
     await expect(
       studentPage.getByTestId(`public-student-game-${seeded.gameId}`),
     ).toBeVisible();
+    // Phase 12: a fresh game shows the starting level on the dashboard.
+    await expect(
+      studentPage.getByTestId(`public-student-level-${seeded.gameId}`),
+    ).toHaveText(/Level 1/);
 
     // Click Play.
     await studentPage.getByTestId(`public-student-play-${seeded.gameId}`).click();
     await studentPage.waitForURL(/\/play\//);
     await expect(studentPage.getByTestId('fill-blank-engine')).toBeVisible();
+    // Phase 12: the level badge is shown in the engine header (Level 1/5).
+    await expect(studentPage.getByTestId('play-level')).toHaveText(/Level 1\/5/);
 
     // Loop: submit any answer, advance, until summary appears. We
     // don't know the correct answers (the fake LLM seeds random

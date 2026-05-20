@@ -8,6 +8,29 @@ import { z } from 'zod';
 const optionalString = (inner: z.ZodTypeAny) =>
   z.preprocess((v) => (v === '' ? undefined : v), inner.optional());
 
+/**
+ * Boolean env var with a default. `z.coerce.boolean()` is unusable here —
+ * it treats the string "false" as truthy — so parse the common spellings.
+ */
+const booleanEnv = (def: boolean) =>
+  z.preprocess((v) => {
+    if (v === undefined || v === '') return def;
+    if (typeof v === 'boolean') return v;
+    const s = String(v).toLowerCase();
+    return s === 'true' || s === '1' || s === 'yes';
+  }, z.boolean());
+
+/** Comma-separated list of non-negative numbers, e.g. "0,1,3,7,16". */
+const numberListEnv = (def: number[]) =>
+  z.preprocess((v) => {
+    if (v === undefined || v === '') return def;
+    if (Array.isArray(v)) return v;
+    return String(v)
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n >= 0);
+  }, z.array(z.number().min(0)).min(1));
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -88,6 +111,33 @@ const EnvSchema = z.object({
   // 20 timed-quiz. Bump per env if pool sizes grow.
   FILL_BLANK_SESSION_SIZE: z.coerce.number().int().min(1).max(50).default(10),
   TIMED_QUIZ_SESSION_SIZE: z.coerce.number().int().min(1).max(100).default(20),
+  // ---- Phase 12 — adaptive game engine (cross-play difficulty) ----------
+  // Accuracy (over non-review slots) at/above which the NEXT play steps up.
+  LEVEL_ADVANCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.8),
+  // Accuracy floor for a "competent hold". Below this we never auto-advance
+  // (a struggling student is never pushed to a harder level).
+  LEVEL_HOLD_FLOOR: z.coerce.number().min(0).max(1).default(0.5),
+  // Consecutive competent holds at one level before an anti-stall nudge up.
+  LEVEL_NUDGE_EVERY_N: z.coerce.number().int().min(1).max(50).default(3),
+  // Minimum answered non-review questions before any level change applies.
+  LEVEL_MIN_SAMPLE: z.coerce.number().int().min(1).max(50).default(3),
+  // When true, very-low-accuracy plays step the level DOWN. Off by default.
+  LEVEL_ALLOW_DOWN: booleanEnv(false),
+  // ---- Phase 12C — spaced repetition (Leitner) --------------------------
+  // Per-box review intervals in DAYS, index = box-1 (box 1..5). A correct
+  // answer promotes a box (longer interval); a wrong answer resets to box 1.
+  SR_BOX_INTERVALS_DAYS: numberListEnv([0, 1, 3, 7, 16]),
+  // Fraction of a session reserved for due reviews (rest is new content).
+  REVIEW_FRACTION: z.coerce.number().min(0).max(1).default(0.3),
+  // ---- Phase 12E — automatic background bank top-up ---------------------
+  // Per-tutor monthly cap on automatic top-up generations. SEPARATE from
+  // GAME_GEN_MONTHLY_CAP so top-ups never eat the tutor's manual quota.
+  GAME_GEN_TOPUP_MONTHLY_CAP: z.coerce.number().int().min(0).max(10_000).default(50),
+  // Questions requested per top-up batch (capped so a game's pool grows toward
+  // its poolTargetSize over several top-ups, not all at once).
+  TOPUP_BATCH_SIZE: z.coerce.number().int().min(1).max(50).default(20),
+  // Minimum gap between top-ups for one game (debounce). Default 6h.
+  TOPUP_COOLDOWN_MS: z.coerce.number().int().min(0).max(604_800_000).default(21_600_000),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

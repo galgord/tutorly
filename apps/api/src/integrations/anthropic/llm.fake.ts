@@ -72,9 +72,17 @@ export class FakeLlmClient implements LlmClient {
       ?.trim() ?? '';
     const seed = feedbackBody.slice(0, 60) || 'practice topic';
 
+    // Top-up requests carry an avoid-list block; offset the question index so
+    // generated prompts differ from the existing pool (mirrors a real model
+    // honoring the "produce genuinely new questions" instruction).
+    const isTopUp = req.prompt.userMessage.includes('EXISTING_ITEMS_START');
+    const idxOffset = isTopUp ? this.callCount * 1000 : 0;
+
     const questions: unknown[] = [];
     for (let i = 0; i < poolSize; i++) {
-      questions.push(this.makeQuestion(i + 1, seed, { isFillBlank, isHebrew, isPortuguese }));
+      questions.push(
+        this.makeQuestion(idxOffset + i + 1, seed, { isFillBlank, isHebrew, isPortuguese }),
+      );
     }
 
     const payload = JSON.stringify({ questions });
@@ -96,6 +104,9 @@ export class FakeLlmClient implements LlmClient {
     flags: { isFillBlank: boolean; isHebrew: boolean; isPortuguese: boolean },
   ): unknown {
     const tag = `topic-${idx % 3}`;
+    // Cycle 1..5 so any pool of ≥5 questions provably spans every difficulty
+    // tier — the adaptive engine (Phase 12) and its E2E rely on this.
+    const difficulty = ((idx - 1) % 5) + 1;
     if (flags.isFillBlank) {
       if (flags.isHebrew) {
         return {
@@ -103,6 +114,7 @@ export class FakeLlmClient implements LlmClient {
           answer: 'הולך',
           acceptAlternates: [],
           topicTags: [tag, 'present-tense'],
+          difficulty,
         };
       }
       if (flags.isPortuguese) {
@@ -111,6 +123,7 @@ export class FakeLlmClient implements LlmClient {
           answer: 'corre',
           acceptAlternates: ['correu'],
           topicTags: [tag, 'verbos'],
+          difficulty,
         };
       }
       return {
@@ -118,6 +131,7 @@ export class FakeLlmClient implements LlmClient {
         answer: 'walks',
         acceptAlternates: ['walked'],
         topicTags: [tag, 'present-tense'],
+        difficulty,
       };
     }
     // TIMED_QUIZ — multiple choice
@@ -127,6 +141,7 @@ export class FakeLlmClient implements LlmClient {
         answer: 'book',
         distractors: ['table', 'window', 'chair'],
         topicTags: [tag, 'vocabulary'],
+        difficulty,
       };
     }
     if (flags.isPortuguese) {
@@ -135,6 +150,7 @@ export class FakeLlmClient implements LlmClient {
         answer: 'fui',
         distractors: ['vou', 'irei', 'indo'],
         topicTags: [tag, 'verbos'],
+        difficulty,
       };
     }
     return {
@@ -142,6 +158,7 @@ export class FakeLlmClient implements LlmClient {
       answer: 'went',
       distractors: ['goed', 'gone', 'going'],
       topicTags: [tag, 'verbs'],
+      difficulty,
     };
   }
 

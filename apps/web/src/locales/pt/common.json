@@ -181,7 +181,8 @@
     "play": "Jogar",
     "lastPlayedOn": "Último jogo em {{date}}",
     "neverPlayed": "Ainda por jogar",
-    "bestScore": "Melhor pontuação {{score}}"
+    "bestScore": "Melhor pontuação {{score}}",
+    "level": "Nível {{level}}"
   },
   "play": {
     "loading": "A carregar o jogo…",
@@ -209,7 +210,11 @@
     "startGeneric": "Algo correu mal. Tente novamente.",
     "finishGeneric": "Não foi possível guardar a sua pontuação. Toque de novo em Terminar.",
     "tryAgain": "Tentar novamente",
-    "noChoices": "Esta pergunta não tem opções de resposta. Avance para a seguinte."
+    "noChoices": "Esta pergunta não tem opções de resposta. Avance para a seguinte.",
+    "levelBadge": "Nível {{level}}/{{max}}",
+    "reviewMarker": "Já visto",
+    "leveledUp": "Subiu de nível!",
+    "summaryNextLevel": "Agora a jogar no nível {{level}}"
   },
   "notFound": {
     "title": "Página não encontrada",
@@ -452,6 +457,16 @@
   "progress": {
     "title": "Progresso",
     "error": "Não foi possível carregar o progresso — tente atualizar.",
+    "adaptive": {
+      "title": "Dificuldade adaptativa",
+      "empty": "Ainda não há jogos atribuídos.",
+      "level": "Nível {{level}}/5",
+      "lastPlayed": "Último jogo em {{date}}",
+      "neverPlayed": "Ainda por jogar",
+      "plays": "{{n}} jogos",
+      "dueReviews": "{{n}} para rever",
+      "budget": "Reabastecimento automático: {{used}}/{{cap}} este mês"
+    },
     "notEnoughData": "—",
     "never": "Nunca",
     "totals": {

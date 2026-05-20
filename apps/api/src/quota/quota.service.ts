@@ -23,6 +23,9 @@ export interface UsageSnapshot {
   whisperMinutesUsed: number;
   whisperMinutesCap: number;
   whisperMinutesResetsAt: Date;
+  topUpGenerationsUsed: number;
+  topUpGenerationsCap: number;
+  topUpGenerationsResetsAt: Date;
 }
 
 /**
@@ -222,6 +225,66 @@ export class QuotaService {
     }
   }
 
+  // ---- Phase 12E — automatic bank top-up budget -----------------------
+
+  /**
+   * Atomic reserve against the SEPARATE top-up budget. Same UPDATE … WHERE
+   * monthlyTopUpGenerations < cap idiom as `reserveGeneration` so concurrent
+   * top-up triggers can never collectively exceed the cap. Never touches the
+   * tutor's manual generation quota.
+   */
+  async reserveTopUp(tutorId: string): Promise<ReserveResult> {
+    const cap = this.config.get('GAME_GEN_TOPUP_MONTHLY_CAP');
+    const result = await this.prisma.tutor.updateMany({
+      where: { id: tutorId, monthlyTopUpGenerations: { lt: cap } },
+      data: { monthlyTopUpGenerations: { increment: 1 } },
+    });
+    const after = await this.prisma.tutor.findUnique({
+      where: { id: tutorId },
+      select: { monthlyTopUpGenerations: true, monthlyTopUpResetAt: true },
+    });
+    if (!after) return { ok: false, used: cap, cap, resetsAt: new Date() };
+    if (result.count === 0) {
+      await this.audit.record({
+        tutorId,
+        actorType: ActorType.SYSTEM,
+        action: 'quota.topup.exceeded',
+        entityType: 'Tutor',
+        entityId: tutorId,
+        metadata: { cap, used: after.monthlyTopUpGenerations },
+      });
+      return {
+        ok: false,
+        used: after.monthlyTopUpGenerations,
+        cap,
+        resetsAt: nextResetDate(after.monthlyTopUpResetAt),
+      };
+    }
+    return {
+      ok: true,
+      used: after.monthlyTopUpGenerations,
+      cap,
+      resetsAt: nextResetDate(after.monthlyTopUpResetAt),
+    };
+  }
+
+  /** Give back a top-up slot consumed by `reserveTopUp` on terminal failure. */
+  async refundTopUp(tutorId: string): Promise<void> {
+    const result = await this.prisma.tutor.updateMany({
+      where: { id: tutorId, monthlyTopUpGenerations: { gt: 0 } },
+      data: { monthlyTopUpGenerations: { decrement: 1 } },
+    });
+    if (result.count > 0) {
+      await this.audit.record({
+        tutorId,
+        actorType: ActorType.SYSTEM,
+        action: 'quota.topup.refunded',
+        entityType: 'Tutor',
+        entityId: tutorId,
+      });
+    }
+  }
+
   // ---- Snapshot for /admin/usage + UI banner --------------------------
 
   async getUsage(tutorId: string): Promise<UsageSnapshot> {
@@ -232,6 +295,8 @@ export class QuotaService {
         monthlyGenerationsResetAt: true,
         monthlyWhisperMinutes: true,
         monthlyWhisperResetAt: true,
+        monthlyTopUpGenerations: true,
+        monthlyTopUpResetAt: true,
       },
     });
     return {
@@ -241,6 +306,9 @@ export class QuotaService {
       whisperMinutesUsed: t?.monthlyWhisperMinutes ?? 0,
       whisperMinutesCap: this.config.get('WHISPER_MONTHLY_MINUTES_CAP'),
       whisperMinutesResetsAt: nextResetDate(t?.monthlyWhisperResetAt ?? new Date()),
+      topUpGenerationsUsed: t?.monthlyTopUpGenerations ?? 0,
+      topUpGenerationsCap: this.config.get('GAME_GEN_TOPUP_MONTHLY_CAP'),
+      topUpGenerationsResetsAt: nextResetDate(t?.monthlyTopUpResetAt ?? new Date()),
     };
   }
 
@@ -251,15 +319,21 @@ export class QuotaService {
     activeTutorCount: number;
     totalGenerationsThisMonth: number;
     totalWhisperMinutesThisMonth: number;
+    totalTopUpGenerationsThisMonth: number;
     capGenerations: number;
     capWhisperMinutes: number;
+    capTopUpGenerations: number;
   }> {
     const [tutorCount, activeTutorCount, totals] = await this.prisma.$transaction([
       this.prisma.tutor.count(),
       this.prisma.tutor.count({ where: { deletedAt: null } }),
       this.prisma.tutor.aggregate({
         where: { deletedAt: null },
-        _sum: { monthlyGenerations: true, monthlyWhisperMinutes: true },
+        _sum: {
+          monthlyGenerations: true,
+          monthlyWhisperMinutes: true,
+          monthlyTopUpGenerations: true,
+        },
       }),
     ]);
     return {
@@ -267,8 +341,10 @@ export class QuotaService {
       activeTutorCount,
       totalGenerationsThisMonth: totals._sum.monthlyGenerations ?? 0,
       totalWhisperMinutesThisMonth: totals._sum.monthlyWhisperMinutes ?? 0,
+      totalTopUpGenerationsThisMonth: totals._sum.monthlyTopUpGenerations ?? 0,
       capGenerations: this.config.get('GAME_GEN_MONTHLY_CAP'),
       capWhisperMinutes: this.config.get('WHISPER_MONTHLY_MINUTES_CAP'),
+      capTopUpGenerations: this.config.get('GAME_GEN_TOPUP_MONTHLY_CAP'),
     };
   }
 
@@ -290,6 +366,8 @@ export class QuotaService {
         monthlyGenerationsResetAt: now,
         monthlyWhisperMinutes: 0,
         monthlyWhisperResetAt: now,
+        monthlyTopUpGenerations: 0,
+        monthlyTopUpResetAt: now,
       },
     });
     this.logger.log(`monthly quota reset: ${result.count} tutor(s)`);

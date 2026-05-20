@@ -47,7 +47,13 @@ test.describe('auth flow (LTR)', () => {
     await expect(page.getByTestId('dashboard')).toBeVisible();
     await expect(page.getByTestId('dashboard')).toContainText('Welcome');
 
-    await page.getByTestId('logout-button').click();
+    // The nav (with logout) collapses behind a hamburger on narrow viewports;
+    // open it if the logout control isn't already visible (desktop shows it).
+    const logoutButton = page.getByTestId('logout-button');
+    if (!(await logoutButton.isVisible())) {
+      await page.getByRole('button', { name: 'Open menu' }).click();
+    }
+    await logoutButton.click();
     await expect(page).toHaveURL(/\/login/);
   });
 

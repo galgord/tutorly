@@ -8,12 +8,13 @@ import { Bidi } from '../components/Bidi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LanguageSelect } from '../components/LanguageSelect';
+import { GameProgressPanel } from '../components/GameProgressPanel';
 import { ProgressOverview } from '../components/ProgressOverview';
 import { RecentAttemptsList } from '../components/RecentAttemptsList';
 import { Toast } from '../components/Toast';
 import { api } from '../lib/api';
 import { useLessonsForStudent } from '../lib/lessons';
-import { useStudentAttempts, useStudentProgress } from '../lib/progress';
+import { useStudentAttempts, useStudentGameProgress, useStudentProgress } from '../lib/progress';
 import { buildShareUrl, useStudent } from '../lib/students';
 
 const ATTEMPTS_PAGE_SIZE = 10;
@@ -28,6 +29,7 @@ export function StudentDetailPage() {
   const detail = useStudent(id);
   const lessons = useLessonsForStudent(id ? { studentId: id, page: 1, limit: 10 } : null);
   const progress = useStudentProgress(id);
+  const gameProgress = useStudentGameProgress(id);
   const [attemptsPage, setAttemptsPage] = useState(1);
   const attempts = useStudentAttempts(id, attemptsPage, ATTEMPTS_PAGE_SIZE);
 
@@ -331,6 +333,24 @@ export function StudentDetailPage() {
             locale={i18n.resolvedLanguage ?? 'en'}
           />
         ) : null}
+
+        <div data-testid="student-game-progress-section" className="space-y-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+            {t('progress.adaptive.title')}
+          </h3>
+          {gameProgress.isLoading ? (
+            <p className="text-sm text-slate-600">{t('common.loading')}</p>
+          ) : gameProgress.error ? (
+            <div
+              data-testid="student-game-progress-error"
+              className="rounded border border-rose-200 bg-rose-50 px-3 py-4 text-sm text-rose-900"
+            >
+              {t('progress.error')}
+            </div>
+          ) : gameProgress.data ? (
+            <GameProgressPanel data={gameProgress.data} locale={i18n.resolvedLanguage ?? 'en'} />
+          ) : null}
+        </div>
 
         <div data-testid="student-attempts-section" className="space-y-2">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">

@@ -119,6 +119,12 @@ export function PlayGamePage() {
         }
         beatPersonalBest={summary.score > summary.bestEver}
         beatLabel={t('play.summaryBeatBest')}
+        leveledUp={summary.leveledUp ?? false}
+        levelUpLabel={
+          summary.nextLevel != null
+            ? `${t('play.leveledUp')} ${t('play.summaryNextLevel', { level: summary.nextLevel })}`
+            : t('play.leveledUp')
+        }
         title={t('play.summaryTitle')}
         playerName={studentQuery.data?.name ?? ''}
         onPlayAgain={playAgain}
@@ -167,6 +173,8 @@ interface SummaryProps {
   bestEverLabel: string;
   beatPersonalBest: boolean;
   beatLabel: string;
+  leveledUp: boolean;
+  levelUpLabel: string;
   playAgainLabel: string;
   backLabel: string;
   playerName: string;
@@ -181,6 +189,8 @@ function SummaryView({
   bestEverLabel,
   beatPersonalBest,
   beatLabel,
+  leveledUp,
+  levelUpLabel,
   playAgainLabel,
   backLabel,
   onPlayAgain,
@@ -197,6 +207,14 @@ function SummaryView({
       <p className="text-4xl font-bold" data-testid="play-summary-score">
         {scoreLabel}
       </p>
+      {leveledUp && (
+        <p
+          className="text-base font-semibold text-indigo-700"
+          data-testid="play-summary-levelup"
+        >
+          {levelUpLabel}
+        </p>
+      )}
       {beatPersonalBest && (
         <p className="text-sm font-medium text-emerald-700" data-testid="play-summary-beat">
           {beatLabel}

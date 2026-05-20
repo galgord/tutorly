@@ -43,20 +43,31 @@ function makeConfig(over: Partial<Record<string, unknown>> = {}): ConfigService 
     if (key === 'GAME_GEN_MAX_RETRIES') return (over.maxRetries as number) ?? 2;
     if (key === 'GAME_GEN_BREAKER_THRESHOLD') return (over.breakerThreshold as number) ?? 3;
     if (key === 'GAME_GEN_BREAKER_RESET_MS') return (over.breakerResetMs as number) ?? 60_000;
+    if (key === 'TOPUP_BATCH_SIZE') return (over.topUpBatchSize as number) ?? 20;
     return undefined;
   });
   return { get, isProd: () => false } as unknown as ConfigService;
 }
 
-function makeQueue(overrides: { llm?: FakeLlmClient; config?: ConfigService } = {}) {
+interface QuotaStub {
+  refundTopUp: ReturnType<typeof vi.fn>;
+  refundGeneration: ReturnType<typeof vi.fn>;
+}
+
+function makeQueue(
+  overrides: { llm?: FakeLlmClient; config?: ConfigService; withQuota?: boolean } = {},
+) {
   const llm = overrides.llm ?? new FakeLlmClient();
   const prisma = makePrismaMock();
   const config = overrides.config ?? makeConfig();
   // updateMany happens in onModuleInit; default the mock to "no stuck rows"
   // so each test can `await q.onModuleInit()` without surprises.
   vi.mocked(prisma.game.updateMany).mockResolvedValue({ count: 0 } as never);
-  const queue = new GameGenerationQueue(llm, prisma, config);
-  return { queue, prisma, llm, config };
+  const quota: QuotaStub | undefined = overrides.withQuota
+    ? { refundTopUp: vi.fn(async () => undefined), refundGeneration: vi.fn(async () => undefined) }
+    : undefined;
+  const queue = new GameGenerationQueue(llm, prisma, config, quota as never);
+  return { queue, prisma, llm, config, quota };
 }
 
 describe('GameGenerationQueue.onModuleInit', () => {
@@ -90,6 +101,25 @@ describe('GameGenerationQueue.processGeneration', () => {
     expect(updateCall).toBeTruthy();
     const pool = (updateCall![0]?.data as Record<string, unknown>).questionPool as unknown[];
     expect(pool.length).toBe(3);
+  });
+
+  it('persists a pool that spans more than one difficulty tier', async () => {
+    const { queue, prisma } = makeQueue();
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(fakeGame({ poolSize: 5 }) as never);
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    await queue.processGeneration('gm_1');
+    const updateCall = vi.mocked(prisma.game.update).mock.calls.find(
+      (c) => (c[0]?.data as Record<string, unknown>)?.status === GameStatus.DRAFT,
+    );
+    const pool = (updateCall![0]?.data as Record<string, unknown>).questionPool as Array<{
+      difficulty: number;
+    }>;
+    const tiers = new Set(pool.map((q) => q.difficulty));
+    expect(tiers.size).toBeGreaterThan(1);
+    for (const q of pool) {
+      expect(q.difficulty).toBeGreaterThanOrEqual(1);
+      expect(q.difficulty).toBeLessThanOrEqual(5);
+    }
   });
 
   it('refuses to clobber a Game that\'s not in GENERATING (idempotency)', async () => {
@@ -293,5 +323,110 @@ describe('GameGenerationQueue.regenerateSingle', () => {
 
     // Reference `queue` so eslint-unused doesn't complain about the outer var.
     expect(queue.isBreakerOpen()).toBe(false);
+  });
+});
+
+describe('GameGenerationQueue — Phase 12E top-up', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function topUpGame(over: Partial<Record<string, unknown>> = {}) {
+    return {
+      id: 'gm_1',
+      lessonId: 'les_1',
+      type: GameType.FILL_BLANK,
+      title: 'T',
+      status: GameStatus.ASSIGNED,
+      questionPool: (over.questionPool as unknown) ?? [
+        { id: 'q1', prompt: 'p1 ___', answer: 'a1', distractors: [], acceptAlternates: [], topicTags: [], difficulty: 2 },
+      ],
+      poolSize: 5,
+      poolTargetSize: (over.poolTargetSize as number) ?? 5,
+      generationPromptHash: null,
+      locale: 'en',
+      generationError: null,
+      deletedAt: null,
+      assignedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastTopUpAt: null,
+      topUpInFlight: true,
+      lesson: {
+        feedbackText: 'fb',
+        student: { tutorId: 't', nativeLanguage: null, tutor: { subject: null } },
+      },
+    };
+  }
+
+  it('appends new questions, stamps lastTopUpAt + clears the flag, and NEVER flips status', async () => {
+    const { queue, prisma } = makeQueue();
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(topUpGame() as never);
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    await queue.processTopUp('gm_1');
+    const data = vi.mocked(prisma.game.update).mock.calls[0]![0].data as Record<string, unknown>;
+    expect(data.status).toBeUndefined(); // never touches status
+    expect(data.topUpInFlight).toBe(false);
+    expect(data.lastTopUpAt).toBeInstanceOf(Date);
+    // 1 existing + 4 new (target 5 - existing 1).
+    expect((data.questionPool as unknown[]).length).toBe(5);
+  });
+
+  it('drops LLM-returned duplicates before appending', async () => {
+    const llm = new FakeLlmClient();
+    vi.spyOn(llm, 'generate').mockResolvedValue({
+      rawJson: JSON.stringify({
+        questions: [
+          { prompt: 'p1 ___', answer: 'a1', topicTags: [], difficulty: 2 }, // dup of existing
+          { prompt: 'brand new ___', answer: 'zzz', topicTags: [], difficulty: 3 }, // new
+        ],
+      }),
+      usage: { inputTokens: 10, cachedInputTokens: 0, outputTokens: 10 },
+      model: 'fake',
+    });
+    const { queue, prisma } = makeQueue({ llm });
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(topUpGame() as never);
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    await queue.processTopUp('gm_1');
+    const pool = (vi.mocked(prisma.game.update).mock.calls[0]![0].data as Record<string, unknown>)
+      .questionPool as Array<{ answer: string }>;
+    expect(pool).toHaveLength(2); // 1 existing + 1 new (dup dropped)
+    expect(pool.map((q) => q.answer)).toContain('zzz');
+  });
+
+  it('skips (refund + clear flag, no LLM call) when the pool is already at target', async () => {
+    const llm = new FakeLlmClient();
+    const genSpy = vi.spyOn(llm, 'generate');
+    const { queue, prisma, quota } = makeQueue({ llm, withQuota: true });
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(topUpGame({ poolTargetSize: 1 }) as never);
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    queue.enqueueTopUp('gm_1', { tutorId: 't' });
+    await queue.drain();
+    expect(genSpy).not.toHaveBeenCalled();
+    expect(quota!.refundTopUp).toHaveBeenCalledWith('t');
+  });
+
+  it('refunds the budget + clears the flag when generation fails', async () => {
+    const llm = new FakeLlmClient();
+    llm.__queueRateLimitFailures(1);
+    const { queue, prisma, quota } = makeQueue({ llm, withQuota: true });
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(topUpGame() as never);
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    queue.enqueueTopUp('gm_1', { tutorId: 't' });
+    await queue.drain();
+    expect(quota!.refundTopUp).toHaveBeenCalledWith('t');
+    const clearCall = vi
+      .mocked(prisma.game.update)
+      .mock.calls.find((c) => (c[0]!.data as Record<string, unknown>).topUpInFlight === false);
+    expect(clearCall).toBeTruthy();
+  });
+
+  it('onModuleInit clears stale top-up flags', async () => {
+    const { queue, prisma } = makeQueue();
+    vi.mocked(prisma.game.updateMany).mockResolvedValue({ count: 0 } as never);
+    await queue.onModuleInit();
+    const topUpSweep = vi
+      .mocked(prisma.game.updateMany)
+      .mock.calls.find((c) => (c[0]?.where as Record<string, unknown>)?.topUpInFlight === true);
+    expect(topUpSweep).toBeTruthy();
+    expect((topUpSweep![0].data as Record<string, unknown>).topUpInFlight).toBe(false);
   });
 });

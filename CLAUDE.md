@@ -1,37 +1,21 @@
 # CLAUDE.md
 
-Quickref for Claude Code / dev sessions on this repo. **Read this first** before touching any phase.
+Quickref for Claude Code / dev sessions on this repo. **Read this first.**
 
 ## What this project is
 
-A SaaS companion tool for private tutors of any subject. Tutor connects Google Calendar, manages students, writes feedback after lessons, and an LLM turns the feedback into practice games the student plays between sessions. Tutor sees progress.
+A SaaS companion tool for private tutors of any subject. Tutor connects Google Calendar, manages students, writes feedback after lessons, and an LLM turns the feedback into practice games the student plays between sessions — games that adapt in difficulty across plays, avoid repeats, and resurface missed material on a spaced-repetition schedule. Tutor sees progress.
 
-## Current state — Phases 0-9 done (less 10)
+## Status
 
-| # | Name | State | Notes |
-|---|---|---|---|
-| 0 | Scaffold | ✅ done | Monorepo, Docker, RTL-ready Tailwind, ESLint direction rule |
-| 1 | Tutor auth | ✅ done | Magic link, sessions, audit, CSRF, /me CRUD + delete + export |
-| 2 | Students | ✅ done | CRUD + soft delete + 30d purge cron + share token + tenant isolation |
-| 3 | Google Calendar | ✅ done (mocked) | OAuth + encrypted refresh tokens + calendar merge + manual lesson fallback. **Real Google OAuth not yet manually verified** — flagged in FOLLOWUPS.md |
-| 4 | Feedback + AI gen | ✅ done (fake LLM) | Anthropic SDK + Fake/Real swap via `LLM_CLIENT` DI token; cached system + game-type prompt blocks with strict Zod-validated output; in-process queue with retry + circuit breaker; question review modal with edit/regenerate/assign; calendar "Add feedback" student picker (Phase 3 deferral resolved). **Real-LLM smoke not run** — flagged in FOLLOWUPS.md |
-| 5 | Voice transcription | ✅ done (fake Whisper) | OpenAI SDK + Fake/Real swap via `TRANSCRIBER_CLIENT` DI token; in-browser MediaRecorder + multipart upload with server-side magic-byte MIME sniff + 25MB / 5min caps; in-process Whisper queue mirroring game-generation (retry + circuit breaker + stuck-job recovery); audio deleted post-transcription; `QuotaService.reserveWhisperMinutes` atomic-SQL minute reservation with refund-on-failure; transcript pre-fills `FeedbackEditor` as a suggestion (tutor still clicks Save). **BullMQ swap + real-Whisper smoke** flagged in FOLLOWUPS.md |
-| 6 | Game engines | ✅ done | Fill-in-blank + lives-based timed quiz; token-gated student dashboard + play routes; server-side scoring + nikud-aware Hebrew normalization via shared `scoreAnswer`; IndexedDB answer buffer with auto-flush on `online`; hourly abandoned-attempt cron. **Manual screen-reader (VoiceOver/NVDA) pass** flagged in FOLLOWUPS.md (axe gate covers structural a11y). |
-| 7 | Progress dashboard | ✅ done | `GET /students/:id/progress` (totals, per-game sparkline + trend, per-topic monthly rollup, hardest-questions) + `GET /students/:id/attempts` (paginated, monthly-aggregate collapse past 6mo). Pure-function aggregation layer property-tested. Web: tutor-facing student detail rebuilt with a progress section above lessons. Pure-SVG sparkline + topic-mastery chart so RTL is a single mirror + no chart-lib dep. 482 api tests / 96.98% lines; full Playwright suite 78/78 green. |
-| 8 | i18n + RTL + PWA | ✅ done | `vite-plugin-pwa` shipping autoUpdate SW + manifest (`/dashboard` start_url, 192/512/512-maskable icons, standalone). `eslint-plugin-i18next` enforces no hardcoded JSX text. Pseudo-localization mode (`?lang=pseudo`) wraps strings in `⟦…⟧` with 30% length inflation + striped band marker. Heebo + Rubik (via `@fontsource-variable/*`) dynamic-imported only when `lang === he`. Modal close buttons on inline-start edge across all 5 modals; pagination + game-engine Next get `.icon-flip` arrows. `InstallPrompt` + `OfflineBanner` mounted on dashboard. 482 api / 24 web unit / 104 Playwright (incl. new `pwa.spec.ts` + `rtl-polish.spec.ts`) all green. **Native Hebrew QA + Lighthouse PWA ≥90 manual run** flagged in FOLLOWUPS as pre-launch gate items. |
-| 9 | AI quota + cost | ✅ done | Per-tutor monthly cap (default 100) via atomic `UPDATE … WHERE monthlyGenerations < cap`; refund on terminal FAILED; monthly reset cron; `/admin/usage` admin-token endpoint; UI banner with reset date. Whisper minute field scaffolded for Phase 5. |
-| 10 | Production deploy | ⬜ pending | Vercel + Railway + Resend + real Google + smoke |
-
-## Authoritative spec
-
-`/Users/galgordon/.claude/plans/create-a-new-dir-optimized-mochi.md` — full implementation spec with per-phase deliverables, gates, and the "Robustness & Gaps Addressed" cross-cutting section. **Re-read your phase block + the Robustness section before starting any phase.**
+Phases 0–9 + 12 are shipped and green; **Phase 10 (production deploy) is the only one left.** Deferred and manual items — real-Anthropic / real-Google / real-Whisper smokes, native-Hebrew QA, Lighthouse PWA, BullMQ swap, threshold calibration, etc. — all live in **[FOLLOWUPS.md](FOLLOWUPS.md)**; check there before assuming something is missing.
 
 ## Stack at a glance
 
 - **Frontend** — Vite + React 18 + TS + Tailwind + react-i18next + TanStack Router + TanStack Query
 - **Backend** — NestJS 10 + Prisma 5 + Pino (sync in dev) + Zod + cookie-parser + @nestjs/throttler + @nestjs/schedule
-- **DB** — Postgres 16; **Queue** — Redis 7 (BullMQ planned for Phase 4+)
-- **AI (planned)** — Anthropic Claude (content) + OpenAI Whisper (voice)
+- **DB** — Postgres 16; **Queue** — Redis 7 (in-process queues today; BullMQ swap is a Phase 10 item)
+- **AI** — Anthropic Claude (content) + OpenAI Whisper (voice), both behind Fake/Real DI seams (fakes run in dev/CI)
 - **i18n** — react-i18next, en + pt + he (RTL)
 - **Deploy target** — Vercel (web) + Railway (api + db + redis)
 
@@ -48,6 +32,8 @@ pnpm dev                         # api on :3000, web on :5174
 
 **Why the unusual ports**: 5173 (Vite default), 5432 (Postgres default), and 6379 (Redis default) are all taken by other projects on this dev machine. Don't change them — CI and Playwright rely on the same offsets.
 
+**Running the E2E suite** (Playwright, in `apps/web`): with Postgres/Redis up, run the api with `NODE_ENV=test` (bumps the per-IP throttler 300 → 1000/min so parallel workers don't trip it) plus the web server, then `pnpm exec playwright test --project=chromium-desktop` (and `--project=mobile-safari`). The `integrations` spec and the `/admin/usage` smoke also need `INTEGRATION_TOKEN_ENCRYPTION_KEY` (64 hex — `openssl rand -hex 32`) and `ADMIN_TOKEN` (≥16 chars) set in `apps/api/.env`; `.env.example` ships them blank.
+
 ## Conventions — copy these, don't reinvent
 
 ### Tenant isolation (NON-NEGOTIABLE)
@@ -57,14 +43,14 @@ Every loader that takes an entity id must verify ownership through the session's
 - **Direct**: `apps/api/src/students/student.service.ts` — `findForTutor` / `getForTutorOrFail`
 - **Nested** (Lesson → Student → Tutor): `apps/api/src/lessons/lesson.service.ts` — explicit `lesson.student.tutorId === opts.tutorId` check after load
 - Always **404 (not 401/403)** on cross-tenant access — uniform shape prevents existence leaks
-- Live-Postgres test pattern: `apps/api/src/students/tenant-isolation.test.ts` (also exists for `lessons/`)
+- Live-Postgres test pattern: `apps/api/src/students/tenant-isolation.test.ts` (also `lessons/`, `games/`, `attempts/`, `progress/`)
 
 ### Audit log
 
 - Service: `apps/api/src/audit/audit.service.ts`
 - Audit every: auth event, destructive action, data export, AI call, integration change, system cron action
 - Action names follow `entity.verb` (e.g. `student.deleted`, `integration.google.connected`, `system.student.purged`)
-- Never include raw PII in metadata — hash emails (see `magic-link.service.ts`'s `hashEmail`)
+- Never include raw PII in metadata — hash emails (see `magic-link.service.ts`'s `hashEmail`); log only lengths + categorical fields, never raw answer/prompt/feedback text
 
 ### Auth + CSRF
 
@@ -87,172 +73,55 @@ Every loader that takes an entity id must verify ownership through the session's
 - Mixed-script content (English name in Hebrew sentence, etc.): wrap in `<Bidi>` (`apps/web/src/components/Bidi.tsx`)
 - `useDirection()` hook syncs `<html dir>` to current locale
 - Email/URL/code inputs forced `dir="ltr"` regardless of locale
-- Every UI-touching phase ships LTR + Hebrew E2E with viewport checks at 320/768/1280
+- Every UI change ships LTR + Hebrew E2E with viewport checks at 320/768/1280
 
 ### i18n
 
 - New strings into `apps/web/src/locales/{en,pt,he}/common.json` — all three locales
 - `node apps/web/scripts/check-translations.mjs` lints completeness; CI gates on it
 - Date/time formatting via `Intl.DateTimeFormat` with explicit locale — never raw `toLocaleString()`
+- `eslint-plugin-i18next` fails the build on hardcoded JSX text; `?lang=pseudo` pseudo-localizes for a hardcoded-string sweep
 
-### Tests + gates
+### Reusable seams (don't reinvent)
 
-Every phase has a hard gate. Don't declare done without it:
+- **Provider Fake/Real swap** via a DI token + env-driven factory: `LLM_CLIENT`, `TRANSCRIBER_CLIENT`, `GOOGLE_CALENDAR_CLIENT`, `ATTEMPT_SAMPLER`. Fakes run in dev/CI; the real client auto-injects when its API key is set.
+- **In-process job queue** — public surface `enqueue` / `drain` / `process*` / `snapshot` + per-process circuit breaker + `onModuleInit` stuck-job recovery: `apps/api/src/games/game-generation.queue.ts` (the Whisper queue mirrors it). A future BullMQ swap keeps this surface.
+- **Atomic quota reserve/refund** — `updateMany({ where: { …, counter: { lt: cap } }, data: { counter: { increment: 1 } } })`; Postgres serializes concurrent calls so N parallel reserves against cap K yield exactly K. `apps/api/src/quota/quota.service.ts`. Refund only on terminal failure, never on a user error.
+- **Attempt write-back idempotency** — level + spaced-repetition writes ride the single `finishedAt: null → now` transition inside one `$transaction`; the abandoned-attempt cron writes nothing. `apps/api/src/attempts/attempt.service.ts`.
+- **Prompt-injection defense** — tutor feedback wrapped in `<<<TUTOR_FEEDBACK_START>>>` … framing as data; output strictly Zod-validated. The two `cache_control` prompt blocks must stay byte-identical across prompt builders (`packages/shared/src/prompts/prompts.test.ts` asserts it).
 
-1. **Unit** (Vitest) — ≥ 90% line coverage on the new module; update `apps/api/vitest.config.ts` coverage `include`
-2. **Live-Postgres integration** — tenant isolation test (`tenant-isolation.test.ts` pattern)
-3. **API curl smoke** — happy path + edge cases against running api
-4. **Playwright E2E** — happy path + RTL variant; viewport checks at 320/768/1280
-5. **Agent-browser walkthrough** — visual confirmation in `mcp__Claude_Preview__*` tools (or claude-in-chrome)
-6. **Translation completeness check** — `node apps/web/scripts/check-translations.mjs`
+### Definition of done (any change)
 
-If any check fails, fix before declaring done.
+Don't declare done without the relevant gates:
 
-## Lessons learned — gotchas that bit Phases 0-3
+1. **Unit** (Vitest) — ≥ 90% line coverage on new modules; keep `apps/api/vitest.config.ts` coverage `include` current.
+2. **Live-Postgres tenant isolation** — a `*tenant-isolation.test.ts` for any new tutor-scoped loader.
+3. **API curl smoke** — happy path + edge cases against the running api.
+4. **Playwright E2E** — happy path + Hebrew RTL; viewport checks at 320/768/1280 for UI changes.
+5. **Translation completeness** — `node apps/web/scripts/check-translations.mjs` (all three locales).
+6. `pnpm typecheck` + `pnpm lint` (incl. the direction + i18next rules) clean.
+
+## Gotchas
 
 ### Dev environment
 - **Port conflicts**: API 3000, web 5174 (NOT 5173), Postgres 5433 (NOT 5432), Redis 6380 (NOT 6379). Don't move these.
-- **Vite dev proxy**: `/api/*` → `:3000`. This makes the api look same-origin to the browser, so SameSite=Lax cookies just work. Without it, cookies set by the api are unreachable from the SPA.
-- **Production cookie story**: web and api will land on different domains. You'll need either `SameSite=None; Secure` cookies + CORS, or a subdomain split with shared cookies. Phase 10 has to handle this.
+- **Vite dev proxy**: `/api/*` → `:3000`, making the api look same-origin so SameSite=Lax cookies just work. `PUBLIC_API_BASE_URL=http://localhost:5174/api` routes the magic-link consume URL through the proxy so cookies land on the web origin.
+- **Production cookies** (not yet deployed): web + api land on different domains, so prod needs `SameSite=None; Secure` + CORS or a shared-subdomain split — the dev proxy doesn't help there.
 
-### NestJS / Prisma quirks
-- **Pino async buffering**: pino-pretty buffers stdout writes. `AppModule` sets `sync: true` in dev so logs flush even on SIGKILL. Don't remove that.
-- **Incremental TS builds**: removed `incremental: true` from `apps/api/tsconfig.json`. `nest build` was silently emitting partial dist when tsbuildinfo was stale. The api's `clean` script removes `dist + tsconfig.tsbuildinfo` before every build.
-- **Prisma migrations**: the full schema (Tutor → Attempt) was written in Phase 1. Later phases ADD migrations only when introducing genuinely new tables (`OAuthState` in Phase 3 was the only one). Avoid touching existing model definitions in migrations.
-- **Shared package consumption**: `packages/shared` builds to `dist/`. The api (Node ESM) and web (Vite) both consume the built output. The root `pnpm dev` rebuilds shared first then starts watchers.
+### NestJS / Prisma
+- **Pino sync in dev**: `AppModule` sets `sync: true` so logs flush even on SIGKILL. Don't remove it.
+- **No incremental TS builds for the api**: `nest build` silently emitted partial dist on a stale tsbuildinfo, so the api `clean` script wipes `dist + tsconfig.tsbuildinfo` before every build.
+- **Migrations are additive-only**: new tables / columns with defaults; never edit an existing model definition in an old migration.
+- **Shared package**: `packages/shared` builds to `dist/`; api (Node ESM) + web (Vite) consume the built output, so rebuild it after editing (root scripts do this for you).
 
-### Auth flow
-- **Magic link in dev/test**: `POST /auth/magic-link` returns `devMagicLinkUrl` in its 202 response body when `NODE_ENV !== 'production'`. Playwright reads this directly instead of scraping mailer logs. Stripped in prod.
-- **PUBLIC_API_BASE_URL** is `http://localhost:5174/api` in dev (the Vite proxy path), not `:3000`. That way the consume URL goes through Vite and cookies land on the web origin.
+### Auth
+- **Magic link in dev/test**: `POST /auth/magic-link` returns `devMagicLinkUrl` in its 202 body when `NODE_ENV !== 'production'` (stripped in prod). The dev login form auto-follows it via `window.location.replace`, so E2E helpers consume that URL directly — don't ALSO submit the form, the two navigations race and abort (`net::ERR_ABORTED`).
 
 ### Testing
-- **Vitest + Nest DI metadata**: esbuild (Vitest's transformer) doesn't emit `emitDecoratorMetadata`. Don't try to build full NestJS testing modules with DI — construct controllers/services directly with stubs. See `auth.controller.test.ts` for the pattern.
-- **Throttler in tests**: global throttler is bumped to 1000/min when `NODE_ENV=test` so parallel Playwright workers don't trip it. The per-email magic-link limit (3/min, Postgres-backed) is the real abuse protection.
-- **Live-DB tests**: prefixed `tenant-isolation.test.ts`. Excluded from coverage so unit coverage stays meaningful when Postgres is offline. Run them with the DB up.
-
-### Subagent pattern (for phases you delegate)
-
-When you spawn a subagent for a phase:
-
-1. Brief it with a self-contained prompt — it has no memory of prior conversations
-2. Name specific reference files to copy (controllers, services, schemas, tests)
-3. List non-negotiables explicitly (tenant isolation, CSRF, audit, RTL, translation completeness)
-4. Define a hard gate — every check the agent must run before reporting back
-5. Ban modifying earlier-phase code (auth, students, etc.) — extension points are OK
-6. List approved new dependencies; flag any extras in the report
-7. Ask for a report format with files-changed + per-gate pass/fail + deviations + flagged follow-ups
-8. **Verify the diff yourself** — trust the report, but `git diff` and run the gate one more time, especially for tenant isolation
-
-The Phase 2 and Phase 3 subagent briefs (in the conversation that built this) are templates worth referencing.
-
-## Per-phase entry pointers
-
-Each phase has a section in the spec. Pre-phase checklist:
-
-1. Re-read your Phase N block
-2. Re-read the "Robustness & Gaps Addressed" cross-cutting section
-3. Study the reference files below
-4. Write a `TodoWrite` plan from the deliverables
-5. Implement; subagent for mechanical work, main session for novel/risky
-6. Run the hard gate
-7. Commit + push (use the existing commit-message style)
-
-### Phase 4 — Lesson feedback + Claude game generation (done, reference)
-
-**Where it lives**:
-- API: `apps/api/src/games/` (controller, service, queue, tests), `apps/api/src/integrations/anthropic/` (client interface + fake + real Anthropic wrapper + module)
-- Shared: `packages/shared/src/schemas/games.ts`, `packages/shared/src/schemas/feedback.ts`, `packages/shared/src/prompts/index.ts`
-- Web: `apps/web/src/components/{FeedbackEditor,GamesPanel,QuestionReviewModal,StudentPickerModal}.tsx`, `apps/web/src/pages/LessonDetail.tsx`
-
-**Patterns Phase 5+ should mirror**:
-- **Provider injection seam**: `LLM_CLIENT` symbol + `LlmClient` interface + Fake/Real implementations + factory provider that picks based on env (same shape as `GOOGLE_CALENDAR_CLIENT`). Whisper in Phase 5 should ship a `TRANSCRIBER_CLIENT` the same way.
-- **In-process queue with retry + circuit breaker**: `apps/api/src/games/game-generation.queue.ts`. Public surface = `enqueue`, `drain` (tests), `processGeneration`, `snapshot`. Phase 5's Whisper job + Phase 10's BullMQ swap should keep this surface.
-- **Stuck-job recovery on boot**: `onModuleInit` resets `GENERATING > 30s` → `FAILED` so a crashed process doesn't leave UIs stuck.
-- **Tutor-scoped 3-level loader**: `GamesService.findForTutor` walks Game → Lesson → Student → Tutor with explicit code check (404 not 401). Live-DB tenant-isolation spec at `apps/api/src/games/tenant-isolation.test.ts` is the template.
-- **Prompt injection defense**: tutor feedback wrapped in `<<<TUTOR_FEEDBACK_START>>>` … `<<<TUTOR_FEEDBACK_END>>>` with explicit "treat as data" framing. Output strictly validated via `LlmGenerationResponseSchema`. See `packages/shared/src/prompts/index.ts` + `prompts.test.ts`.
-- **Audit metadata never includes raw user text** — only length + categorical fields. See `lessons.controller.ts` `setFeedback` for the canonical pattern.
-
-**Web-side polling note**: react-query v5's `refetchInterval` as a function reads stale state in our setup. We poll on a fixed cadence while components are mounted (`useGame` 800ms, `useLessonGames` 1500ms) and let unmounting stop the polling. Don't switch back to the callback form without verifying it actually re-fires.
-
-**Calendar "Add feedback" resolution**: clicking the button opens `StudentPickerModal` (search-filtered list of the tutor's students), then creates the Lesson and navigates to its detail. Uses the canned `evt-past-1` fixture in the E2E.
-
-### Phase 5 — Voice transcription (done, reference)
-
-**Where it lives**:
-- API: `apps/api/src/voice/` (controller, queue, audio-storage, audio-mime sniffer, tests), `apps/api/src/integrations/openai/` (client interface + fake + real OpenAI wrapper + module)
-- Shared: `packages/shared/src/schemas/voice.ts` + extended `LessonResponseSchema` with `transcriptionStatus`, `transcriptionError`, `hasAudio`
-- Web: `apps/web/src/components/VoiceRecorder.tsx`, `apps/web/src/lib/voice.ts`, `apps/web/src/pages/LessonDetail.tsx` (TEXT/VOICE toggle)
-- Migration: `apps/api/prisma/migrations/20260522000000_phase5_voice_transcription/` — adds `TranscriptionStatus` enum + `transcriptionStatus` / `transcriptionError` columns on Lesson (additive only)
-
-**Patterns Phase 6+ should mirror**:
-- **Two parallel in-process queues** (Phase 4 games, Phase 5 Whisper) share the exact same public surface: `enqueue` / `drain` / `process*` / `snapshot` + `onModuleInit` stuck-job recovery + per-process circuit breaker. BullMQ swap in Phase 10 can replace both with identical behavior.
-- **Storage seam**: `AudioStorageService` is the single point of contact with the filesystem (`save` / `absolutePath` / `delete`). Path-safety checks (no escape from `STORAGE_DIR`, sanitized filenames) live there. R2/S3 swap replaces the implementation without touching callers.
-- **MIME sniffing**: `apps/api/src/voice/audio-mime.ts` — server-side magic-byte sniff via `magic-bytes.js`. NEVER trust `Content-Type`. Allowlist: webm, ogg (returned as `ogx` by magic-bytes), mp4/m4a, wav, aac.
-- **Quota with non-unit cost**: `reserveWhisperMinutes(tutorId, minutes)` uses a raw-SQL UPDATE because Prisma doesn't expose arithmetic in `where`. The atomicity test in `quota-enforcement.test.ts` verifies 20 parallel 1-minute reserves against cap=5 produce exactly 5 successes.
-- **Transcript as suggestion, not commit**: Whisper success pre-fills `Lesson.feedbackText` and flips `transcriptionStatus = DONE` but leaves `feedbackSource` unchanged. The tutor still has to save through the existing PATCH `/lessons/:id/feedback` for the lesson to be considered "done". The web `LessonDetail` auto-switches back to the text tab and shows a "transcribed from voice" hint until save.
-- **Audit metadata never includes raw user content** — only `bytes`, `durationSeconds`, `minutesReserved`, `mime`, `localeHint`. Same boundary as Phase 4's feedback PATCH.
-
-**Web polling**: same fixed-cadence-interval discipline as Phase 4 (callback `refetchInterval` reads stale state in our setup). `useLessonAudioStatus` polls every 1.5s while the recorder is mounted; on terminal status (DONE / FAILED) it invalidates `['lesson', id]` so the editor picks up the suggestion.
-
-**Spec gate items**: 42 voice-specific unit tests + live-DB `voice/tenant-isolation.test.ts` (3 specs: cross-tenant 404 on upload + status, happy path) + extended `quota-enforcement.test.ts` (5 whisper-minute specs incl. atomicity) + `voice-feedback.spec.ts` Playwright (5 specs: full transcribe flow, mic-denied empty state, MIME rejection, duration cap, Hebrew + viewport flips). Real-OpenAI smoke is the one manual check called out in FOLLOWUPS.md.
-
-### Phase 6 — Game engines
-
-**Spec block**: Phase 6.
-
-**Reference**: `apps/web/src/pages/PublicStudent.tsx` (student-side shell, currently a placeholder).
-
-**Build**: fill-in-blank engine, lives-based timed quiz (3 wrong = game over, infinite questions, score = correct count), Attempt persistence.
-
-**Critical**:
-- Server-side scoring (client also scores locally for instant feedback, but server is source of truth)
-- Unicode-aware answer normalization: NFC, locale-aware lowercase, **strip diacritics for Latin scripts but NIKUD-aware for Hebrew** (remove combining marks U+0591–U+05C7)
-- IndexedDB buffer for network resilience — never lose progress mid-session
-- Abandoned-attempt cron (auto-finish if `finishedAt` not set in 24h)
-
-### Phase 7 — Progress dashboard
-
-**Spec block**: Phase 7.
-
-**Build**: aggregation endpoint (per-game latest/best/trend, per-question detail, topic-level mastery over time), redesigned student detail page.
-
-**Critical**: pagination ceiling (attempts older than 6mo collapsed to monthly aggregates), date/time via `Intl.DateTimeFormat`, RTL chart rendering must be in the gate.
-
-### Phase 8 — i18n polish + RTL audit + PWA
-
-**Spec block**: Phase 8.
-
-**Build**: full pt/he translation pass (LLM-translated, native QA), comprehensive RTL audit of every screen, PWA manifest + service worker + Vite PWA plugin, install prompt.
-
-**Critical**: native Hebrew QA pass is required before prod — if you don't have a native speaker, document what was tested mechanically and flag it. Pseudo-localization mode (`?lang=pseudo`) to catch hardcoded strings.
-
-### Phase 9 — AI quota + cost (done, reference)
-
-**Where it lives**:
-- `apps/api/src/quota/` — `QuotaService` (reserve/refund/getUsage/resetAll + monthly cron), `AdminController` (`GET /admin/usage` behind static `ADMIN_TOKEN`), `TestQuotaController` (non-prod seed route for E2E)
-- `apps/api/src/games/games.service.ts` — wired into `createAndEnqueue` + `regenerateAll`; throws `QuotaExceededException` → HTTP 429 with `{ error: 'quota_exceeded', cap, used, resetsAt }`
-- `apps/api/src/games/game-generation.queue.ts` — refunds the tutor's slot on terminal FAILED via the `tutorByJob` side-table
-- `apps/web/src/components/GamesPanel.tsx` — persistent over-cap banner driven by `quotaError` state
-
-**Patterns Phase 5+ should mirror**:
-- **Atomic reserve**: `prisma.tutor.updateMany({ where: { id, monthlyGenerations: { lt: cap } }, data: { monthlyGenerations: { increment: 1 } } })` — Postgres serializes concurrent enqueues so 20 parallel calls against a cap of 5 yield exactly 5 successes (verified in `quota-enforcement.test.ts`).
-- **Refund on terminal failure, not on user error**: outages (LLM unavailable, schema mismatch) refund. The tutor's own malformed request (no feedback, etc.) doesn't burn a slot either (we throw before reserving).
-- **Phase 5 Whisper cap** uses the same shape — the `monthlyWhisperMinutes` field + `WHISPER_MONTHLY_MINUTES_CAP` env var are scaffolded; just wire the increment when the Whisper job finishes.
-
-**Admin endpoint contract**: `GET /admin/usage` with `x-admin-token: $ADMIN_TOKEN`. Returns aggregate tutor/generation/whisper counts + the queue's in-flight + breaker state. Used for "is the cost spike real?" inspection without an observability stack.
-
-**Spec gate items**: 318 api unit tests + live-DB `quota-enforcement.test.ts` (5 reservations succeed, 6th refuses, 20-parallel-against-cap-5 is exactly 5 successes), `quota.spec.ts` Playwright (over-cap banner shown, admin endpoint refuses without token). Real-Anthropic cache-hit verification is the one manual smoke called out in FOLLOWUPS.md.
-
-### Phase 10 — Production deploy
-
-**Spec block**: Phase 10.
-
-**Build**: Vercel project for web, Railway project for api + Postgres + Redis, Resend for real magic-link delivery, deep health checks (`/health/ready` checks DB + Redis + Anthropic), DB backup verification.
-
-**Critical**:
-- Real Google OAuth flow finally tested with a Google project (see FOLLOWUPS.md)
-- Cookie strategy switches to `SameSite=None; Secure` (or subdomain shared) — Vite dev proxy doesn't help in prod
-- Production smoke via agent-browser
+- **Vitest + Nest DI**: esbuild doesn't emit `emitDecoratorMetadata`, so don't build full NestJS testing modules — construct controllers/services directly with stubs (`auth.controller.test.ts` is the pattern).
+- **Throttler**: per-IP global limit is 1000/min under `NODE_ENV=test`, 300 otherwise; the real abuse guard is the Postgres-backed per-email magic-link limit (3/min).
+- **Live-DB tests**: `*tenant-isolation.test.ts` / `*-enforcement.test.ts` are excluded from coverage so unit coverage stays meaningful when Postgres is offline. Run them with the DB up.
+- **Test-seed routes** (`/__test__/*`, non-prod only) let E2E pretend OAuth completed, set quotas, seed levels/reviews. Mirror that pattern for new deterministic E2E setup.
 
 ## Folder map
 
@@ -261,44 +130,36 @@ tutor-app/
 ├── apps/
 │   ├── api/         NestJS backend
 │   │   ├── src/
-│   │   │   ├── audit/           audit log
-│   │   │   ├── auth/            magic-link, sessions, CSRF, guards
-│   │   │   ├── config/          Zod-validated env
-│   │   │   ├── integrations/
-│   │   │   │   └── google/      Phase 3: OAuth, calendar client + fake
-│   │   │   ├── lessons/         Phase 3: lesson CRUD, calendar merge
-│   │   │   ├── mailer/          console mailer (Resend stub for prod)
-│   │   │   ├── me/              /me CRUD + delete + export
-│   │   │   ├── middleware/      request-id
-│   │   │   ├── prisma/          PrismaService
-│   │   │   ├── students/        Phase 2: students CRUD + purge cron
-│   │   │   └── test/            test helpers (fixtures, prisma-mock)
-│   │   └── prisma/
-│   │       ├── schema.prisma
-│   │       └── migrations/
+│   │   │   ├── attempts/      play + scoring, adaptive selector, level + spaced-repetition
+│   │   │   ├── audit/         audit log
+│   │   │   ├── auth/          magic-link, sessions, CSRF, guards
+│   │   │   ├── config/        Zod-validated env (config.service + env.ts)
+│   │   │   ├── games/         game-generation queue + automatic bank top-up
+│   │   │   ├── integrations/  google · anthropic · openai (each: client + fake + real)
+│   │   │   ├── lessons/       lesson CRUD + calendar merge
+│   │   │   ├── mailer/        console mailer (Resend stub for prod)
+│   │   │   ├── me/            /me CRUD + delete + export
+│   │   │   ├── progress/      tutor-facing progress + game-progress endpoints
+│   │   │   ├── quota/         AI quota/cost reserve/refund + /admin/usage
+│   │   │   ├── students/      students CRUD + purge cron
+│   │   │   ├── voice/         audio upload + Whisper transcription queue
+│   │   │   ├── prisma/        PrismaService
+│   │   │   └── test/          test helpers (fixtures, prisma-mock)
+│   │   └── prisma/            schema.prisma + migrations (additive)
 │   └── web/         Vite SPA
 │       ├── src/
-│       │   ├── components/      Bidi, ConfirmDialog, Toast, etc.
-│       │   ├── hooks/           useDirection
-│       │   ├── lib/             api client, react-query hooks
-│       │   ├── locales/         en/pt/he JSON
-│       │   ├── pages/           every page component
-│       │   └── router.tsx       TanStack Router config
-│       ├── tests/               Playwright E2E
-│       └── scripts/             check-translations.mjs
+│       │   ├── components/    Bidi, ConfirmDialog, Toast, games/*, …
+│       │   ├── hooks/         useDirection, …
+│       │   ├── lib/           api client, react-query hooks
+│       │   ├── locales/       en/pt/he JSON
+│       │   ├── pages/         every page component
+│       │   └── router.tsx     TanStack Router config
+│       ├── tests/             Playwright E2E
+│       └── scripts/           check-translations.mjs
 ├── packages/
-│   ├── eslint-plugin-direction/ custom ESLint rule banning physical Tailwind utilities
-│   └── shared/                  Zod schemas + types
-├── docker-compose.yml           Postgres :5433 + Redis :6380
-├── package.json                 pnpm workspace root
+│   ├── eslint-plugin-direction/  custom ESLint rule banning physical Tailwind utilities
+│   └── shared/                   Zod schemas + types + prompts
+├── docker-compose.yml            Postgres :5433 + Redis :6380
+├── package.json                  pnpm workspace root
 └── pnpm-workspace.yaml
 ```
-
-## When you finish a phase
-
-1. Run the full gate
-2. Update this file's "Current state" table (mark the phase done)
-3. Flag any deferred items in `FOLLOWUPS.md`
-4. Commit + push with a message describing what shipped
-
-When in doubt, refer back to the spec — it's the source of truth.

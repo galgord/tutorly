@@ -27,9 +27,12 @@ export default defineConfig({
         'src/students/tenant-isolation.test.ts',
         'src/lessons/tenant-isolation.test.ts',
         'src/games/tenant-isolation.test.ts',
+        'src/games/bank-topup-integration.test.ts',
         'src/quota/quota-enforcement.test.ts',
         'src/voice/tenant-isolation.test.ts',
         'src/attempts/tenant-isolation.test.ts',
+        'src/attempts/progress-tenant-isolation.test.ts',
+        'src/attempts/question-review-tenant-isolation.test.ts',
         'src/progress/tenant-isolation.test.ts',
         // Real provider adapters — never executed in unit tests (the fake
         // clients are injected via DI tokens instead).

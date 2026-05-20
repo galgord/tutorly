@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Game" ADD COLUMN     "lastTopUpAt" TIMESTAMP(3),
+ADD COLUMN     "poolTargetSize" INTEGER NOT NULL DEFAULT 200,
+ADD COLUMN     "topUpInFlight" BOOLEAN NOT NULL DEFAULT false;
+
+-- AlterTable
+ALTER TABLE "Tutor" ADD COLUMN     "monthlyTopUpGenerations" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "monthlyTopUpResetAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

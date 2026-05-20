@@ -19,9 +19,13 @@ async function signInAsTutor(
   const body = (await res.json()) as { ok: true; devMagicLinkUrl?: string };
   expect(body.devMagicLinkUrl).toBeTruthy();
   await page.goto(`/login?lang=${lang}`);
-  await page.getByTestId('login-email').fill(email);
-  await page.getByTestId('login-submit').click();
-  await page.goto(body.devMagicLinkUrl!);
+  // Consume the API-issued link directly. Submitting the login form instead
+  // fires window.location.replace, which races this navigation → net::ERR_ABORTED
+  // under parallel workers. One navigation; tolerate a superseded redirect and
+  // assert the destination below.
+  await page.goto(body.devMagicLinkUrl!, { waitUntil: 'commit' }).catch((err) => {
+    if (!String(err).includes('net::ERR_ABORTED')) throw err;
+  });
   await page.waitForURL(/\/dashboard/);
 }
 
@@ -163,6 +167,10 @@ test.describe('tutor progress dashboard (LTR)', () => {
     const gameCard = page.getByTestId(`progress-game-${seeded.gameId}`);
     await expect(gameCard).toBeVisible();
     await expect(page.getByTestId(`progress-game-trend-${seeded.gameId}`)).toBeVisible();
+
+    // Phase 12: the read-only adaptive panel shows the per-game level.
+    await expect(page.getByTestId('student-game-progress-section')).toBeVisible();
+    await expect(page.getByTestId(`game-progress-level-${seeded.gameId}`)).toBeVisible();
 
     // Recent-attempts list has at least one row, and it can be expanded.
     const attemptRows = page.getByTestId(/^attempt-row-/);

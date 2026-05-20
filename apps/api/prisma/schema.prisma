@@ -34,6 +34,11 @@ model Tutor {
   // Whisper + Anthropic have different cost profiles and per-tutor caps.
   monthlyWhisperMinutes      Int       @default(0)
   monthlyWhisperResetAt      DateTime  @default(now())
+  // Phase 12E: SEPARATE monthly budget for automatic background bank top-ups,
+  // so growing a student's question bank never silently eats the tutor's manual
+  // generation quota (monthlyGenerations).
+  monthlyTopUpGenerations    Int       @default(0)
+  monthlyTopUpResetAt        DateTime  @default(now())
   // Filled in Phase 3.
   googleRefreshToken         String?
   lessonCalendarIds          String[]  @default([])
@@ -119,6 +124,8 @@ model Student {
   tutor    Tutor     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   lessons  Lesson[]
   attempts Attempt[]
+  gameProgress    StudentGameProgress[]
+  questionReviews QuestionReview[]
 
   @@index([tutorId])
   @@index([deletedAt])
@@ -197,6 +204,10 @@ model Game {
   questionPool         Json
   poolSize             Int
   generationPromptHash String?
+  // Phase 12E: target bank size the background top-up grows toward (≥ poolSize).
+  poolTargetSize       Int        @default(200)
+  lastTopUpAt          DateTime?
+  topUpInFlight        Boolean    @default(false)
   locale               String     @default("en")
   // Phase 4: human-readable reason a FAILED job set, so the tutor sees more
   // than just "failed" in the UI. Kept short + tutor-safe (no stack traces).
@@ -208,6 +219,8 @@ model Game {
 
   lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   attempts Attempt[]
+  studentProgress StudentGameProgress[]
+  questionReviews QuestionReview[]
 
   @@index([lessonId])
   @@index([status])
@@ -230,6 +243,60 @@ model Attempt {
 
   @@index([gameId, studentId])
   @@index([studentId, startedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 12 — adaptive game engine: per-(student, game) cross-play state
+// ---------------------------------------------------------------------------
+
+// One mutable singleton row per (student, game). Drives difficulty escalation
+// across plays and non-repetition. Read before an attempt is sampled, written
+// once on the finishedAt:null→now transition (abandoned-cron finishes do NOT
+// write here). seenQuestionIds is the authoritative "answered before" set; the
+// selector treats it as a membership Set so duplicate pushes are harmless.
+model StudentGameProgress {
+  studentId       String
+  gameId          String
+  currentLevel    Int       @default(1) // 1..5 — target difficulty for the next play
+  playsCompleted  Int       @default(0)
+  nudgeCounter    Int       @default(0) // consecutive competent holds without advancing
+  seenQuestionIds String[]  @default([])
+  lastAccuracy    Float?
+  lastLevelDelta  Int       @default(0)
+  lastPlayedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, gameId])
+  @@index([gameId])
+}
+
+// One row per (student, question) — the spaced-repetition (Leitner) schedule.
+// `questionId` references an id inside a Game.questionPool JSON blob, so there
+// is NO foreign key on it; orphaned rows (after a tutor regenerates a game and
+// mints new ids) are filtered at selection time and swept by a light cron.
+// Written on the same finishedAt:null→now transition as StudentGameProgress.
+model QuestionReview {
+  studentId  String
+  gameId     String
+  questionId String
+  box        Int      @default(1) // 1..5 Leitner box; higher = longer interval
+  dueAt      DateTime
+  lastResult Boolean
+  timesSeen  Int      @default(0)
+  timesWrong Int      @default(0)
+  lastSeenAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, questionId])
+  @@index([studentId, gameId, dueAt])
 }
 
 // ---------------------------------------------------------------------------

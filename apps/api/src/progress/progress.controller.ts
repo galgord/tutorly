@@ -10,12 +10,15 @@ import { Throttle } from '@nestjs/throttler';
 import {
   AttemptHistoryResponseSchema,
   ListAttemptsQuerySchema,
+  StudentGameProgressResponseSchema,
   StudentProgressResponseSchema,
   type AttemptHistoryResponse,
+  type StudentGameProgressResponse,
   type StudentProgressResponse,
 } from '@tutor-app/shared';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentTutor, type CurrentTutorPayload } from '../auth/current-tutor.decorator';
+import { QuotaService } from '../quota/quota.service';
 import { StudentService } from '../students/student.service';
 import { ProgressService } from './progress.service';
 
@@ -33,7 +36,28 @@ export class ProgressController {
   constructor(
     private readonly students: StudentService,
     private readonly progress: ProgressService,
+    private readonly quota: QuotaService,
   ) {}
+
+  @Get(':id/game-progress')
+  async getGameProgress(
+    @CurrentTutor() tutor: CurrentTutorPayload,
+    @Param('id') id: string,
+  ): Promise<StudentGameProgressResponse> {
+    const student = await this.students.getForTutorOrFail({ id, tutorId: tutor.id });
+    const [games, usage] = await Promise.all([
+      this.progress.getStudentGameProgress(student.id),
+      this.quota.getUsage(tutor.id),
+    ]);
+    return StudentGameProgressResponseSchema.parse({
+      games,
+      budget: {
+        topUpUsed: usage.topUpGenerationsUsed,
+        topUpCap: usage.topUpGenerationsCap,
+        topUpResetsAt: usage.topUpGenerationsResetsAt.toISOString(),
+      },
+    });
+  }
 
   @Get(':id/progress')
   async getProgress(

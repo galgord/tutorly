@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PublicQuestion, StartAttemptResponse } from '@tutor-app/shared';
 import { submitBufferedAnswer } from '../../lib/attempt-buffer';
+import { LevelBadge, ReviewMarker } from './LevelBadge';
 
 interface Props {
   shareToken: string;
@@ -109,12 +110,17 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
       className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
     >
       <header className="flex items-center justify-between gap-4">
-        <span
-          data-testid="play-progress"
-          className="text-sm font-medium text-slate-500"
-        >
-          {progress}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            data-testid="play-progress"
+            className="text-sm font-medium text-slate-500"
+          >
+            {progress}
+          </span>
+          {attempt.level !== undefined && (
+            <LevelBadge level={attempt.level} levelMax={attempt.levelMax} />
+          )}
+        </div>
         <span
           data-testid="play-score"
           aria-live="polite"
@@ -123,6 +129,12 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
           {t('play.scoreLabel', { score })}
         </span>
       </header>
+
+      {current.isReview && (
+        <div>
+          <ReviewMarker />
+        </div>
+      )}
 
       <p
         data-testid="play-prompt"

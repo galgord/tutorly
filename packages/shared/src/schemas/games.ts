@@ -29,6 +29,12 @@ const TopicTagsField = z
   .max(5)
   .default([]);
 
+// Phase 12: per-question difficulty on a 1 (easiest) … 5 (hardest) scale.
+// LLM-assigned at generation; heuristic-backfilled for pre-existing pools.
+export const MIN_DIFFICULTY = 1;
+export const MAX_DIFFICULTY = 5;
+export const DEFAULT_DIFFICULTY = 3;
+
 /** What the LLM returns. `id` is server-assigned, so it's omitted here. */
 export const LlmQuestionSchema = z.object({
   prompt: z.string().trim().min(1).max(500),
@@ -39,6 +45,8 @@ export const LlmQuestionSchema = z.object({
   // The LLM may seed these, the tutor edits before assigning.
   acceptAlternates: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
   topicTags: TopicTagsField,
+  // Optional — the worker clamps + defaults when the model omits it.
+  difficulty: z.coerce.number().int().min(MIN_DIFFICULTY).max(MAX_DIFFICULTY).optional(),
 });
 export type LlmQuestion = z.infer<typeof LlmQuestionSchema>;
 
@@ -55,6 +63,13 @@ export const GameQuestionSchema = z.object({
   distractors: z.array(z.string().trim().min(1).max(200)).max(8).default([]),
   acceptAlternates: z.array(z.string().trim().min(1).max(200)).max(10).default([]),
   topicTags: TopicTagsField,
+  // `.default` keeps pre-Phase-12 pools (no difficulty key) parsing as "medium".
+  difficulty: z.coerce
+    .number()
+    .int()
+    .min(MIN_DIFFICULTY)
+    .max(MAX_DIFFICULTY)
+    .default(DEFAULT_DIFFICULTY),
 });
 export type GameQuestion = z.infer<typeof GameQuestionSchema>;
 

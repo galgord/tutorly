@@ -21,6 +21,7 @@ describe('Quota enforcement (live db)', () => {
     get: vi.fn((key: string) => {
       if (key === 'GAME_GEN_MONTHLY_CAP') return 5;
       if (key === 'WHISPER_MONTHLY_MINUTES_CAP') return 60;
+      if (key === 'GAME_GEN_TOPUP_MONTHLY_CAP') return 5;
       return undefined;
     }),
     isProd: () => false,
@@ -136,6 +137,32 @@ describe('Quota enforcement (live db)', () => {
     const agg = await svc.getAggregateUsage();
     expect(agg.totalGenerationsThisMonth).toBeGreaterThanOrEqual(2);
     expect(agg.capGenerations).toBe(5);
+  });
+
+  // ---- Phase 12E: top-up budget reserve/refund --------------------------
+
+  it('top-up: concurrent reserves never exceed the SEPARATE cap (atomicity)', async () => {
+    if (!dbReady) return;
+    // 20 parallel top-up reserves against cap=5 → exactly 5 succeed, and the
+    // tutor's MANUAL generation counter is left completely untouched.
+    const attempts = await Promise.all(
+      Array.from({ length: 20 }, () => svc.reserveTopUp(tutorId)),
+    );
+    expect(attempts.filter((r) => r.ok).length).toBe(5);
+    const after = await prisma.tutor.findUnique({
+      where: { id: tutorId },
+      select: { monthlyTopUpGenerations: true, monthlyGenerations: true },
+    });
+    expect(after?.monthlyTopUpGenerations).toBe(5);
+    expect(after?.monthlyGenerations).toBe(0); // manual quota never touched
+  });
+
+  it('top-up: refund gives a slot back; the next reserve succeeds again', async () => {
+    if (!dbReady) return;
+    for (let i = 0; i < 5; i++) await svc.reserveTopUp(tutorId);
+    expect((await svc.reserveTopUp(tutorId)).ok).toBe(false);
+    await svc.refundTopUp(tutorId);
+    expect((await svc.reserveTopUp(tutorId)).ok).toBe(true);
   });
 
   // ---- Phase 5: Whisper minute reserve/refund ---------------------------

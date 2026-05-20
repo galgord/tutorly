@@ -6,7 +6,7 @@ Quickref for Claude Code / dev sessions on this repo. **Read this first** before
 
 A SaaS companion tool for private tutors of any subject. Tutor connects Google Calendar, manages students, writes feedback after lessons, and an LLM turns the feedback into practice games the student plays between sessions. Tutor sees progress.
 
-## Current state — Phases 0-9 done (less 10)
+## Current state — Phases 0-9 + 12 done (10 pending)
 
 | # | Name | State | Notes |
 |---|---|---|---|
@@ -21,6 +21,7 @@ A SaaS companion tool for private tutors of any subject. Tutor connects Google C
 | 8 | i18n + RTL + PWA | ✅ done | `vite-plugin-pwa` shipping autoUpdate SW + manifest (`/dashboard` start_url, 192/512/512-maskable icons, standalone). `eslint-plugin-i18next` enforces no hardcoded JSX text. Pseudo-localization mode (`?lang=pseudo`) wraps strings in `⟦…⟧` with 30% length inflation + striped band marker. Heebo + Rubik (via `@fontsource-variable/*`) dynamic-imported only when `lang === he`. Modal close buttons on inline-start edge across all 5 modals; pagination + game-engine Next get `.icon-flip` arrows. `InstallPrompt` + `OfflineBanner` mounted on dashboard. 482 api / 24 web unit / 104 Playwright (incl. new `pwa.spec.ts` + `rtl-polish.spec.ts`) all green. **Native Hebrew QA + Lighthouse PWA ≥90 manual run** flagged in FOLLOWUPS as pre-launch gate items. |
 | 9 | AI quota + cost | ✅ done | Per-tutor monthly cap (default 100) via atomic `UPDATE … WHERE monthlyGenerations < cap`; refund on terminal FAILED; monthly reset cron; `/admin/usage` admin-token endpoint; UI banner with reset date. Whisper minute field scaffolded for Phase 5. |
 | 10 | Production deploy | ⬜ pending | Vercel + Railway + Resend + real Google + smoke |
+| 12 | Adaptive Game Engine | ✅ done | Per-question difficulty 1–5 (LLM-tagged + heuristic backfill of old pools); cross-play level escalation + non-repetition (`StudentGameProgress`, advance ≥80% over non-review slots, anti-stall nudge, never auto-demote); Leitner spaced repetition (`QuestionReview`); blended selector (due reviews + unseen-at-level + recycle) with one idempotent finish `$transaction` + procedural variation for drained pools; automatic background bank top-up within a SEPARATE per-tutor monthly budget (`Tutor.monthlyTopUpGenerations`, never touches the manual 100/mo); student Level N/5 badge + "leveled up" + "seen before" markers + tutor read-only `GET /students/:id/game-progress`. i18n en/pt/he. **Real-Anthropic smoke + native-Hebrew QA + accuracy-ordered recycle wiring** flagged in FOLLOWUPS.md |
 
 ## Authoritative spec
 
@@ -253,6 +254,25 @@ Each phase has a section in the spec. Pre-phase checklist:
 - Real Google OAuth flow finally tested with a Google project (see FOLLOWUPS.md)
 - Cookie strategy switches to `SameSite=None; Secure` (or subdomain shared) — Vite dev proxy doesn't help in prod
 - Production smoke via agent-browser
+
+### Phase 12 — Adaptive Game Engine (done, reference)
+
+**Spec**: `/Users/galgordon/.claude/plans/read-the-tutor-app-mutable-lollipop.md` (separate from the original Phase 0-10 spec).
+
+**Where it lives**:
+- API `apps/api/src/attempts/`: `adaptive-selector.ts` (blended due-review + unseen-at-level + recycle; wraps the pure `sampleQuestions` via the `ATTEMPT_SAMPLER` seam), `level-policy.ts` + `leitner.ts` (pure, property-tested), `student-game-progress.service.ts`, `question-review.service.ts`, `procedural-variation.ts`; `attempt.service.ts` (start selection + the single finish `$transaction`).
+- API `apps/api/src/games/`: `difficulty-heuristic.ts`, `bank-topup.service.ts`, `game-generation.queue.ts` (`enqueueTopUp` append-not-replace branch).
+- Shared: `packages/shared/src/schemas/{games,attempts,progress}.ts`, `packages/shared/src/prompts/index.ts` (`buildTopUpPrompt`).
+- Web: `pages/PlayGame.tsx` + `components/games/*` (Level N/5 badge, "leveled up", "seen before"), `pages/PublicStudent.tsx` (dashboard level badge), `components/GameProgressPanel.tsx` (tutor read-only, via `GET /students/:id/game-progress`).
+- Migrations (additive): `StudentGameProgress` + `QuestionReview` tables; `Game.{poolTargetSize,lastTopUpAt,topUpInFlight}` + `Tutor.{monthlyTopUpGenerations,monthlyTopUpResetAt}` columns.
+
+**Patterns later phases should mirror**:
+- **Idempotency anchor**: all level + SR write-backs ride the single `finishedAt: null → now` transition inside one `$transaction`; the abandoned-attempt cron deliberately writes nothing. A buffered double-finish reconstructs the level-up result from `header.levelBefore/levelAfter` (exact, not racy).
+- **Selection wraps, doesn't replace, the property-tested sampler** via the `ATTEMPT_SAMPLER` DI seam — the inner shuffler + its tests stay intact.
+- **Separate top-up budget**: `Tutor.monthlyTopUpGenerations` mirrors the Phase 9 atomic reserve/refund idiom but NEVER touches the manual `monthlyGenerations` (100/mo). Top-up APPENDS de-duped questions and never flips `Game.status`.
+- **Difficulty backfill**: a guarded `onModuleInit` sweep (mirrors stuck-job recovery) heuristically rates old all-default pools once; never on the play read-path.
+
+**Gate**: api unit ≥90% on new modules + property tests (level-policy, leitner, selector); live-DB `attempts/progress-tenant-isolation.test.ts` + `attempts/question-review-tenant-isolation.test.ts`; idempotency-interaction tests; `packages/shared/src/prompts/prompts.test.ts` byte-identical cached-block assertion; Playwright play→finish→replay (non-repetition + level change + resurfaced review) LTR + Hebrew @320/768/1280. Deferrals in FOLLOWUPS.md.
 
 ## Folder map
 

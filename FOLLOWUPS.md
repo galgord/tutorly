@@ -1,6 +1,6 @@
 # Follow-ups
 
-Small items deferred during Phases 0-4 + 9. None are blocking; pick them up whenever fits.
+Small items deferred during Phases 0-9 + 12. None are blocking; pick them up whenever fits.
 
 ## Quick wins (~5-10 min each)
 
@@ -77,6 +77,16 @@ Small items deferred during Phases 0-4 + 9. None are blocking; pick them up when
 - **Pseudo-localization at `?lang=pseudo`** — wraps every translated string with `⟦ … ⟧` and inflates length ~30%; adds a striped band at the top of the viewport via `html.pseudo-active::before` so QA can confirm the mode is on. Treats interpolation placeholders verbatim. Useful before each phase exit for a fresh hardcoded-string sweep.
 - **`eslint-plugin-i18next` whitelist** — `apps/web/.eslintrc.cjs` excludes pure-glyph affordances (`×`, `←`, `→`, `—`, `–`, `·`, `•`), the brand mark `Tutor App`, locale endonyms (`English`, `Português`, `עברית`), and whitespace-only fragments. Anything new on this list needs justification in the commit message.
 - **`<Bidi>` is exempted from `no-literal-string`** — it's a wrapper for user-supplied content (student names, question text), not a localization opportunity. Same exemption shape as the rule's default `Trans` exemption.
+
+## Phase 12 — Adaptive game engine — handoff to later phases
+
+All deferred items below are non-blocking; the engine ships fully functional on the `FakeLlmClient`.
+
+- **Real-Anthropic smoke (difficulty + top-up quality + cache hits)** — runs only with a real `ANTHROPIC_API_KEY` (auto-injected into `llm.real.ts`). Against real Claude, verify: (1) per-question `difficulty` tags actually spread across 1–5 and feel calibrated (not all clustered at 3); (2) `buildTopUpPrompt`'s avoid-list yields genuinely new, non-duplicate questions; (3) prompt-cache hits — `usage.cachedInputTokens > 0` on the second call in a session. The two `cache_control` blocks (system + game-type) MUST stay byte-identical between `buildGenerationPrompt` and `buildTopUpPrompt` in `packages/shared/src/prompts/index.ts`; `packages/shared/src/prompts/prompts.test.ts` asserts this — keep it green when editing prompts. Fold into the existing Phase 4/9 real-Anthropic smoke.
+- **Native-speaker Hebrew QA of the adaptive copy** — the new strings were machine-translated. A native reader should check `play.levelBadge` / `play.reviewMarker` / `play.leveledUp` / `play.summaryNextLevel`, `publicStudent.level`, and `progress.adaptive.*` in `apps/web/src/locales/he/common.json` for phrasing + RTL. Roll into the existing Phase 8 native-Hebrew pass.
+- **Accuracy-ordered recycle (deferred from 12D)** — `apps/api/src/attempts/adaptive-selector.ts` accepts an optional `recycleRank` param (line 35) to order recycled (drained-pool) questions; it is currently UNWIRED, so recycle falls back to band-order. To prioritize a student's weakest/stalest questions, wire `recycleRank` from `QuestionReview` accuracy (`timesWrong/timesSeen`) + recency (`lastSeenAt`): add a stats query to `QuestionReviewService` and pass the ranker from `AttemptService` at selection time. The selector already sorts by it when provided — just supply the function.
+- **JSON-pool → dedicated `Question` table threshold** — pools live as JSON on `Game.questionPool`, funneled through `parsePool` (single chokepoint). As auto top-up grows banks toward `poolTargetSize` (default 200), watch row size / query cost. When it bites, promote the pool to its own table; `parsePool` is the one seam to change. No action until banks actually approach the cap in prod.
+- **Threshold calibration via an agent-browser "does it feel right" pass** — the level/SR knobs ship with first-cut defaults (`LEVEL_ADVANCE_THRESHOLD=0.8`, `LEVEL_HOLD_FLOOR=0.5`, `LEVEL_NUDGE_EVERY_N=3`, `REVIEW_FRACTION=0.3`, `SR_BOX_INTERVALS_DAYS=0,1,3,7,16`, `LEVEL_ALLOW_DOWN=false`). Play several real sessions and tune so the ramp feels motivating, not punishing — all are env-overridable (see `apps/api/src/config/env.ts` + `apps/api/.env.example`).
 
 ## Out of scope for v1 (per the spec) — DO NOT add
 

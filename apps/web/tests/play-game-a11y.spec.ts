@@ -9,9 +9,13 @@ async function signInAsTutor(page: Page, request: APIRequestContext): Promise<vo
   expect(res.status()).toBe(202);
   const body = (await res.json()) as { ok: true; devMagicLinkUrl?: string };
   await page.goto('/login');
-  await page.getByTestId('login-email').fill(email);
-  await page.getByTestId('login-submit').click();
-  await page.goto(body.devMagicLinkUrl!);
+  // Consume the API-issued link directly. Submitting the login form instead
+  // fires window.location.replace, which races this navigation → net::ERR_ABORTED
+  // under parallel workers. One navigation; tolerate a superseded redirect and
+  // assert the destination below.
+  await page.goto(body.devMagicLinkUrl!, { waitUntil: 'commit' }).catch((err) => {
+    if (!String(err).includes('net::ERR_ABORTED')) throw err;
+  });
   await page.waitForURL(/\/dashboard/);
 }
 

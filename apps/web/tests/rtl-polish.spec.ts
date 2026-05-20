@@ -13,9 +13,13 @@ async function signIn(page: Page, request: APIRequestContext, lang = 'en'): Prom
   const body = (await res.json()) as { ok: true; devMagicLinkUrl?: string };
   expect(body.devMagicLinkUrl).toBeTruthy();
   await page.goto(`/login?lang=${lang}`);
-  await page.getByTestId('login-email').fill(email);
-  await page.getByTestId('login-submit').click();
-  await page.goto(body.devMagicLinkUrl!);
+  // Consume the API-issued link directly. Submitting the login form instead
+  // fires window.location.replace, which races this navigation → net::ERR_ABORTED
+  // under parallel workers. One navigation; tolerate a superseded redirect and
+  // assert the destination below.
+  await page.goto(body.devMagicLinkUrl!, { waitUntil: 'commit' }).catch((err) => {
+    if (!String(err).includes('net::ERR_ABORTED')) throw err;
+  });
   await page.waitForURL(/\/dashboard/);
 }
 

@@ -20,7 +20,11 @@ async function newTutorSession(request: APIRequestContext): Promise<TutorTestSes
     email,
     consumeUrl: body.devMagicLinkUrl!,
     async consume(page) {
-      await page.goto(body.devMagicLinkUrl!);
+      // Tolerate the consume endpoint's 302→/dashboard superseding the tracked
+      // navigation (net::ERR_ABORTED); the caller asserts the destination.
+      await page.goto(body.devMagicLinkUrl!, { waitUntil: 'commit' }).catch((err) => {
+        if (!String(err).includes('net::ERR_ABORTED')) throw err;
+      });
     },
   };
 }
@@ -28,8 +32,8 @@ async function newTutorSession(request: APIRequestContext): Promise<TutorTestSes
 async function signIn(page: Page, request: APIRequestContext, lang = 'en'): Promise<TutorTestSession> {
   const session = await newTutorSession(request);
   await page.goto(`/login?lang=${lang}`);
-  await page.getByTestId('login-email').fill(session.email);
-  await page.getByTestId('login-submit').click();
+  // Don't submit the login form — its window.location.replace would race the
+  // consume navigation. Consuming the API-issued link is enough to authenticate.
   await session.consume(page);
   await page.waitForURL(/\/dashboard/);
   return session;
@@ -63,8 +67,9 @@ test.describe('students CRUD (LTR)', () => {
     await expect(row).toBeVisible();
     await expect(row.getByText('Sara')).toBeVisible();
 
-    // Open detail.
-    await row.getByText('Open').click();
+    // Open detail by clicking the student name (the row is a link; clicking the
+    // name navigates and avoids the row's invite/menu buttons on narrow widths).
+    await row.locator('[data-testid^="student-name-"]').click();
     await page.waitForURL(/\/students\/[^/]+/);
     await expect(page.getByTestId('student-detail')).toBeVisible();
 
@@ -162,9 +167,10 @@ test.describe('students CRUD (LTR)', () => {
     await page.reload();
     await expect(page.getByText('TrashMe')).toBeVisible();
 
-    // Open the row's delete confirm.
+    // Open the row's kebab menu, then the delete action.
     const row = page.locator('[data-testid^="student-row-"]', { hasText: 'TrashMe' });
-    await row.getByText('Delete').click();
+    await row.locator('[data-testid^="student-menu-"]').click();
+    await row.locator('[data-testid^="student-menu-delete-"]').click();
     await page.getByTestId('confirm-typed-input').fill('TrashMe');
     await page.getByTestId('confirm-submit').click();
     // The list refetches after the dialog closes; the trashed student no
@@ -242,8 +248,9 @@ test.describe('students RTL (Hebrew)', () => {
     await expect(row).toContainText('Sara');
     await expect(row).toContainText('כהן');
 
-    // Open detail.
-    await row.getByText('פתח').click();
+    // Open detail by clicking the student name (the row is a link; clicking the
+    // name navigates and avoids the row's invite/menu buttons on narrow widths).
+    await row.locator('[data-testid^="student-name-"]').click();
     await page.waitForURL(/\/students\/[^/]+/);
     await expect(page.getByTestId('student-detail')).toBeVisible();
 

@@ -16,7 +16,11 @@ async function newTutorSession(request: APIRequestContext): Promise<TutorTestSes
   return {
     email,
     async consume(page) {
-      await page.goto(body.devMagicLinkUrl!);
+      // Tolerate the consume endpoint's 302→/dashboard superseding the tracked
+      // navigation (net::ERR_ABORTED); the caller asserts the destination.
+      await page.goto(body.devMagicLinkUrl!).catch((err) => {
+        if (!String(err).includes('net::ERR_ABORTED')) throw err;
+      });
     },
   };
 }
@@ -24,8 +28,8 @@ async function newTutorSession(request: APIRequestContext): Promise<TutorTestSes
 async function signIn(page: Page, request: APIRequestContext, lang = 'en'): Promise<void> {
   const session = await newTutorSession(request);
   await page.goto(`/login?lang=${lang}`);
-  await page.getByTestId('login-email').fill(session.email);
-  await page.getByTestId('login-submit').click();
+  // Don't submit the login form — its window.location.replace would race the
+  // consume navigation. Consuming the API-issued link is enough to authenticate.
   await session.consume(page);
   await page.waitForURL(/\/dashboard/);
 }

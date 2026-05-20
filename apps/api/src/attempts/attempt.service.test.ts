@@ -6,6 +6,7 @@ import type { PrismaService } from '../prisma/prisma.service';
 import { makePrismaMock } from '../test/prisma-mock';
 import { AttemptService, type Selector } from './attempt.service';
 import { selectAttemptQuestions } from './adaptive-selector';
+import { QuestionReviewService } from './question-review.service';
 import { seededRng } from './question-sampler';
 import { StudentGameProgressService } from './student-game-progress.service';
 
@@ -19,6 +20,8 @@ function makeConfig(overrides: Partial<Record<string, unknown>> = {}): ConfigSer
     LEVEL_NUDGE_EVERY_N: 3,
     LEVEL_MIN_SAMPLE: 3,
     LEVEL_ALLOW_DOWN: false,
+    SR_BOX_INTERVALS_DAYS: [0, 1, 3, 7, 16],
+    REVIEW_FRACTION: 0.3,
   };
   const merged = { ...defaults, ...overrides };
   return { get: vi.fn((k: string) => merged[k]), isProd: () => false } as unknown as ConfigService;
@@ -40,6 +43,14 @@ function makeProgressStub(
     })),
     applyFinish: vi.fn(async () => undefined),
   } as unknown as StudentGameProgressService;
+}
+
+/** Stub review service: nothing due, write-back is a no-op. */
+function makeReviewStub(due: string[] = []): QuestionReviewService {
+  return {
+    dueReviews: vi.fn(async () => due),
+    recordResults: vi.fn(async () => undefined),
+  } as unknown as QuestionReviewService;
 }
 
 function fakeStudent(over: Partial<Student> = {}): Student {
@@ -99,12 +110,14 @@ function makeService(opts: {
   selector?: Selector;
   config?: ConfigService;
   progress?: StudentGameProgressService;
+  review?: QuestionReviewService;
 } = {}) {
   return new AttemptService(
     opts.prisma ?? makePrismaMock(),
     opts.config ?? makeConfig(),
     opts.selector ?? seededSelector,
     opts.progress ?? makeProgressStub(),
+    opts.review ?? makeReviewStub(),
   );
 }
 
@@ -913,6 +926,7 @@ describe('AttemptService.finishAttempt — Phase 12 level outcome', () => {
   function setup(over: { progressLevel?: number; nudgeCounter?: number } = {}) {
     const prisma = makePrismaMock();
     const applyFinish = vi.fn(async () => undefined);
+    const recordResults = vi.fn(async () => undefined);
     const progress = {
       loadState: vi.fn(async () => ({
         level: over.progressLevel ?? 2,
@@ -921,18 +935,22 @@ describe('AttemptService.finishAttempt — Phase 12 level outcome', () => {
       })),
       applyFinish,
     } as unknown as StudentGameProgressService;
-    const service = makeService({ prisma, progress });
+    const review = {
+      dueReviews: vi.fn(async () => []),
+      recordResults,
+    } as unknown as QuestionReviewService;
+    const service = makeService({ prisma, progress, review });
     (prisma.attempt.aggregate as ReturnType<typeof vi.fn>).mockResolvedValue({
       _max: { score: 0 },
     });
     (prisma.attempt.update as ReturnType<typeof vi.fn>).mockImplementation(
       async ({ data }: { data: Record<string, unknown> }) => finishedAttempt(data.questionResults, { finishedAt: data.finishedAt }),
     );
-    return { prisma, service, applyFinish };
+    return { prisma, service, applyFinish, recordResults };
   }
 
   it('advances the level on a high-accuracy play and writes it back once', async () => {
-    const { prisma, service, applyFinish } = setup({ progressLevel: 2 });
+    const { prisma, service, applyFinish, recordResults } = setup({ progressLevel: 2 });
     (prisma.attempt.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
       finishedAttempt(finishHeader()),
     );
@@ -943,6 +961,18 @@ describe('AttemptService.finishAttempt — Phase 12 level outcome', () => {
     expect(applyFinish).toHaveBeenCalledTimes(1);
     expect(applyFinish).toHaveBeenCalledWith(
       expect.objectContaining({ newLevel: 3, lastLevelDelta: 1, lastAccuracy: 1 }),
+    );
+    // Spaced-repetition write-back runs in the same transaction with the answers.
+    expect(recordResults).toHaveBeenCalledTimes(1);
+    expect(recordResults).toHaveBeenCalledWith(
+      expect.objectContaining({
+        results: [
+          { questionId: 'q1', correct: true },
+          { questionId: 'q2', correct: true },
+          { questionId: 'q3', correct: true },
+          { questionId: 'q4', correct: true },
+        ],
+      }),
     );
     // The attempt header is stamped with levelAfter so re-finish is exact.
     const updateData = (prisma.attempt.update as ReturnType<typeof vi.fn>).mock.calls[0][0].data;
@@ -983,7 +1013,7 @@ describe('AttemptService.finishAttempt — Phase 12 level outcome', () => {
   });
 
   it('IDEMPOTENT: re-finishing an already-finished attempt does not advance again', async () => {
-    const { prisma, service, applyFinish } = setup({ progressLevel: 2 });
+    const { prisma, service, applyFinish, recordResults } = setup({ progressLevel: 2 });
     // Attempt already finished, header carries the stamped levelAfter = 3.
     (prisma.attempt.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
       finishedAttempt(finishHeader({ levelAfter: 3 }), { finishedAt: new Date('2026-05-20T11:00:00Z') }),
@@ -992,11 +1022,12 @@ describe('AttemptService.finishAttempt — Phase 12 level outcome', () => {
     expect(r.level).toBe(2);
     expect(r.nextLevel).toBe(3); // reconstructed from header, not recomputed
     expect(applyFinish).not.toHaveBeenCalled();
+    expect(recordResults).not.toHaveBeenCalled();
     expect(prisma.attempt.update).not.toHaveBeenCalled();
   });
 
   it('cron-finished attempt (no levelAfter stamp) reports no level change and writes nothing', async () => {
-    const { prisma, service, applyFinish } = setup({ progressLevel: 2 });
+    const { prisma, service, applyFinish, recordResults } = setup({ progressLevel: 2 });
     // The abandoned-attempt cron set finishedAt via bulk updateMany but never
     // stamped levelAfter — so a later manual finish must NOT write back.
     (prisma.attempt.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
@@ -1007,6 +1038,7 @@ describe('AttemptService.finishAttempt — Phase 12 level outcome', () => {
     expect(r.nextLevel).toBe(2);
     expect(r.leveledUp).toBe(false);
     expect(applyFinish).not.toHaveBeenCalled();
+    expect(recordResults).not.toHaveBeenCalled();
     expect(prisma.attempt.update).not.toHaveBeenCalled();
   });
 });

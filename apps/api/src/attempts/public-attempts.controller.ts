@@ -99,6 +99,8 @@ export class PublicAttemptsController {
           prompt: q.prompt,
           choices: r.type === GameType.TIMED_QUIZ ? choicesByQuestion[q.id] ?? [] : [],
           topicTags: q.topicTags,
+          difficulty: q.difficulty,
+          isReview: r.bucketByQuestion?.[q.id] === 'review',
         }),
       ),
     });

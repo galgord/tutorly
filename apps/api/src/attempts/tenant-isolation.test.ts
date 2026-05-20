@@ -5,6 +5,7 @@ import type { ConfigService } from '../config/config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { selectAttemptQuestions } from './adaptive-selector';
 import { AttemptService } from './attempt.service';
+import { QuestionReviewService } from './question-review.service';
 import { StudentGameProgressService } from './student-game-progress.service';
 
 function makeTestConfig(): ConfigService {
@@ -18,6 +19,8 @@ function makeTestConfig(): ConfigService {
       if (k === 'LEVEL_NUDGE_EVERY_N') return 3;
       if (k === 'LEVEL_MIN_SAMPLE') return 3;
       if (k === 'LEVEL_ALLOW_DOWN') return false;
+      if (k === 'SR_BOX_INTERVALS_DAYS') return [0, 1, 3, 7, 16];
+      if (k === 'REVIEW_FRACTION') return 0.3;
       return undefined;
     }),
     isProd: () => false,
@@ -41,6 +44,7 @@ describe('Attempt tenant isolation (live db)', () => {
     config,
     selectAttemptQuestions,
     new StudentGameProgressService(prisma),
+    new QuestionReviewService(prisma),
   );
   let tutorId = '';
   let studentA = '';

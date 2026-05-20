@@ -60,6 +60,10 @@ export const PublicQuestionSchema = z.object({
   /** Empty for FILL_BLANK; ≥1 for TIMED_QUIZ. Server pre-shuffles. */
   choices: z.array(z.string().min(1).max(200)).max(8).default([]),
   topicTags: z.array(z.string()).default([]),
+  /** Phase 12: 1..5 difficulty of this question (informational for the UI). */
+  difficulty: z.number().int().min(MIN_DIFFICULTY).max(MAX_DIFFICULTY).optional(),
+  /** Phase 12: true when served as a spaced-repetition review ("seen before"). */
+  isReview: z.boolean().optional(),
 });
 export type PublicQuestion = z.infer<typeof PublicQuestionSchema>;
 

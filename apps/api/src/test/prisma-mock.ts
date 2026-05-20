@@ -8,7 +8,7 @@ import type { PrismaService } from '../prisma/prisma.service';
  */
 export function makePrismaMock(): PrismaService {
   const stub = () => vi.fn();
-  return {
+  const client = {
     magicLink: {
       create: stub(),
       findUnique: stub(),
@@ -109,8 +109,16 @@ export function makePrismaMock(): PrismaService {
       delete: stub(),
       deleteMany: stub(),
     },
-    $transaction: vi.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
     $executeRaw: vi.fn(async () => 0 as unknown as number),
     $queryRaw: vi.fn(async () => [] as unknown[]),
-  } as unknown as PrismaService;
+  } as Record<string, unknown>;
+  // Support both the array form and the interactive (callback) form. The
+  // callback receives the same mock as its transaction client, so
+  // `tx.<model>.<method>` resolves to the same stubs the test programmed.
+  client.$transaction = vi.fn(async (arg: unknown) =>
+    typeof arg === 'function'
+      ? (arg as (tx: unknown) => unknown)(client)
+      : Promise.all(arg as Promise<unknown>[]),
+  );
+  return client as unknown as PrismaService;
 }

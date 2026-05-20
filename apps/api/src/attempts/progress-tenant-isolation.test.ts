@@ -4,6 +4,7 @@ import type { ConfigService } from '../config/config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { selectAttemptQuestions } from './adaptive-selector';
 import { AttemptService } from './attempt.service';
+import { QuestionReviewService } from './question-review.service';
 import { StudentGameProgressService } from './student-game-progress.service';
 
 /**
@@ -26,6 +27,8 @@ function makeTestConfig(): ConfigService {
     LEVEL_NUDGE_EVERY_N: 3,
     LEVEL_MIN_SAMPLE: 3,
     LEVEL_ALLOW_DOWN: false,
+    SR_BOX_INTERVALS_DAYS: [0, 1, 3, 7, 16],
+    REVIEW_FRACTION: 0.3,
   };
   return { get: vi.fn((k: string) => values[k]), isProd: () => false } as unknown as ConfigService;
 }
@@ -38,6 +41,7 @@ describe('StudentGameProgress tenant isolation + cross-play climb (live db)', ()
     config,
     selectAttemptQuestions,
     new StudentGameProgressService(prisma),
+    new QuestionReviewService(prisma),
   );
 
   let tutorId = '';
@@ -160,5 +164,27 @@ describe('StudentGameProgress tenant isolation + cross-play climb (live db)', ()
     // Pool of 6, session size 3 → the two plays must be disjoint.
     const overlap = first.questionIds.filter((id) => second.questionIds.includes(id));
     expect(overlap).toEqual([]);
+  });
+
+  it('resurfaces a missed question as a spaced-repetition review on the next play', async () => {
+    if (!dbReady) return;
+    const student = (await prisma.student.findUnique({ where: { id: studentA } }))!;
+    // Play 1: miss the first served question, get the rest right.
+    const start1 = await service.startAttempt({ student, gameId });
+    const wrongId = start1.questions[0]!.id;
+    for (const q of start1.questions) {
+      await service.submitAnswer({
+        student,
+        attemptId: start1.attempt.id,
+        questionId: q.id,
+        rawAnswer: q.id === wrongId ? 'definitely-wrong' : answerById[q.id],
+      });
+    }
+    await service.finishAttempt({ student, attemptId: start1.attempt.id });
+
+    // Play 2: the missed question is due (box 1) and is served as a review.
+    const start2 = await service.startAttempt({ student, gameId });
+    expect(start2.questions.map((q) => q.id)).toContain(wrongId);
+    expect(start2.bucketByQuestion[wrongId]).toBe('review');
   });
 });

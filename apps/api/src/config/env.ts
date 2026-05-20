@@ -8,6 +8,18 @@ import { z } from 'zod';
 const optionalString = (inner: z.ZodTypeAny) =>
   z.preprocess((v) => (v === '' ? undefined : v), inner.optional());
 
+/**
+ * Boolean env var with a default. `z.coerce.boolean()` is unusable here —
+ * it treats the string "false" as truthy — so parse the common spellings.
+ */
+const booleanEnv = (def: boolean) =>
+  z.preprocess((v) => {
+    if (v === undefined || v === '') return def;
+    if (typeof v === 'boolean') return v;
+    const s = String(v).toLowerCase();
+    return s === 'true' || s === '1' || s === 'yes';
+  }, z.boolean());
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -88,6 +100,18 @@ const EnvSchema = z.object({
   // 20 timed-quiz. Bump per env if pool sizes grow.
   FILL_BLANK_SESSION_SIZE: z.coerce.number().int().min(1).max(50).default(10),
   TIMED_QUIZ_SESSION_SIZE: z.coerce.number().int().min(1).max(100).default(20),
+  // ---- Phase 12 — adaptive game engine (cross-play difficulty) ----------
+  // Accuracy (over non-review slots) at/above which the NEXT play steps up.
+  LEVEL_ADVANCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.8),
+  // Accuracy floor for a "competent hold". Below this we never auto-advance
+  // (a struggling student is never pushed to a harder level).
+  LEVEL_HOLD_FLOOR: z.coerce.number().min(0).max(1).default(0.5),
+  // Consecutive competent holds at one level before an anti-stall nudge up.
+  LEVEL_NUDGE_EVERY_N: z.coerce.number().int().min(1).max(50).default(3),
+  // Minimum answered non-review questions before any level change applies.
+  LEVEL_MIN_SAMPLE: z.coerce.number().int().min(1).max(50).default(3),
+  // When true, very-low-accuracy plays step the level DOWN. Off by default.
+  LEVEL_ALLOW_DOWN: booleanEnv(false),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

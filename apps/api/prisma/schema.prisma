@@ -119,6 +119,7 @@ model Student {
   tutor    Tutor     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   lessons  Lesson[]
   attempts Attempt[]
+  gameProgress StudentGameProgress[]
 
   @@index([tutorId])
   @@index([deletedAt])
@@ -208,6 +209,7 @@ model Game {
 
   lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   attempts Attempt[]
+  studentProgress StudentGameProgress[]
 
   @@index([lessonId])
   @@index([status])
@@ -230,6 +232,35 @@ model Attempt {
 
   @@index([gameId, studentId])
   @@index([studentId, startedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 12 — adaptive game engine: per-(student, game) cross-play state
+// ---------------------------------------------------------------------------
+
+// One mutable singleton row per (student, game). Drives difficulty escalation
+// across plays and non-repetition. Read before an attempt is sampled, written
+// once on the finishedAt:null→now transition (abandoned-cron finishes do NOT
+// write here). seenQuestionIds is the authoritative "answered before" set; the
+// selector treats it as a membership Set so duplicate pushes are harmless.
+model StudentGameProgress {
+  studentId       String
+  gameId          String
+  currentLevel    Int       @default(1) // 1..5 — target difficulty for the next play
+  playsCompleted  Int       @default(0)
+  nudgeCounter    Int       @default(0) // consecutive competent holds without advancing
+  seenQuestionIds String[]  @default([])
+  lastAccuracy    Float?
+  lastLevelDelta  Int       @default(0)
+  lastPlayedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, gameId])
+  @@index([gameId])
 }
 
 // ---------------------------------------------------------------------------

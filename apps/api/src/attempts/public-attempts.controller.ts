@@ -91,6 +91,8 @@ export class PublicAttemptsController {
       locale: r.locale,
       livesAllowed: r.livesAllowed,
       perQuestionSeconds: r.perQuestionSeconds,
+      level: r.level,
+      levelMax: r.levelMax,
       questions: r.questions.map((q) =>
         PublicQuestionSchema.parse({
           id: q.id,
@@ -175,6 +177,9 @@ export class PublicAttemptsController {
       livesLost: r.attempt.livesLost,
       finishedAt: (r.attempt.finishedAt ?? new Date()).toISOString(),
       bestEver: r.bestEver,
+      level: r.level,
+      nextLevel: r.nextLevel,
+      leveledUp: r.leveledUp,
     });
   }
 }

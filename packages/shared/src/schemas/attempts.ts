@@ -17,7 +17,7 @@
  */
 
 import { z } from 'zod';
-import { GameTypeSchema, type GameTypeLiteral } from './games.js';
+import { GameTypeSchema, MAX_DIFFICULTY, MIN_DIFFICULTY, type GameTypeLiteral } from './games.js';
 import { RawAnswerSchema } from './answers.js';
 import { LocaleSchema } from './locale.js';
 
@@ -72,6 +72,10 @@ export const StartAttemptResponseSchema = z.object({
   livesAllowed: z.number().int().min(0),
   /** seconds per question; 0 for FILL_BLANK (untimed) */
   perQuestionSeconds: z.number().int().min(0),
+  /** Phase 12: difficulty level (1..5) this play is fixed at. */
+  level: z.number().int().min(MIN_DIFFICULTY).max(MAX_DIFFICULTY).optional(),
+  /** Phase 12: the max level (5), so the UI can render "Level N/5". */
+  levelMax: z.number().int().min(MIN_DIFFICULTY).max(MAX_DIFFICULTY).optional(),
 });
 export type StartAttemptResponse = z.infer<typeof StartAttemptResponseSchema>;
 
@@ -125,6 +129,14 @@ export const FinishAttemptResponseSchema = z.object({
   /** Best score across the student's PRIOR attempts on this game; the
    *  current attempt is excluded so "you beat your best!" reads cleanly. */
   bestEver: z.number().int().min(0),
+  /** Phase 12: the level this play was at (1..5). */
+  level: z.number().int().min(MIN_DIFFICULTY).max(MAX_DIFFICULTY).optional(),
+  /** Phase 12: the level the NEXT play will start at. */
+  nextLevel: z.number().int().min(MIN_DIFFICULTY).max(MAX_DIFFICULTY).optional(),
+  /** Phase 12: true when nextLevel > level — drives the "you leveled up!" beat. */
+  leveledUp: z.boolean().optional(),
+  /** Phase 12: reviews due next time (spaced repetition). 0 until Phase 12C/D. */
+  dueReviewCount: z.number().int().min(0).optional(),
 });
 export type FinishAttemptResponse = z.infer<typeof FinishAttemptResponseSchema>;
 

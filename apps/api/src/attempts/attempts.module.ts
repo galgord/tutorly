@@ -6,6 +6,7 @@ import { selectAttemptQuestions } from './adaptive-selector';
 import { ADAPTIVE_SELECTOR, AttemptService } from './attempt.service';
 import { PublicAttemptsController } from './public-attempts.controller';
 import { PublicStudentDashboardController } from './public-student-dashboard.controller';
+import { QuestionReviewService } from './question-review.service';
 import { StudentGameProgressService } from './student-game-progress.service';
 
 /**
@@ -27,6 +28,7 @@ import { StudentGameProgressService } from './student-game-progress.service';
     AttemptService,
     AbandonedAttemptService,
     StudentGameProgressService,
+    QuestionReviewService,
     { provide: ADAPTIVE_SELECTOR, useValue: selectAttemptQuestions },
   ],
   exports: [AttemptService],

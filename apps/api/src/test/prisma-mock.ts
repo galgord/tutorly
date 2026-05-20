@@ -91,6 +91,17 @@ export function makePrismaMock(): PrismaService {
       deleteMany: stub(),
       count: stub(),
     },
+    questionReview: {
+      findUnique: stub(),
+      findMany: stub(),
+      upsert: stub(),
+      update: stub(),
+      updateMany: stub(),
+      create: stub(),
+      delete: stub(),
+      deleteMany: stub(),
+      count: stub(),
+    },
     oAuthState: {
       create: stub(),
       findUnique: stub(),

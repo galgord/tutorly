@@ -119,7 +119,8 @@ model Student {
   tutor    Tutor     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   lessons  Lesson[]
   attempts Attempt[]
-  gameProgress StudentGameProgress[]
+  gameProgress    StudentGameProgress[]
+  questionReviews QuestionReview[]
 
   @@index([tutorId])
   @@index([deletedAt])
@@ -210,6 +211,7 @@ model Game {
   lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   attempts Attempt[]
   studentProgress StudentGameProgress[]
+  questionReviews QuestionReview[]
 
   @@index([lessonId])
   @@index([status])
@@ -261,6 +263,31 @@ model StudentGameProgress {
 
   @@id([studentId, gameId])
   @@index([gameId])
+}
+
+// One row per (student, question) — the spaced-repetition (Leitner) schedule.
+// `questionId` references an id inside a Game.questionPool JSON blob, so there
+// is NO foreign key on it; orphaned rows (after a tutor regenerates a game and
+// mints new ids) are filtered at selection time and swept by a light cron.
+// Written on the same finishedAt:null→now transition as StudentGameProgress.
+model QuestionReview {
+  studentId  String
+  gameId     String
+  questionId String
+  box        Int      @default(1) // 1..5 Leitner box; higher = longer interval
+  dueAt      DateTime
+  lastResult Boolean
+  timesSeen  Int      @default(0)
+  timesWrong Int      @default(0)
+  lastSeenAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, questionId])
+  @@index([studentId, gameId, dueAt])
 }
 
 // ---------------------------------------------------------------------------

@@ -20,6 +20,17 @@ const booleanEnv = (def: boolean) =>
     return s === 'true' || s === '1' || s === 'yes';
   }, z.boolean());
 
+/** Comma-separated list of non-negative numbers, e.g. "0,1,3,7,16". */
+const numberListEnv = (def: number[]) =>
+  z.preprocess((v) => {
+    if (v === undefined || v === '') return def;
+    if (Array.isArray(v)) return v;
+    return String(v)
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n >= 0);
+  }, z.array(z.number().min(0)).min(1));
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -112,6 +123,12 @@ const EnvSchema = z.object({
   LEVEL_MIN_SAMPLE: z.coerce.number().int().min(1).max(50).default(3),
   // When true, very-low-accuracy plays step the level DOWN. Off by default.
   LEVEL_ALLOW_DOWN: booleanEnv(false),
+  // ---- Phase 12C — spaced repetition (Leitner) --------------------------
+  // Per-box review intervals in DAYS, index = box-1 (box 1..5). A correct
+  // answer promotes a box (longer interval); a wrong answer resets to box 1.
+  SR_BOX_INTERVALS_DAYS: numberListEnv([0, 1, 3, 7, 16]),
+  // Fraction of a session reserved for due reviews (rest is new content).
+  REVIEW_FRACTION: z.coerce.number().min(0).max(1).default(0.3),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

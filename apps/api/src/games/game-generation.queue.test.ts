@@ -92,6 +92,25 @@ describe('GameGenerationQueue.processGeneration', () => {
     expect(pool.length).toBe(3);
   });
 
+  it('persists a pool that spans more than one difficulty tier', async () => {
+    const { queue, prisma } = makeQueue();
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(fakeGame({ poolSize: 5 }) as never);
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    await queue.processGeneration('gm_1');
+    const updateCall = vi.mocked(prisma.game.update).mock.calls.find(
+      (c) => (c[0]?.data as Record<string, unknown>)?.status === GameStatus.DRAFT,
+    );
+    const pool = (updateCall![0]?.data as Record<string, unknown>).questionPool as Array<{
+      difficulty: number;
+    }>;
+    const tiers = new Set(pool.map((q) => q.difficulty));
+    expect(tiers.size).toBeGreaterThan(1);
+    for (const q of pool) {
+      expect(q.difficulty).toBeGreaterThanOrEqual(1);
+      expect(q.difficulty).toBeLessThanOrEqual(5);
+    }
+  });
+
   it('refuses to clobber a Game that\'s not in GENERATING (idempotency)', async () => {
     const { queue, prisma } = makeQueue();
     vi.mocked(prisma.game.findUnique).mockResolvedValue(

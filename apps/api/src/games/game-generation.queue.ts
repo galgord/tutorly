@@ -1,7 +1,10 @@
 import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { GameStatus, GameType, type Game, type Prisma } from '@prisma/client';
 import {
+  DEFAULT_DIFFICULTY,
   LlmGenerationResponseSchema,
+  MAX_DIFFICULTY,
+  MIN_DIFFICULTY,
   buildGenerationPrompt,
   type GameQuestion,
   type Language,
@@ -401,6 +404,7 @@ function normalizeQuestion(
     distractors?: string[];
     acceptAlternates?: string[];
     topicTags: string[];
+    difficulty?: number;
   },
   gameType: GameType,
 ): GameQuestion {
@@ -410,6 +414,7 @@ function normalizeQuestion(
   ).slice(0, 5);
 
   const id = `q_${randomBytes(8).toString('hex')}`;
+  const difficulty = clampDifficulty(q.difficulty);
   // For fill-blank, drop any accidental distractors. For timed-quiz, ensure
   // a non-empty distractors array (otherwise the question is unplayable).
   if (gameType === GameType.FILL_BLANK) {
@@ -420,6 +425,7 @@ function normalizeQuestion(
       distractors: [],
       acceptAlternates: (q.acceptAlternates ?? []).map((s) => s.trim()).filter(Boolean),
       topicTags: tags,
+      difficulty,
     };
   }
   return {
@@ -429,7 +435,17 @@ function normalizeQuestion(
     distractors: (q.distractors ?? []).map((s) => s.trim()).filter(Boolean),
     acceptAlternates: (q.acceptAlternates ?? []).map((s) => s.trim()).filter(Boolean),
     topicTags: tags,
+    difficulty,
   };
+}
+
+/** Clamp the LLM-supplied difficulty into [1,5]; default when missing/invalid. */
+function clampDifficulty(raw: number | undefined): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return DEFAULT_DIFFICULTY;
+  const rounded = Math.round(raw);
+  if (rounded < MIN_DIFFICULTY) return MIN_DIFFICULTY;
+  if (rounded > MAX_DIFFICULTY) return MAX_DIFFICULTY;
+  return rounded;
 }
 
 function classifyError(err: Error | null): string {

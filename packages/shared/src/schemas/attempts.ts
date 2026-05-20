@@ -42,6 +42,9 @@ export const PublicGameSummarySchema = z.object({
   /** Highest score the student has achieved on this game, used for the
    *  game-over screen's "best ever" line. `null` if no finished attempts. */
   bestScore: z.number().int().min(0).nullable(),
+  /** Phase 12: the student's current difficulty level (1..5) on this game.
+   *  Defaults to 1 / omitted for a game never played. */
+  currentLevel: z.number().int().min(MIN_DIFFICULTY).max(MAX_DIFFICULTY).optional(),
 });
 export type PublicGameSummary = z.infer<typeof PublicGameSummarySchema>;
 

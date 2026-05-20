@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PublicQuestion, StartAttemptResponse } from '@tutor-app/shared';
 import { submitBufferedAnswer } from '../../lib/attempt-buffer';
+import { LevelBadge, ReviewMarker } from './LevelBadge';
 
 interface Props {
   shareToken: string;
@@ -176,13 +177,18 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
       className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
     >
       <header className="flex items-center justify-between gap-4">
-        <span
-          data-testid="play-score"
-          aria-live="polite"
-          className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold"
-        >
-          {t('play.scoreLabel', { score })}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            data-testid="play-score"
+            aria-live="polite"
+            className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold"
+          >
+            {t('play.scoreLabel', { score })}
+          </span>
+          {attempt.level !== undefined && (
+            <LevelBadge level={attempt.level} levelMax={attempt.levelMax} />
+          )}
+        </div>
         <ul
           data-testid="play-lives"
           aria-label={t('play.livesAriaLabel', { remaining: livesRemaining })}
@@ -218,6 +224,12 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
           style={{ inlineSize: `${barWidthPct}%` }}
         />
       </div>
+
+      {current.isReview && (
+        <div>
+          <ReviewMarker />
+        </div>
+      )}
 
       <p data-testid="play-prompt" dir="auto" className="text-lg leading-relaxed">
         {current.prompt}

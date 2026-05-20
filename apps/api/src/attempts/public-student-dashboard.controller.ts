@@ -38,6 +38,7 @@ export class PublicStudentDashboardController {
           poolSize: g.game.poolSize,
           lastPlayedAt: g.lastPlayedAt ? g.lastPlayedAt.toISOString() : null,
           bestScore: g.bestScore,
+          currentLevel: g.currentLevel,
         }),
       ),
     });

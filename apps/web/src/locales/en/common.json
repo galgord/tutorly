@@ -181,7 +181,8 @@
     "play": "Play",
     "lastPlayedOn": "Last played {{date}}",
     "neverPlayed": "Not played yet",
-    "bestScore": "Best score {{score}}"
+    "bestScore": "Best score {{score}}",
+    "level": "Level {{level}}"
   },
   "play": {
     "loading": "Loading game…",
@@ -209,7 +210,11 @@
     "startGeneric": "Something went wrong. Try again.",
     "finishGeneric": "Couldn't save your score. Try the Finish button again.",
     "tryAgain": "Try again",
-    "noChoices": "This question is missing answer choices. Skip to the next one."
+    "noChoices": "This question is missing answer choices. Skip to the next one.",
+    "levelBadge": "Level {{level}}/{{max}}",
+    "reviewMarker": "Seen before",
+    "leveledUp": "You leveled up!",
+    "summaryNextLevel": "Now playing at level {{level}}"
   },
   "notFound": {
     "title": "Page not found",

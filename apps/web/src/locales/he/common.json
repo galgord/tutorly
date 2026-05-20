@@ -181,7 +181,8 @@
     "play": "שחק",
     "lastPlayedOn": "שיחקת לאחרונה ב-{{date}}",
     "neverPlayed": "עוד לא שיחקת",
-    "bestScore": "תוצאה הכי טובה {{score}}"
+    "bestScore": "תוצאה הכי טובה {{score}}",
+    "level": "רמה {{level}}"
   },
   "play": {
     "loading": "טוען את המשחק…",
@@ -209,7 +210,11 @@
     "startGeneric": "משהו השתבש. נסו שוב.",
     "finishGeneric": "לא הצלחנו לשמור את הניקוד. לחצו שוב על סיים.",
     "tryAgain": "נסו שוב",
-    "noChoices": "אין אפשרויות תשובה לשאלה הזו. דלגו לשאלה הבאה."
+    "noChoices": "אין אפשרויות תשובה לשאלה הזו. דלגו לשאלה הבאה.",
+    "levelBadge": "רמה {{level}}/{{max}}",
+    "reviewMarker": "נראה בעבר",
+    "leveledUp": "עליתם רמה!",
+    "summaryNextLevel": "עכשיו משחקים ברמה {{level}}"
   },
   "notFound": {
     "title": "הדף לא נמצא",

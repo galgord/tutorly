@@ -102,6 +102,7 @@ export class AttemptService {
       game: Game;
       lastPlayedAt: Date | null;
       bestScore: number | null;
+      currentLevel: number;
     }>
   > {
     const games = await this.prisma.game.findMany({
@@ -114,22 +115,31 @@ export class AttemptService {
       take: 50,
     });
     if (games.length === 0) return [];
-    const attemptRollups = await this.prisma.attempt.groupBy({
-      by: ['gameId'],
-      where: {
-        studentId: student.id,
-        gameId: { in: games.map((g) => g.id) },
-        finishedAt: { not: null },
-      },
-      _max: { finishedAt: true, score: true },
-    });
+    const gameIds = games.map((g) => g.id);
+    const [attemptRollups, progressRows] = await Promise.all([
+      this.prisma.attempt.groupBy({
+        by: ['gameId'],
+        where: {
+          studentId: student.id,
+          gameId: { in: gameIds },
+          finishedAt: { not: null },
+        },
+        _max: { finishedAt: true, score: true },
+      }),
+      this.prisma.studentGameProgress.findMany({
+        where: { studentId: student.id, gameId: { in: gameIds } },
+        select: { gameId: true, currentLevel: true },
+      }),
+    ]);
     const rollupByGame = new Map(attemptRollups.map((r) => [r.gameId, r]));
+    const levelByGame = new Map(progressRows.map((r) => [r.gameId, r.currentLevel]));
     return games.map((game) => {
       const r = rollupByGame.get(game.id);
       return {
         game,
         lastPlayedAt: r?._max.finishedAt ?? null,
         bestScore: r?._max.score ?? null,
+        currentLevel: levelByGame.get(game.id) ?? MIN_LEVEL,
       };
     });
   }

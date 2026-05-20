@@ -106,7 +106,17 @@ export function PublicStudentPage() {
                   <p className="text-base font-semibold">
                     <Bidi>{g.title}</Bidi>
                   </p>
-                  <p className="text-xs text-slate-500">{t(`publicStudent.${typeKey}`)}</p>
+                  <p className="flex items-center gap-2 text-xs text-slate-500">
+                    <span>{t(`publicStudent.${typeKey}`)}</span>
+                    {g.currentLevel !== undefined && (
+                      <span
+                        data-testid={`public-student-level-${g.id}`}
+                        className="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 font-medium text-indigo-800"
+                      >
+                        {t('publicStudent.level', { level: g.currentLevel })}
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-slate-500">
                     {lastPlayed
                       ? t('publicStudent.lastPlayedOn', { date: dateFormatter.format(lastPlayed) })

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { GamesModule } from '../games/games.module';
 import { StudentsModule } from '../students/students.module';
 import { AbandonedAttemptService } from './abandoned-attempt.service';
 import { selectAttemptQuestions } from './adaptive-selector';
@@ -22,7 +23,7 @@ import { StudentGameProgressService } from './student-game-progress.service';
  * cross-play level + seen-question state.
  */
 @Module({
-  imports: [AuditModule, StudentsModule],
+  imports: [AuditModule, StudentsModule, GamesModule],
   controllers: [PublicAttemptsController, PublicStudentDashboardController],
   providers: [
     AttemptService,

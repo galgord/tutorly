@@ -72,9 +72,17 @@ export class FakeLlmClient implements LlmClient {
       ?.trim() ?? '';
     const seed = feedbackBody.slice(0, 60) || 'practice topic';
 
+    // Top-up requests carry an avoid-list block; offset the question index so
+    // generated prompts differ from the existing pool (mirrors a real model
+    // honoring the "produce genuinely new questions" instruction).
+    const isTopUp = req.prompt.userMessage.includes('EXISTING_ITEMS_START');
+    const idxOffset = isTopUp ? this.callCount * 1000 : 0;
+
     const questions: unknown[] = [];
     for (let i = 0; i < poolSize; i++) {
-      questions.push(this.makeQuestion(i + 1, seed, { isFillBlank, isHebrew, isPortuguese }));
+      questions.push(
+        this.makeQuestion(idxOffset + i + 1, seed, { isFillBlank, isHebrew, isPortuguese }),
+      );
     }
 
     const payload = JSON.stringify({ questions });

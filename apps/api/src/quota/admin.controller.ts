@@ -22,6 +22,10 @@ interface AdminUsageResponse {
     totalMinutesThisMonth: number;
     capMinutesPerTutor: number;
   };
+  topUp: {
+    totalThisMonth: number;
+    capPerTutor: number;
+  };
   queue: {
     inFlight: number;
     breakerOpen: boolean;
@@ -60,6 +64,10 @@ export class AdminController {
       whisper: {
         totalMinutesThisMonth: agg.totalWhisperMinutesThisMonth,
         capMinutesPerTutor: agg.capWhisperMinutes,
+      },
+      topUp: {
+        totalThisMonth: agg.totalTopUpGenerationsThisMonth,
+        capPerTutor: agg.capTopUpGenerations,
       },
       queue: {
         inFlight: snap.inFlight,

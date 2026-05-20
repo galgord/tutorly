@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   type Attempt,
@@ -38,6 +39,7 @@ import {
   MIN_LEVEL,
   type LevelPolicyConfig,
 } from './level-policy';
+import { BankTopupService } from '../games/bank-topup.service';
 import { freshenRecycled } from './procedural-variation';
 import { QuestionReviewService } from './question-review.service';
 import { StudentGameProgressService } from './student-game-progress.service';
@@ -72,6 +74,9 @@ export class AttemptService {
     @Inject(ADAPTIVE_SELECTOR) private readonly selector: Selector,
     private readonly progress: StudentGameProgressService,
     private readonly review: QuestionReviewService,
+    // Optional so unit tests (which construct the service directly) skip the
+    // background top-up trigger. Real DI always provides it.
+    @Optional() private readonly bankTopup?: BankTopupService,
   ) {}
 
   private levelPolicyConfig(): LevelPolicyConfig {
@@ -493,6 +498,11 @@ export class AttemptService {
       },
       _max: { score: true },
     });
+
+    // Fire-and-forget: top up this game's bank for next time. Never blocks or
+    // fails the finish response; no-op when the trigger isn't wired (unit tests).
+    void this.bankTopup?.maybeTopUp(final.gameId);
+
     return {
       attempt: final,
       bestEver: best._max.score ?? 0,

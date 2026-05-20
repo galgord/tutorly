@@ -2,10 +2,12 @@ import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/comm
 import { GameStatus, GameType, type Game, type Prisma } from '@prisma/client';
 import {
   DEFAULT_DIFFICULTY,
+  GameQuestionSchema,
   LlmGenerationResponseSchema,
   MAX_DIFFICULTY,
   MIN_DIFFICULTY,
   buildGenerationPrompt,
+  buildTopUpPrompt,
   type GameQuestion,
   type Language,
 } from '@tutor-app/shared';
@@ -49,6 +51,8 @@ export class GameGenerationQueue implements OnModuleInit {
   // Side-table of tutorId per in-flight job so we know who to refund
   // when a job hits terminal FAILED.
   private readonly tutorByJob = new Map<string, string>();
+  // Same, for background top-up jobs (Phase 12E) — separate budget/refund.
+  private readonly topUpTutorByJob = new Map<string, string>();
 
   // Circuit breaker — process-wide. Counts consecutive terminal failures.
   private consecutiveFailures = 0;
@@ -78,6 +82,15 @@ export class GameGenerationQueue implements OnModuleInit {
       });
       if (result.count > 0) {
         this.logger.warn(`Recovered ${result.count} stuck GENERATING game(s) → FAILED.`);
+      }
+      // Phase 12E: clear any top-up flags left set by a crashed process so
+      // future top-ups aren't permanently debounced.
+      const cleared = await this.prisma.game.updateMany({
+        where: { topUpInFlight: true },
+        data: { topUpInFlight: false },
+      });
+      if (cleared.count > 0) {
+        this.logger.warn(`Cleared ${cleared.count} stale top-up flag(s).`);
       }
     } catch (err) {
       // Tests run without a DB sometimes; don't crash the module init.
@@ -176,6 +189,116 @@ export class GameGenerationQueue implements OnModuleInit {
     } catch (err) {
       this.logger.warn(`regenerateSingle(${opts.gameId}) failed: ${(err as Error).message}`);
       return null;
+    }
+  }
+
+  /**
+   * Phase 12E: schedule a background top-up that APPENDS new, de-duplicated
+   * questions to an ASSIGNED game's pool. Unlike `enqueue`, this NEVER flips
+   * `Game.status` or blanks the pool — the game stays playable throughout.
+   * The caller (BankTopupService) has already reserved the top-up budget +
+   * set `topUpInFlight`; we refund + clear the flag on any failure/no-op.
+   */
+  enqueueTopUp(
+    gameId: string,
+    opts: { tutorId?: string } = {},
+  ): { accepted: boolean; breakerOpen: boolean } {
+    if (this.isBreakerOpen()) {
+      void this.clearTopUp(gameId);
+      if (opts.tutorId && this.quota) void this.quota.refundTopUp(opts.tutorId);
+      return { accepted: false, breakerOpen: true };
+    }
+    if (opts.tutorId) this.topUpTutorByJob.set(gameId, opts.tutorId);
+    const key = `topup:${gameId}`;
+    const promise = (async () => {
+      await new Promise<void>((r) => setImmediate(r));
+      await this.processTopUp(gameId);
+    })()
+      .catch((err) => {
+        this.logger.error(`uncaught top-up error ${gameId}: ${(err as Error).message}`);
+      })
+      .finally(() => {
+        this.inFlight.delete(key);
+        this.topUpTutorByJob.delete(gameId);
+      });
+    this.inFlight.set(key, promise);
+    return { accepted: true, breakerOpen: false };
+  }
+
+  /**
+   * Top-up worker. Best-effort: builds an avoid-list prompt from the existing
+   * pool, generates a batch, drops any near-duplicates, and appends the rest
+   * (bounded by `poolTargetSize`). Failures refund the budget + clear the flag;
+   * they do NOT trip the user-facing generation breaker.
+   */
+  async processTopUp(gameId: string): Promise<void> {
+    const tutorId = this.topUpTutorByJob.get(gameId);
+    const refund = async (): Promise<void> => {
+      if (tutorId && this.quota) await this.quota.refundTopUp(tutorId);
+    };
+    const game = await this.loadGame(gameId);
+    const feedback = (game?.lesson?.feedbackText ?? '').trim();
+    const existing = game ? parseQuestionPool(game.questionPool) : [];
+    const want = game ? Math.min(this.config.get('TOPUP_BATCH_SIZE'), game.poolTargetSize - existing.length) : 0;
+    if (!game || !feedback || want <= 0) {
+      await this.clearTopUp(gameId);
+      await refund();
+      return;
+    }
+
+    try {
+      const prompt = buildTopUpPrompt({
+        gameType: game.type === GameType.FILL_BLANK ? 'FILL_BLANK' : 'TIMED_QUIZ',
+        locale: 'en',
+        targetLanguage: (game.locale as Language) ?? 'en',
+        poolSize: want,
+        feedbackText: feedback,
+        subject: game.lesson?.student.tutor?.subject ?? null,
+        studentL1: (game.lesson?.student.nativeLanguage as Language | null) ?? null,
+        avoid: existing.map((q) => ({ prompt: q.prompt, answer: q.answer })),
+      });
+      const result = await this.llm.generate({ prompt });
+      const parsed = LlmGenerationResponseSchema.safeParse(JSON.parse(result.rawJson));
+      if (!parsed.success || parsed.data.questions.length === 0) {
+        throw new LlmInvalidOutputError('top-up returned no valid questions');
+      }
+      const fresh = parsed.data.questions.map((q) => normalizeQuestion(q, game.type));
+      const deduped = dedupeAgainstPool(existing, fresh).slice(0, want);
+      await this.appendToPool(gameId, existing, deduped);
+      this.logger.log(`top-up ${gameId}: appended ${deduped.length} question(s).`);
+    } catch (err) {
+      this.logger.warn(`top-up ${gameId} failed: ${(err as Error).message}`);
+      await this.clearTopUp(gameId);
+      await refund();
+    }
+  }
+
+  /** Append new questions + stamp lastTopUpAt + clear the in-flight flag. Never
+   *  touches status or removes existing questions. */
+  private async appendToPool(
+    gameId: string,
+    existing: GameQuestion[],
+    fresh: GameQuestion[],
+  ): Promise<void> {
+    const merged = [...existing, ...fresh];
+    await this.prisma.game.update({
+      where: { id: gameId },
+      data: {
+        questionPool: merged as unknown as Prisma.InputJsonValue,
+        lastTopUpAt: new Date(),
+        topUpInFlight: false,
+      },
+    });
+  }
+
+  private async clearTopUp(gameId: string): Promise<void> {
+    try {
+      await this.prisma.game.update({
+        where: { id: gameId },
+        data: { topUpInFlight: false },
+      });
+    } catch {
+      // Game may have vanished; nothing to clear.
     }
   }
 
@@ -446,6 +569,39 @@ function clampDifficulty(raw: number | undefined): number {
   if (rounded < MIN_DIFFICULTY) return MIN_DIFFICULTY;
   if (rounded > MAX_DIFFICULTY) return MAX_DIFFICULTY;
   return rounded;
+}
+
+/** Parse the persisted JSON pool into validated questions (drops malformed). */
+function parseQuestionPool(raw: unknown): GameQuestion[] {
+  if (!Array.isArray(raw)) return [];
+  const out: GameQuestion[] = [];
+  for (const r of raw) {
+    const parsed = GameQuestionSchema.safeParse(r);
+    if (parsed.success) out.push(parsed.data);
+  }
+  return out;
+}
+
+/** Normalized dedup key for a question (prompt + answer, casefolded). */
+function dedupKey(q: { prompt: string; answer: string }): string {
+  const norm = (s: string): string => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  return `${norm(q.prompt)}|${norm(q.answer)}`;
+}
+
+/**
+ * Drop questions that duplicate an existing pool item (or each other), even if
+ * the avoid-list prompt didn't fully prevent it. Server-side safety net.
+ */
+function dedupeAgainstPool(existing: GameQuestion[], fresh: GameQuestion[]): GameQuestion[] {
+  const seen = new Set(existing.map(dedupKey));
+  const out: GameQuestion[] = [];
+  for (const q of fresh) {
+    const key = dedupKey(q);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(q);
+  }
+  return out;
 }
 
 function classifyError(err: Error | null): string {

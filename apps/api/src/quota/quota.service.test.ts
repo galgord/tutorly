@@ -9,6 +9,7 @@ function makeConfig(over: Record<string, unknown> = {}): ConfigService {
     get: vi.fn((key: string) => {
       if (key === 'GAME_GEN_MONTHLY_CAP') return (over.cap as number) ?? 100;
       if (key === 'WHISPER_MONTHLY_MINUTES_CAP') return (over.whisperCap as number) ?? 60;
+      if (key === 'GAME_GEN_TOPUP_MONTHLY_CAP') return (over.topUpCap as number) ?? 50;
       return undefined;
     }),
     isProd: () => false,
@@ -91,6 +92,49 @@ describe('QuotaService.refundGeneration', () => {
     vi.mocked(prisma.tutor.updateMany).mockResolvedValue({ count: 0 } as never);
     await svc.refundGeneration('tutor_a');
     expect(audit.record).not.toHaveBeenCalled();
+  });
+});
+
+describe('QuotaService.reserveTopUp / refundTopUp (Phase 12E)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('reserves against the SEPARATE top-up counter with the lt(cap) predicate', async () => {
+    const { svc, prisma } = makeService({ config: makeConfig({ topUpCap: 50 }) });
+    vi.mocked(prisma.tutor.updateMany).mockResolvedValue({ count: 1 } as never);
+    vi.mocked(prisma.tutor.findUnique).mockResolvedValue({
+      monthlyTopUpGenerations: 10,
+      monthlyTopUpResetAt: new Date('2026-05-01T00:00:00Z'),
+    } as never);
+    const r = await svc.reserveTopUp('tutor_a');
+    expect(r.ok).toBe(true);
+    expect(r.cap).toBe(50);
+    const call = vi.mocked(prisma.tutor.updateMany).mock.calls[0]?.[0];
+    expect(call?.where).toEqual({ id: 'tutor_a', monthlyTopUpGenerations: { lt: 50 } });
+    expect(call?.data).toEqual({ monthlyTopUpGenerations: { increment: 1 } });
+  });
+
+  it('refuses over the top-up cap + audits quota.topup.exceeded (manual quota untouched)', async () => {
+    const { svc, prisma, audit } = makeService();
+    vi.mocked(prisma.tutor.updateMany).mockResolvedValue({ count: 0 } as never);
+    vi.mocked(prisma.tutor.findUnique).mockResolvedValue({
+      monthlyTopUpGenerations: 50,
+      monthlyTopUpResetAt: new Date('2026-05-01T00:00:00Z'),
+    } as never);
+    const r = await svc.reserveTopUp('tutor_a');
+    expect(r.ok).toBe(false);
+    expect(vi.mocked(audit.record).mock.calls[0]?.[0]?.action).toBe('quota.topup.exceeded');
+  });
+
+  it('refundTopUp decrements the top-up counter + audits', async () => {
+    const { svc, prisma, audit } = makeService();
+    vi.mocked(prisma.tutor.updateMany).mockResolvedValue({ count: 1 } as never);
+    await svc.refundTopUp('tutor_a');
+    const call = vi.mocked(prisma.tutor.updateMany).mock.calls[0]?.[0];
+    expect(call?.where).toEqual({ id: 'tutor_a', monthlyTopUpGenerations: { gt: 0 } });
+    expect(call?.data).toEqual({ monthlyTopUpGenerations: { decrement: 1 } });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'quota.topup.refunded' }),
+    );
   });
 });
 
@@ -184,12 +228,16 @@ describe('QuotaService.getUsage', () => {
       monthlyGenerationsResetAt: new Date('2026-05-01T00:00:00Z'),
       monthlyWhisperMinutes: 12,
       monthlyWhisperResetAt: new Date('2026-05-01T00:00:00Z'),
+      monthlyTopUpGenerations: 4,
+      monthlyTopUpResetAt: new Date('2026-05-01T00:00:00Z'),
     } as never);
     const out = await svc.getUsage('tutor_a');
     expect(out.generationsUsed).toBe(7);
     expect(out.generationsCap).toBe(100);
     expect(out.whisperMinutesUsed).toBe(12);
     expect(out.whisperMinutesCap).toBe(60);
+    expect(out.topUpGenerationsUsed).toBe(4);
+    expect(out.topUpGenerationsCap).toBe(50);
     expect(out.generationsResetsAt.toISOString()).toBe('2026-06-01T00:00:00.000Z');
   });
 
@@ -214,6 +262,7 @@ describe('QuotaService.resetAll (monthly cron body)', () => {
     expect(call?.data).toMatchObject({
       monthlyGenerations: 0,
       monthlyWhisperMinutes: 0,
+      monthlyTopUpGenerations: 0,
     });
     expect((call?.data as Record<string, unknown>).monthlyGenerationsResetAt).toBeInstanceOf(Date);
     expect(audit.record).toHaveBeenCalledWith(

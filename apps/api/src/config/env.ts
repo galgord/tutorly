@@ -129,6 +129,15 @@ const EnvSchema = z.object({
   SR_BOX_INTERVALS_DAYS: numberListEnv([0, 1, 3, 7, 16]),
   // Fraction of a session reserved for due reviews (rest is new content).
   REVIEW_FRACTION: z.coerce.number().min(0).max(1).default(0.3),
+  // ---- Phase 12E — automatic background bank top-up ---------------------
+  // Per-tutor monthly cap on automatic top-up generations. SEPARATE from
+  // GAME_GEN_MONTHLY_CAP so top-ups never eat the tutor's manual quota.
+  GAME_GEN_TOPUP_MONTHLY_CAP: z.coerce.number().int().min(0).max(10_000).default(50),
+  // Questions requested per top-up batch (capped so a game's pool grows toward
+  // its poolTargetSize over several top-ups, not all at once).
+  TOPUP_BATCH_SIZE: z.coerce.number().int().min(1).max(50).default(20),
+  // Minimum gap between top-ups for one game (debounce). Default 6h.
+  TOPUP_COOLDOWN_MS: z.coerce.number().int().min(0).max(604_800_000).default(21_600_000),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

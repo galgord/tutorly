@@ -17,8 +17,10 @@ function makeController(over: { adminToken?: string | undefined } = {}) {
       activeTutorCount: 4,
       totalGenerationsThisMonth: 17,
       totalWhisperMinutesThisMonth: 6,
+      totalTopUpGenerationsThisMonth: 9,
       capGenerations: 100,
       capWhisperMinutes: 60,
+      capTopUpGenerations: 50,
     }),
   } as unknown as QuotaService;
 
@@ -66,6 +68,7 @@ describe('AdminController.usage', () => {
       tutors: { total: 5, active: 4 },
       generations: { totalThisMonth: 17, cap: 100 },
       whisper: { totalMinutesThisMonth: 6, capMinutesPerTutor: 60 },
+      topUp: { totalThisMonth: 9, capPerTutor: 50 },
       queue: { inFlight: 1, breakerOpen: false, consecutiveFailures: 0 },
     });
   });

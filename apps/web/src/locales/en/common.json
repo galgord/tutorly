@@ -457,6 +457,16 @@
   "progress": {
     "title": "Progress",
     "error": "Couldn't load progress — try refreshing.",
+    "adaptive": {
+      "title": "Adaptive difficulty",
+      "empty": "No assigned games yet.",
+      "level": "Level {{level}}/5",
+      "lastPlayed": "Last played {{date}}",
+      "neverPlayed": "Not played yet",
+      "plays": "{{n}} plays",
+      "dueReviews": "{{n}} due for review",
+      "budget": "Auto top-up: {{used}}/{{cap}} this month"
+    },
     "notEnoughData": "—",
     "never": "Never",
     "totals": {

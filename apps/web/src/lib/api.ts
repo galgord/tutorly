@@ -22,6 +22,7 @@ import type {
   PublicStudentDashboardResponse,
   PublicStudentResponse,
   StudentProgressResponse,
+  StudentGameProgressResponse,
   RegenerateQuestionRequest,
   RotateTokenResponse,
   StartAttemptResponse,
@@ -132,6 +133,8 @@ export const api = {
     request(buildListPath('/trash/students', query)),
   studentProgress: (id: string): Promise<StudentProgressResponse> =>
     request(`/students/${encodeURIComponent(id)}/progress`),
+  studentGameProgress: (id: string): Promise<StudentGameProgressResponse> =>
+    request(`/students/${encodeURIComponent(id)}/game-progress`),
   listStudentAttempts: (
     id: string,
     query?: { page?: number; limit?: number },

@@ -4,6 +4,7 @@ import {
   QuestionResultsArraySchema,
   type AttemptHistoryItem,
   type AttemptHistoryResponse,
+  type StudentGameProgressItem,
   type StudentProgressResponse,
 } from '@tutor-app/shared';
 import { PrismaService } from '../prisma/prisma.service';
@@ -85,6 +86,52 @@ export class ProgressService {
       topics: rollupTopics(allAttempts),
       hardestQuestions: pickHardest(rollupQuestions(allAttempts)),
     };
+  }
+
+  /**
+   * Phase 12 read-only adaptive view: per-ASSIGNED-game current level + plays +
+   * due-review count + bank size. Tenant-scoping is the caller's job (the
+   * controller verifies the student belongs to the session's tutor first).
+   */
+  async getStudentGameProgress(
+    studentId: string,
+    now: Date = new Date(),
+  ): Promise<StudentGameProgressItem[]> {
+    const games = await this.prisma.game.findMany({
+      where: { status: GameStatus.ASSIGNED, deletedAt: null, lesson: { studentId, deletedAt: null } },
+      orderBy: [{ assignedAt: 'desc' }, { createdAt: 'desc' }],
+      select: { id: true, title: true, type: true, questionPool: true, poolTargetSize: true },
+    });
+    if (games.length === 0) return [];
+    const gameIds = games.map((g) => g.id);
+    const [progressRows, dueRows] = await this.prisma.$transaction([
+      this.prisma.studentGameProgress.findMany({
+        where: { studentId, gameId: { in: gameIds } },
+        select: { gameId: true, currentLevel: true, playsCompleted: true, lastPlayedAt: true },
+      }),
+      this.prisma.questionReview.findMany({
+        where: { studentId, gameId: { in: gameIds }, dueAt: { lte: now } },
+        select: { gameId: true },
+      }),
+    ]);
+    const progByGame = new Map(progressRows.map((p) => [p.gameId, p]));
+    const dueByGame = new Map<string, number>();
+    for (const r of dueRows) dueByGame.set(r.gameId, (dueByGame.get(r.gameId) ?? 0) + 1);
+    return games.map((g) => {
+      const p = progByGame.get(g.id);
+      const poolSize = Array.isArray(g.questionPool) ? g.questionPool.length : 0;
+      return {
+        gameId: g.id,
+        title: g.title,
+        type: g.type,
+        currentLevel: p?.currentLevel ?? 1,
+        playsCompleted: p?.playsCompleted ?? 0,
+        lastPlayedAt: p?.lastPlayedAt ? p.lastPlayedAt.toISOString() : null,
+        dueReviewCount: dueByGame.get(g.id) ?? 0,
+        poolSize,
+        poolTargetSize: g.poolTargetSize,
+      };
+    });
   }
 
   async listAttempts(opts: {

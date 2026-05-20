@@ -24,7 +24,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-surface-muted text-ink">
       <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
-      <div className="flex min-h-screen w-full flex-col md:ms-60">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col md:ms-60">
         <TopBar onOpenMobileNav={() => setMobileNavOpen(true)} />
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>

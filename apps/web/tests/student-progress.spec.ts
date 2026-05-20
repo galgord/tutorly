@@ -164,6 +164,10 @@ test.describe('tutor progress dashboard (LTR)', () => {
     await expect(gameCard).toBeVisible();
     await expect(page.getByTestId(`progress-game-trend-${seeded.gameId}`)).toBeVisible();
 
+    // Phase 12: the read-only adaptive panel shows the per-game level.
+    await expect(page.getByTestId('student-game-progress-section')).toBeVisible();
+    await expect(page.getByTestId(`game-progress-level-${seeded.gameId}`)).toBeVisible();
+
     // Recent-attempts list has at least one row, and it can be expanded.
     const attemptRows = page.getByTestId(/^attempt-row-/);
     await expect(attemptRows.first()).toBeVisible();

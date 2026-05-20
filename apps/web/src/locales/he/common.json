@@ -457,6 +457,16 @@
   "progress": {
     "title": "התקדמות",
     "error": "טעינת ההתקדמות נכשלה — נסו לרענן.",
+    "adaptive": {
+      "title": "קושי מסתגל",
+      "empty": "עוד לא הוקצו משחקים.",
+      "level": "רמה {{level}}/5",
+      "lastPlayed": "שוחק לאחרונה ב-{{date}}",
+      "neverPlayed": "עוד לא שוחק",
+      "plays": "{{n}} משחקים",
+      "dueReviews": "{{n}} לחזרה",
+      "budget": "מילוי אוטומטי: {{used}}/{{cap}} החודש"
+    },
     "notEnoughData": "—",
     "never": "אף פעם",
     "totals": {

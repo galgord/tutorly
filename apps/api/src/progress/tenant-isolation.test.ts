@@ -1,7 +1,10 @@
 import { NotFoundException } from '@nestjs/common';
 import { GameStatus, GameType, LessonSource } from '@prisma/client';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuditService } from '../audit/audit.service';
+import type { ConfigService } from '../config/config.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuotaService } from '../quota/quota.service';
 import { StudentService } from '../students/student.service';
 import { ProgressController } from './progress.controller';
 import { ProgressService } from './progress.service';
@@ -19,7 +22,17 @@ describe('Progress tenant isolation (live db)', () => {
   const prisma = new PrismaService();
   const students = new StudentService(prisma);
   const progress = new ProgressService(prisma);
-  const controller = new ProgressController(students, progress);
+  const config = {
+    get: vi.fn((k: string) => {
+      if (k === 'GAME_GEN_MONTHLY_CAP') return 100;
+      if (k === 'WHISPER_MONTHLY_MINUTES_CAP') return 60;
+      if (k === 'GAME_GEN_TOPUP_MONTHLY_CAP') return 50;
+      return undefined;
+    }),
+    isProd: () => false,
+  } as unknown as ConfigService;
+  const quota = new QuotaService(prisma, config, new AuditService(prisma));
+  const controller = new ProgressController(students, progress, quota);
 
   let tutorAId = '';
   let tutorBId = '';
@@ -142,6 +155,19 @@ describe('Progress tenant isolation (live db)', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
     await expect(
       controller.listAttempts({ id: tutorBId, email: 'b@x' }, studentA, {}),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('tutor A reads their student\'s adaptive game-progress; tutor B is refused (404)', async () => {
+    if (!dbReady) return;
+    const gp = await controller.getGameProgress({ id: tutorAId, email: 'a@x' }, studentA);
+    expect(gp.games).toHaveLength(1);
+    expect(gp.games[0]?.gameId).toBe(gameA);
+    expect(gp.games[0]?.currentLevel).toBe(1); // never leveled → default
+    expect(gp.budget).toMatchObject({ topUpCap: 50 });
+
+    await expect(
+      controller.getGameProgress({ id: tutorBId, email: 'b@x' }, studentA),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 

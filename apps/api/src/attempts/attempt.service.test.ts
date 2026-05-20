@@ -803,9 +803,14 @@ describe('AttemptService.listAssignedGamesForStudent', () => {
     (prisma.attempt.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
       { gameId: 'g1', _max: { finishedAt: new Date('2026-05-10'), score: 8 } },
     ]);
+    (prisma.studentGameProgress.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { gameId: 'g1', currentLevel: 3 },
+    ]);
     const service = makeService({ prisma });
     const out = await service.listAssignedGamesForStudent(fakeStudent());
     expect(out[0]?.bestScore).toBe(8);
+    expect(out[0]?.currentLevel).toBe(3);
+    expect(out[1]?.currentLevel).toBe(1); // no progress row → default level 1
     expect(out[1]?.bestScore).toBeNull();
     expect(out[1]?.lastPlayedAt).toBeNull();
   });

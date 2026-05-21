@@ -87,7 +87,10 @@ test.describe('students CRUD (LTR)', () => {
     await expect(studentPage.getByTestId('public-student-empty')).toBeVisible();
     await studentCtx.close();
 
-    // Back in tutor context: rotate token.
+    // Back in tutor context: rotate token. Rotate now lives inside the
+    // student edit modal, so open that first.
+    await page.getByTestId('student-edit-open').click();
+    await expect(page.getByTestId('student-edit-modal')).toBeVisible();
     await page.getByTestId('student-rotate-token').click();
     await page.getByTestId('confirm-submit').click();
     // Wait for the toast confirming the rotation completed (and the share URL has

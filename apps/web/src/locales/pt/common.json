@@ -131,7 +131,28 @@
       "shareTitle": "Link de partilha",
       "shareBody": "Envie este URL ao aluno. Não precisa de conta — o próprio link é o acesso.",
       "notFoundTitle": "Aluno não encontrado",
-      "notFoundBody": "Esse aluno não existe ou não tem acesso a ele."
+      "notFoundBody": "Esse aluno não existe ou não tem acesso a ele.",
+      "editButton": "Editar",
+      "editModalTitle": "Editar aluno",
+      "lastActive": "Ativo pela última vez em {{date}}",
+      "neverActive": "Ainda não jogou",
+      "adaptiveHint": "Os níveis sobem automaticamente conforme o aluno acerta — não há nada para configurar aqui.",
+      "noProgressTitle": "Ainda sem prática",
+      "noProgressBody": "O progresso aparece aqui quando o aluno jogar o primeiro jogo. Partilhe o link de convite para começar.",
+      "stats": {
+        "attempts": "Tentativas",
+        "accuracy": "Precisão",
+        "games": "Jogos"
+      }
+    },
+    "games": {
+      "title": "Jogos de prática",
+      "empty": "Ainda sem jogos — gere um a partir do feedback de uma aula.",
+      "lastPlayed": "Jogado pela última vez em {{date}}",
+      "neverPlayed": "Ainda não jogado",
+      "accuracy": "{{pct}}% de precisão",
+      "open": "Abrir aula",
+      "preview": "Pré-visualizar"
     },
     "rotate": {
       "title": "Renovar link de partilha?",
@@ -165,7 +186,8 @@
       "saved": "Alterações guardadas",
       "deleted": "Aluno movido para o lixo",
       "restored": "Aluno restaurado",
-      "tokenRotated": "Novo link de partilha emitido"
+      "tokenRotated": "Novo link de partilha emitido",
+      "saveFailed": "Não foi possível guardar. Tente novamente."
     }
   },
   "publicStudent": {

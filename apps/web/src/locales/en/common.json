@@ -131,7 +131,28 @@
       "shareTitle": "Share link",
       "shareBody": "Send this URL to the student. They don't need an account — the link itself is their access.",
       "notFoundTitle": "Student not found",
-      "notFoundBody": "That student doesn't exist or you don't have access to it."
+      "notFoundBody": "That student doesn't exist or you don't have access to it.",
+      "editButton": "Edit",
+      "editModalTitle": "Edit student",
+      "lastActive": "Last active {{date}}",
+      "neverActive": "Hasn't played yet",
+      "adaptiveHint": "Levels rise automatically as your student succeeds — there's nothing to set here.",
+      "noProgressTitle": "No practice yet",
+      "noProgressBody": "Progress shows up here once your student plays their first game. Share their invite link to get started.",
+      "stats": {
+        "attempts": "Attempts",
+        "accuracy": "Accuracy",
+        "games": "Games"
+      }
+    },
+    "games": {
+      "title": "Practice games",
+      "empty": "No games yet — generate one from a lesson's feedback.",
+      "lastPlayed": "Last played {{date}}",
+      "neverPlayed": "Not played yet",
+      "accuracy": "{{pct}}% accuracy",
+      "open": "Open lesson",
+      "preview": "Preview"
     },
     "rotate": {
       "title": "Rotate share link?",
@@ -163,6 +184,7 @@
       "linkCopied": "Share link copied to clipboard",
       "linkCopyFailed": "Could not copy link. Select and copy manually.",
       "saved": "Changes saved",
+      "saveFailed": "Couldn't save changes. Try again.",
       "deleted": "Student moved to trash",
       "restored": "Student restored",
       "tokenRotated": "New share link issued"

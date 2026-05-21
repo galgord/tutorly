@@ -39,7 +39,7 @@ export function GamePreviewDialog({ gameId, onClose }: Props) {
     <Modal
       open={!!gameId}
       onClose={onClose}
-      size="lg"
+      size="xl"
       testId="game-preview-dialog"
       title={
         <span className="flex flex-wrap items-center gap-2">
@@ -164,7 +164,7 @@ function PreviewPlayer({ type, questions, locale, onClose }: PreviewPlayerProps)
   }
 
   return (
-    <div className="space-y-4" data-testid="preview-player">
+    <div className="space-y-5" data-testid="preview-player">
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm font-medium text-ink-muted">
           {t('preview.progress', { idx: idx + 1, total })}
@@ -177,9 +177,11 @@ function PreviewPlayer({ type, questions, locale, onClose }: PreviewPlayerProps)
         </span>
       </div>
 
-      <p data-testid="preview-prompt" dir="auto" className="text-lg leading-relaxed">
-        {current.prompt}
-      </p>
+      <div className="rounded-lg bg-surface-muted p-6">
+        <p data-testid="preview-prompt" dir="auto" className="text-xl leading-relaxed text-ink">
+          {current.prompt}
+        </p>
+      </div>
 
       {type === 'FILL_BLANK' ? (
         <form onSubmit={submitText} className="space-y-3">

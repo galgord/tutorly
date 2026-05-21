@@ -146,11 +146,19 @@
       }
     },
     "games": {
-      "title": "Jogos de prática",
+      "title": "Jogos",
       "empty": "Ainda sem jogos — gere um a partir do feedback de uma aula.",
       "lastPlayed": "Jogado pela última vez em {{date}}",
       "neverPlayed": "Ainda não jogado",
       "accuracy": "{{pct}}% de precisão",
+      "plays": "{{count}} partidas",
+      "plays_one": "{{count}} partida",
+      "attempts": "{{count}} tentativas",
+      "attempts_one": "{{count}} tentativa",
+      "dueReviews": "{{count}} revisões pendentes",
+      "dueReviews_one": "{{count}} revisão pendente",
+      "history": "Histórico",
+      "hideHistory": "Ocultar",
       "open": "Abrir aula",
       "preview": "Pré-visualizar"
     },

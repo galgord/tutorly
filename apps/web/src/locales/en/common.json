@@ -146,11 +146,19 @@
       }
     },
     "games": {
-      "title": "Practice games",
+      "title": "Games",
       "empty": "No games yet — generate one from a lesson's feedback.",
       "lastPlayed": "Last played {{date}}",
       "neverPlayed": "Not played yet",
       "accuracy": "{{pct}}% accuracy",
+      "plays": "{{count}} plays",
+      "plays_one": "{{count}} play",
+      "attempts": "{{count}} attempts",
+      "attempts_one": "{{count}} attempt",
+      "dueReviews": "{{count}} reviews due",
+      "dueReviews_one": "{{count}} review due",
+      "history": "History",
+      "hideHistory": "Hide",
       "open": "Open lesson",
       "preview": "Preview"
     },

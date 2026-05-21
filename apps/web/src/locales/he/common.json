@@ -146,11 +146,19 @@
       }
     },
     "games": {
-      "title": "משחקי תרגול",
+      "title": "משחקים",
       "empty": "אין עדיין משחקים — צרו אחד מתוך משוב של שיעור.",
       "lastPlayed": "שוחק לאחרונה ב-{{date}}",
       "neverPlayed": "טרם שוחק",
       "accuracy": "{{pct}}% דיוק",
+      "plays": "{{count}} משחקים",
+      "plays_one": "משחק אחד",
+      "attempts": "{{count}} ניסיונות",
+      "attempts_one": "ניסיון אחד",
+      "dueReviews": "{{count}} חזרות ממתינות",
+      "dueReviews_one": "חזרה אחת ממתינה",
+      "history": "היסטוריה",
+      "hideHistory": "הסתר",
       "open": "פתח שיעור",
       "preview": "תצוגה מקדימה"
     },

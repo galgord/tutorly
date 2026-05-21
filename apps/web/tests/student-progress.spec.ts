@@ -140,7 +140,7 @@ test.describe('tutor progress dashboard (LTR)', () => {
     await expect(page.getByTestId('student-games-empty')).toBeVisible();
   });
 
-  test('populated: student plays a game → tutor sees game card + attempts list', async ({
+  test('populated: student plays a game → tutor sees the game card + its history', async ({
     page,
     request,
   }) => {
@@ -160,21 +160,11 @@ test.describe('tutor progress dashboard (LTR)', () => {
     await expect(page.getByTestId('student-progress-section')).toBeVisible();
     await expect(page.getByTestId('progress-overview')).toBeVisible();
 
-    // The seeded game appears in the practice-games grid.
+    // The seeded game appears in the unified Games list; expanding its
+    // History reveals the per-game accuracy detail.
     await expect(page.getByTestId(`student-game-${seeded.gameId}`)).toBeVisible();
-
-    // Phase 12: the read-only adaptive panel shows the per-game level.
-    await expect(page.getByTestId('student-game-progress-section')).toBeVisible();
-    await expect(page.getByTestId(`game-progress-level-${seeded.gameId}`)).toBeVisible();
-
-    // Recent-attempts list has at least one row, and it can be expanded.
-    const attemptRows = page.getByTestId(/^attempt-row-/);
-    await expect(attemptRows.first()).toBeVisible();
-    const firstRow = attemptRows.first();
-    const rowId = (await firstRow.getAttribute('data-testid')) ?? '';
-    const attemptId = rowId.replace('attempt-row-', '');
-    await page.getByTestId(`attempt-toggle-${attemptId}`).click();
-    await expect(page.getByTestId(`attempt-detail-${attemptId}`)).toBeVisible();
+    await page.getByTestId(`student-game-history-${seeded.gameId}`).click();
+    await expect(page.getByTestId(`student-game-detail-${seeded.gameId}`)).toBeVisible();
   });
 });
 

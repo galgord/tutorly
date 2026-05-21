@@ -1,24 +1,22 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import type { StudentGameSummary } from '@tutor-app/shared';
-import { ClipboardList, GraduationCap, Pencil, Plus, Share2, Target } from 'lucide-react';
+import type { GameProgress, StudentGameProgressItem, StudentGameSummary } from '@tutor-app/shared';
+import { ChevronDown, ClipboardList, GraduationCap, Pencil, Plus, Share2, Target } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddLessonModal } from '../components/AddLessonModal';
 import { Bidi } from '../components/Bidi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { GamePreviewDialog } from '../components/GamePreviewDialog';
-import { GameProgressPanel } from '../components/GameProgressPanel';
+import { LevelBadge } from '../components/games/LevelBadge';
 import { ProgressOverview } from '../components/ProgressOverview';
-import { RecentAttemptsList } from '../components/RecentAttemptsList';
+import { Sparkline } from '../components/Sparkline';
 import { StudentEditModal } from '../components/StudentEditModal';
 import { Toast } from '../components/Toast';
 import { Button, Card, CardBody, CardHeader, EmptyState, StatTile } from '../components/ui';
 import { useStudentGames } from '../lib/games';
 import { useLessonsForStudent } from '../lib/lessons';
-import { useStudentAttempts, useStudentGameProgress, useStudentProgress } from '../lib/progress';
+import { useStudentGameProgress, useStudentProgress } from '../lib/progress';
 import { buildShareUrl, useStudent } from '../lib/students';
-
-const ATTEMPTS_PAGE_SIZE = 10;
 
 export function StudentDetailPage() {
   const { t, i18n } = useTranslation();
@@ -32,8 +30,6 @@ export function StudentDetailPage() {
   const games = useStudentGames(id);
   const progress = useStudentProgress(id);
   const gameProgress = useStudentGameProgress(id);
-  const [attemptsPage, setAttemptsPage] = useState(1);
-  const attempts = useStudentAttempts(id, attemptsPage, ATTEMPTS_PAGE_SIZE);
 
   const [toast, setToast] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -85,6 +81,14 @@ export function StudentDetailPage() {
     : t('students.detail.neverActive');
   const hasActivity = (totals?.totalAttempts ?? 0) > 0;
   const gameItems = games.data?.items ?? [];
+  // Join the three game data sources by id so each game renders as one row:
+  // summary (status/counts) + adaptive level + accuracy history.
+  const levelByGame = new Map<string, StudentGameProgressItem>(
+    (gameProgress.data?.games ?? []).map((g) => [g.gameId, g]),
+  );
+  const detailByGame = new Map<string, GameProgress>(
+    (progress.data?.games ?? []).map((g) => [g.id, g]),
+  );
 
   return (
     <section data-testid="student-detail" className="space-y-6">
@@ -166,7 +170,9 @@ export function StudentDetailPage() {
         />
       </div>
 
-      {/* Practice games */}
+      {/* Games — one row per game: status, adaptive level, and an expandable
+          accuracy history. Replaces the old practice-games / adaptive /
+          recent-attempts trio. */}
       <Card data-testid="student-games">
         <CardHeader>
           <h2 className="text-lg font-semibold text-ink">{t('students.games.title')}</h2>
@@ -181,12 +187,15 @@ export function StudentDetailPage() {
             />
           )}
           {gameItems.length > 0 && (
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="space-y-3">
               {gameItems.map((g) => (
                 <StudentGameCard
                   key={g.id}
                   game={g}
+                  level={levelByGame.get(g.id)}
+                  detail={detailByGame.get(g.id)}
                   locale={locale}
+                  rtl={i18n.dir(i18n.resolvedLanguage) === 'rtl'}
                   onPreview={() => setPreviewGameId(g.id)}
                 />
               ))}
@@ -287,46 +296,6 @@ export function StudentDetailPage() {
               ) : null}
             </CardBody>
           </Card>
-
-          <Card data-testid="student-game-progress-section">
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-ink">{t('progress.adaptive.title')}</h2>
-            </CardHeader>
-            <CardBody className="space-y-3">
-              <p className="text-xs text-ink-subtle">{t('students.detail.adaptiveHint')}</p>
-              {gameProgress.isLoading ? (
-                <p className="text-sm text-ink-muted">{t('common.loading')}</p>
-              ) : gameProgress.error ? (
-                <p data-testid="student-game-progress-error" className="text-sm text-rose-700">
-                  {t('progress.error')}
-                </p>
-              ) : gameProgress.data ? (
-                <GameProgressPanel data={gameProgress.data} locale={locale} />
-              ) : null}
-            </CardBody>
-          </Card>
-
-          <Card data-testid="student-attempts-section">
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-ink">{t('progress.attempts.title')}</h2>
-            </CardHeader>
-            <CardBody>
-              {attempts.isLoading ? (
-                <p className="text-sm text-ink-muted">{t('common.loading')}</p>
-              ) : attempts.error ? (
-                <p data-testid="student-attempts-error" className="text-sm text-rose-700">
-                  {t('progress.error')}
-                </p>
-              ) : attempts.data ? (
-                <RecentAttemptsList
-                  data={attempts.data}
-                  locale={locale}
-                  page={attemptsPage}
-                  onPageChange={setAttemptsPage}
-                />
-              ) : null}
-            </CardBody>
-          </Card>
         </>
       )}
 
@@ -354,69 +323,146 @@ export function StudentDetailPage() {
 
 interface StudentGameCardProps {
   game: StudentGameSummary;
+  level?: StudentGameProgressItem;
+  detail?: GameProgress;
   locale: string;
+  rtl: boolean;
   onPreview: () => void;
 }
 
-function StudentGameCard({ game, locale, onPreview }: StudentGameCardProps) {
+function StudentGameCard({ game, level, detail, locale, rtl, onPreview }: StudentGameCardProps) {
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+  const pct = (n: number | null | undefined): string =>
+    n == null ? '—' : `${Math.round(n * 100)}%`;
+  const played = !!detail && detail.attemptCount > 0;
+
   return (
     <li
       data-testid={`student-game-${game.id}`}
-      className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3"
+      className="rounded-lg border border-line bg-surface"
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
-          <Bidi>{game.title}</Bidi>
-        </p>
-        <span
-          className={[
-            'shrink-0 rounded px-1.5 py-0.5 text-xs font-medium',
-            game.status === 'ASSIGNED'
-              ? 'bg-emerald-100 text-emerald-800'
-              : game.status === 'FAILED'
-                ? 'bg-rose-100 text-rose-800'
-                : 'bg-surface-sunken text-ink-muted',
-          ].join(' ')}
-        >
-          {t(`games.status.${game.status}`)}
-        </span>
-      </div>
-      <p className="text-xs text-ink-subtle">
-        {game.type === 'FILL_BLANK' ? t('games.typeFillBlank') : t('games.typeTimedQuiz')}
-        {game.questionCount > 0 && (
-          <> · {t('games.questionCount', { count: game.questionCount })}</>
-        )}
-      </p>
-      <p className="text-xs text-ink-muted">
-        {game.lastPlayedAt
-          ? t('students.games.lastPlayed', { date: dateFmt.format(new Date(game.lastPlayedAt)) })
-          : t('students.games.neverPlayed')}
-        {game.accuracy != null && ` · ${t('students.games.accuracy', { pct: Math.round(game.accuracy * 100) })}`}
-      </p>
-      <div className="mt-1 flex items-center gap-2">
-        <Link
-          to="/lessons/$id"
-          params={{ id: game.lessonId }}
-          className="inline-flex flex-1 items-center justify-center rounded-md border border-line px-2 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken"
-          data-testid={`student-game-open-${game.id}`}
-        >
-          {t('students.games.open')}
-        </Link>
-        {game.questionCount > 0 && (
-          <button
-            type="button"
-            onClick={onPreview}
-            className="inline-flex flex-1 items-center justify-center rounded-md bg-brand-50 px-2 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
-            data-testid={`student-game-preview-${game.id}`}
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-600">
+            <GraduationCap size={16} aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-sm font-semibold text-ink">
+                <Bidi>{game.title}</Bidi>
+              </p>
+              {level && <LevelBadge level={level.currentLevel} />}
+              <span
+                className={[
+                  'rounded px-1.5 py-0.5 text-xs font-medium',
+                  game.status === 'ASSIGNED'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : game.status === 'FAILED'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-surface-sunken text-ink-muted',
+                ].join(' ')}
+              >
+                {t(`games.status.${game.status}`)}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-ink-subtle">
+              {game.type === 'FILL_BLANK' ? t('games.typeFillBlank') : t('games.typeTimedQuiz')}
+              {game.questionCount > 0 && (
+                <> · {t('games.questionCount', { count: game.questionCount })}</>
+              )}
+            </p>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              {game.accuracy != null
+                ? t('students.games.accuracy', { pct: Math.round(game.accuracy * 100) })
+                : t('students.games.neverPlayed')}
+              {game.playsCompleted > 0 && (
+                <> · {t('students.games.plays', { count: game.playsCompleted })}</>
+              )}
+              {game.lastPlayedAt && (
+                <>
+                  {' · '}
+                  {t('students.games.lastPlayed', {
+                    date: dateFmt.format(new Date(game.lastPlayedAt)),
+                  })}
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/lessons/$id"
+            params={{ id: game.lessonId }}
+            className="inline-flex items-center justify-center rounded-md border border-line px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken"
+            data-testid={`student-game-open-${game.id}`}
           >
-            {t('students.games.preview')}
-          </button>
-        )}
+            {t('students.games.open')}
+          </Link>
+          {game.questionCount > 0 && (
+            <button
+              type="button"
+              onClick={onPreview}
+              className="inline-flex items-center justify-center rounded-md bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+              data-testid={`student-game-preview-${game.id}`}
+            >
+              {t('students.games.preview')}
+            </button>
+          )}
+          {played && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              data-testid={`student-game-history-${game.id}`}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-ink-muted hover:bg-surface-sunken ms-auto"
+            >
+              {expanded ? t('students.games.hideHistory') : t('students.games.history')}
+              <ChevronDown
+                size={14}
+                aria-hidden
+                className={expanded ? 'rotate-180' : ''}
+              />
+            </button>
+          )}
+        </div>
       </div>
+
+      {expanded && detail && (
+        <div
+          data-testid={`student-game-detail-${game.id}`}
+          className="flex flex-wrap items-center gap-4 border-t border-line bg-surface-muted p-4"
+        >
+          <Sparkline
+            points={detail.sparkline.map((p) => ({ accuracy: p.accuracy }))}
+            rtl={rtl}
+            tone={detail.trend}
+          />
+          <div className="space-y-0.5 text-xs text-ink-muted">
+            <p>
+              <span className="font-medium">{t('progress.games.latest')}: </span>
+              {pct(detail.latestAccuracy)} · <span className="font-medium">{t('progress.games.best')}: </span>
+              {pct(detail.bestAccuracy)}
+            </p>
+            <p>
+              {t('students.games.attempts', { count: detail.attemptCount })} ·{' '}
+              {t(`progress.games.trend${capitalizeTrend(detail.trend)}`)}
+            </p>
+            {level && level.dueReviewCount > 0 && (
+              <p className="text-amber-700">
+                {t('students.games.dueReviews', { count: level.dueReviewCount })}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </li>
   );
+}
+
+function capitalizeTrend(trend: string): string {
+  return trend.charAt(0).toUpperCase() + trend.slice(1);
 }
 
 function initialsFor(input: string): string {

@@ -39,6 +39,11 @@ export const DEFAULT_DIFFICULTY = 3;
 export const LlmQuestionSchema = z.object({
   prompt: z.string().trim().min(1).max(500),
   answer: z.string().trim().min(1).max(200),
+  // The `prompt` translated into the student's native language (L1) so a
+  // beginner can read the question instruction. `null` when the student has
+  // no L1 set, or their L1 equals the question's target language.
+  // `.optional()` keeps pre-existing LLM responses (no key) parsing.
+  promptTranslation: z.string().trim().min(1).max(500).nullable().optional().default(null),
   // Multiple-choice distractors for TIMED_QUIZ. Empty/omitted for FILL_BLANK.
   distractors: z.array(z.string().trim().min(1).max(200)).max(8).optional(),
   // Tutor-curated alternate accepted answers (synonyms, alternate spellings).
@@ -60,6 +65,9 @@ export const GameQuestionSchema = z.object({
   id: z.string().min(1),
   prompt: z.string().trim().min(1).max(500),
   answer: z.string().trim().min(1).max(200),
+  // L1 translation of `prompt` (see LlmQuestionSchema). `.optional()` +
+  // `.default(null)` keeps pre-existing JSON pools (no key) parsing safely.
+  promptTranslation: z.string().trim().min(1).max(500).nullable().optional().default(null),
   distractors: z.array(z.string().trim().min(1).max(200)).max(8).default([]),
   acceptAlternates: z.array(z.string().trim().min(1).max(200)).max(10).default([]),
   topicTags: TopicTagsField,

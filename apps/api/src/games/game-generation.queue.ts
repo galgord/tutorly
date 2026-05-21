@@ -524,6 +524,7 @@ function normalizeQuestion(
   q: {
     prompt: string;
     answer: string;
+    promptTranslation?: string | null;
     distractors?: string[];
     acceptAlternates?: string[];
     topicTags: string[];
@@ -538,6 +539,11 @@ function normalizeQuestion(
 
   const id = `q_${randomBytes(8).toString('hex')}`;
   const difficulty = clampDifficulty(q.difficulty);
+  // L1 translation of the prompt. Trim; coerce empty/whitespace to null so
+  // the UI only renders the extra line when there's real content.
+  const trimmedTranslation = q.promptTranslation?.trim();
+  const promptTranslation =
+    trimmedTranslation && trimmedTranslation.length > 0 ? trimmedTranslation : null;
   // For fill-blank, drop any accidental distractors. For timed-quiz, ensure
   // a non-empty distractors array (otherwise the question is unplayable).
   if (gameType === GameType.FILL_BLANK) {
@@ -545,6 +551,7 @@ function normalizeQuestion(
       id,
       prompt: q.prompt.trim(),
       answer: q.answer.trim(),
+      promptTranslation,
       distractors: [],
       acceptAlternates: (q.acceptAlternates ?? []).map((s) => s.trim()).filter(Boolean),
       topicTags: tags,
@@ -555,6 +562,7 @@ function normalizeQuestion(
     id,
     prompt: q.prompt.trim(),
     answer: q.answer.trim(),
+    promptTranslation,
     distractors: (q.distractors ?? []).map((s) => s.trim()).filter(Boolean),
     acceptAlternates: (q.acceptAlternates ?? []).map((s) => s.trim()).filter(Boolean),
     topicTags: tags,

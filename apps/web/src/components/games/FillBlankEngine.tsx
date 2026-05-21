@@ -136,16 +136,29 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
         </div>
       )}
 
-      <p
-        data-testid="play-prompt"
-        // The prompt may be Hebrew, English, or mixed. `dir="auto"` lets
-        // the browser pick. The textual `___` token displays as part of
-        // the prompt — no special render needed.
-        dir="auto"
-        className="text-lg leading-relaxed"
-      >
-        {current.prompt}
-      </p>
+      <div className="space-y-1.5">
+        <p
+          data-testid="play-prompt"
+          // The prompt may be Hebrew, English, or mixed. `dir="auto"` lets
+          // the browser pick. The textual `___` token displays as part of
+          // the prompt — no special render needed.
+          dir="auto"
+          className="text-lg leading-relaxed"
+        >
+          {current.prompt}
+        </p>
+        {current.promptTranslation && (
+          // L1 translation of the prompt for students whose native language
+          // differs from the question's language. `dir="auto"` handles RTL.
+          <p
+            data-testid="play-prompt-translation"
+            dir="auto"
+            className="text-sm leading-relaxed text-ink-muted"
+          >
+            {current.promptTranslation}
+          </p>
+        )}
+      </div>
 
       <form onSubmit={submit} className="space-y-4">
         <label htmlFor="play-fb-input" className="sr-only">

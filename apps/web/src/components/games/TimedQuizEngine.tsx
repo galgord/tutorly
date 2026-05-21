@@ -231,9 +231,22 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
         </div>
       )}
 
-      <p data-testid="play-prompt" dir="auto" className="text-lg leading-relaxed">
-        {current.prompt}
-      </p>
+      <div className="space-y-1.5">
+        <p data-testid="play-prompt" dir="auto" className="text-lg leading-relaxed">
+          {current.prompt}
+        </p>
+        {current.promptTranslation && (
+          // L1 translation of the prompt for students whose native language
+          // differs from the question's language. `dir="auto"` handles RTL.
+          <p
+            data-testid="play-prompt-translation"
+            dir="auto"
+            className="text-sm leading-relaxed text-ink-muted"
+          >
+            {current.promptTranslation}
+          </p>
+        )}
+      </div>
 
       <ul className="grid gap-2">
         {choicesForCurrent.map((choice, i) => {

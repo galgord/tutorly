@@ -182,10 +182,21 @@ function PreviewPlayer({ type, questions, locale, onClose }: PreviewPlayerProps)
         </span>
       </div>
 
-      <div className="rounded-lg bg-surface-muted p-6">
+      <div className="space-y-2 rounded-lg bg-surface-muted p-6">
         <p data-testid="preview-prompt" dir="auto" className="text-xl leading-relaxed text-ink">
           {current.prompt}
         </p>
+        {current.promptTranslation && (
+          // L1 translation of the prompt — shown so the tutor previews
+          // exactly what a beginner student will see. `dir="auto"` for RTL.
+          <p
+            data-testid="preview-prompt-translation"
+            dir="auto"
+            className="text-sm leading-relaxed text-ink-muted"
+          >
+            {current.promptTranslation}
+          </p>
+        )}
       </div>
 
       {type === 'FILL_BLANK' ? (

@@ -60,6 +60,10 @@ export type PublicStudentDashboardResponse = z.infer<typeof PublicStudentDashboa
 export const PublicQuestionSchema = z.object({
   id: z.string().min(1),
   prompt: z.string().min(1).max(500),
+  /** The `prompt` translated into the student's native language (L1), shown
+   *  below the original prompt in the play UI. `null` when the student has
+   *  no L1, or it equals the game's target language. */
+  promptTranslation: z.string().min(1).max(500).nullable().optional().default(null),
   /** Empty for FILL_BLANK; ≥1 for TIMED_QUIZ. Server pre-shuffles. */
   choices: z.array(z.string().min(1).max(200)).max(8).default([]),
   topicTags: z.array(z.string()).default([]),

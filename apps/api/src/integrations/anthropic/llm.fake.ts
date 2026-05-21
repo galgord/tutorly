@@ -63,6 +63,13 @@ export class FakeLlmClient implements LlmClient {
     const isFillBlank = req.prompt.gameTypeBlock.includes('FILL_BLANK');
     const isHebrew = req.prompt.gameTypeBlock.includes('Modern Hebrew');
     const isPortuguese = req.prompt.gameTypeBlock.includes('Brazilian Portuguese');
+    // The prompt builder emits "Student's native language (L1): <Name>" only
+    // when an L1 distinct from the output language is supplied. Mirror a real
+    // model: when present, return a non-null `promptTranslation`; else null.
+    const l1Match = req.prompt.gameTypeBlock.match(
+      /Student's native language \(L1\): (.+)/,
+    );
+    const studentL1 = l1Match ? l1Match[1]!.trim() : null;
 
     // Pull the first 60 chars of feedback so generated content "looks
     // related" in agent-browser screenshots. We strip the wrapper delimiters.
@@ -81,7 +88,12 @@ export class FakeLlmClient implements LlmClient {
     const questions: unknown[] = [];
     for (let i = 0; i < poolSize; i++) {
       questions.push(
-        this.makeQuestion(idxOffset + i + 1, seed, { isFillBlank, isHebrew, isPortuguese }),
+        this.makeQuestion(idxOffset + i + 1, seed, {
+          isFillBlank,
+          isHebrew,
+          isPortuguese,
+          studentL1,
+        }),
       );
     }
 
@@ -101,34 +113,51 @@ export class FakeLlmClient implements LlmClient {
   private makeQuestion(
     idx: number,
     seed: string,
-    flags: { isFillBlank: boolean; isHebrew: boolean; isPortuguese: boolean },
+    flags: {
+      isFillBlank: boolean;
+      isHebrew: boolean;
+      isPortuguese: boolean;
+      studentL1: string | null;
+    },
   ): unknown {
     const tag = `topic-${idx % 3}`;
     // Cycle 1..5 so any pool of ≥5 questions provably spans every difficulty
     // tier — the adaptive engine (Phase 12) and its E2E rely on this.
     const difficulty = ((idx - 1) % 5) + 1;
+    // The prompt builder only emits the L1 line when L1 differs from the
+    // output language, so a non-null `studentL1` here always means a
+    // translation is wanted. Real models translate; the fake just tags the
+    // prompt so the feature is visible + distinguishable in dev/E2E.
+    const translate = (prompt: string): string | null =>
+      flags.studentL1 ? `[${flags.studentL1}] ${prompt}` : null;
     if (flags.isFillBlank) {
       if (flags.isHebrew) {
+        const prompt = `שאלה ${idx}: ___ הוא הפועל הנכון. (${seed})`;
         return {
-          prompt: `שאלה ${idx}: ___ הוא הפועל הנכון. (${seed})`,
+          prompt,
           answer: 'הולך',
+          promptTranslation: translate(prompt),
           acceptAlternates: [],
           topicTags: [tag, 'present-tense'],
           difficulty,
         };
       }
       if (flags.isPortuguese) {
+        const prompt = `Pergunta ${idx}: O cachorro ___ rapidamente. (${seed})`;
         return {
-          prompt: `Pergunta ${idx}: O cachorro ___ rapidamente. (${seed})`,
+          prompt,
           answer: 'corre',
+          promptTranslation: translate(prompt),
           acceptAlternates: ['correu'],
           topicTags: [tag, 'verbos'],
           difficulty,
         };
       }
+      const prompt = `Question ${idx}: She ___ to school every morning. (${seed})`;
       return {
-        prompt: `Question ${idx}: She ___ to school every morning. (${seed})`,
+        prompt,
         answer: 'walks',
+        promptTranslation: translate(prompt),
         acceptAlternates: ['walked'],
         topicTags: [tag, 'present-tense'],
         difficulty,
@@ -136,26 +165,32 @@ export class FakeLlmClient implements LlmClient {
     }
     // TIMED_QUIZ — multiple choice
     if (flags.isHebrew) {
+      const prompt = `שאלה ${idx}: מה משמעות "ספר"? (${seed})`;
       return {
-        prompt: `שאלה ${idx}: מה משמעות "ספר"? (${seed})`,
+        prompt,
         answer: 'book',
+        promptTranslation: translate(prompt),
         distractors: ['table', 'window', 'chair'],
         topicTags: [tag, 'vocabulary'],
         difficulty,
       };
     }
     if (flags.isPortuguese) {
+      const prompt = `Pergunta ${idx}: Qual é o passado de "ir"? (${seed})`;
       return {
-        prompt: `Pergunta ${idx}: Qual é o passado de "ir"? (${seed})`,
+        prompt,
         answer: 'fui',
+        promptTranslation: translate(prompt),
         distractors: ['vou', 'irei', 'indo'],
         topicTags: [tag, 'verbos'],
         difficulty,
       };
     }
+    const prompt = `Question ${idx}: What is the past tense of "go"? (${seed})`;
     return {
-      prompt: `Question ${idx}: What is the past tense of "go"? (${seed})`,
+      prompt,
       answer: 'went',
+      promptTranslation: translate(prompt),
       distractors: ['goed', 'gone', 'going'],
       topicTags: [tag, 'verbs'],
       difficulty,

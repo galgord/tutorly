@@ -100,6 +100,9 @@ export function AddLessonModal({ open, studentId, onClose, onCreated }: Props) {
           type="datetime-local"
           required
           dir="ltr"
+          // 900s = 15-minute increments in the time picker (12:00, 12:15, …).
+          // The default value is rounded to the hour, so it stays step-aligned.
+          step={900}
           value={occurredAtLocal}
           onChange={(e) => setOccurredAtLocal(e.target.value)}
           className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"

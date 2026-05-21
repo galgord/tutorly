@@ -419,9 +419,12 @@
     "title": "Jogos de prática",
     "generateFillBlank": "Gerar Preencher Lacunas",
     "generateTimedQuiz": "Gerar Quiz Cronometrado",
+    "generateFillBlankDesc": "Preencher lacunas — o aluno escreve a palavra que falta.",
+    "generateTimedQuizDesc": "Quiz cronometrado — escolha múltipla contra o relógio, 3 vidas.",
     "needFeedback": "Guarde primeiro o feedback — a IA gera a partir do que escreveu.",
     "saveFirst": "Tem alterações ao feedback por guardar — guarde antes de gerar.",
     "empty": "Ainda sem jogos. Clique num botão de gerar para criar um.",
+    "quotaMeter": "{{used}} / {{cap}} jogos gerados este mês",
     "typeFillBlank": "Preencher lacunas",
     "typeTimedQuiz": "Quiz cronometrado",
     "questionCount": "{{count}} perguntas",
@@ -451,6 +454,17 @@
     "subtitleFillBlank": "Edite cada pergunta ou regenere as que não gostar. Atribua quando estiver pronto.",
     "subtitleTimedQuiz": "Edite a pergunta, a resposta e os distratores. Atribua quando estiver pronto.",
     "subtitleGeneric": "Reveja e edite as perguntas geradas e depois atribua ao aluno.",
+    "visibility": {
+      "draft": "Ainda não visível para o seu aluno.",
+      "live": "Ativo — o seu aluno já pode jogar isto."
+    },
+    "error": {
+      "quota": "Limite mensal de gerações atingido.",
+      "regenerateAll": "Não foi possível regenerar o conjunto — tente novamente.",
+      "regenerateOne": "Não foi possível regenerar essa pergunta — tente novamente.",
+      "save": "Não foi possível guardar as alterações — tente novamente.",
+      "assign": "Não foi possível atribuir o jogo — tente novamente."
+    },
     "generating": "A gerar perguntas…",
     "generatingHint": "Normalmente demora alguns segundos.",
     "failedTitle": "Geração falhou",

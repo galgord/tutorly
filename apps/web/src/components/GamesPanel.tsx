@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GameResponse, QuotaExceededResponse } from '@tutor-app/shared';
 import { ApiError, api } from '../lib/api';
+import { useMe } from '../lib/auth';
 import { useLessonGames } from '../lib/games';
 import { Bidi } from './Bidi';
 import { GamePreviewDialog } from './GamePreviewDialog';
@@ -26,6 +27,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const games = useLessonGames(lessonId);
+  const me = useMe();
   const [reviewGameId, setReviewGameId] = useState<string | null>(null);
   const [previewGameId, setPreviewGameId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -54,6 +56,14 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
 
   const overCap = !!quotaError;
 
+  const quota = me.data
+    ? {
+        used: me.data.monthlyGenerations,
+        cap: me.data.monthlyGenerationsCap,
+      }
+    : null;
+  const quotaWarning = !!quota && quota.used >= quota.cap;
+
   const deleteMutation = useMutation<void, ApiError, string>({
     mutationFn: (id) => api.deleteGame(id),
     onSuccess: async () => {
@@ -66,27 +76,54 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
     <section data-testid="games-panel" className="rounded-lg border border-line bg-surface p-6">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold">{t('games.title')}</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => createMutation.mutate('FILL_BLANK')}
-            disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
-            className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            data-testid="games-generate-fill-blank"
-          >
-            {createMutation.isPending ? t('common.workingOn') : t('games.generateFillBlank')}
-          </button>
-          <button
-            type="button"
-            onClick={() => createMutation.mutate('TIMED_QUIZ')}
-            disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
-            className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            data-testid="games-generate-timed-quiz"
-          >
-            {createMutation.isPending ? t('common.workingOn') : t('games.generateTimedQuiz')}
-          </button>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => createMutation.mutate('FILL_BLANK')}
+              disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
+              className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              data-testid="games-generate-fill-blank"
+            >
+              {createMutation.isPending ? t('common.workingOn') : t('games.generateFillBlank')}
+            </button>
+            <button
+              type="button"
+              onClick={() => createMutation.mutate('TIMED_QUIZ')}
+              disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
+              className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              data-testid="games-generate-timed-quiz"
+            >
+              {createMutation.isPending ? t('common.workingOn') : t('games.generateTimedQuiz')}
+            </button>
+          </div>
+          {quota && (
+            <p
+              data-testid="games-quota-meter"
+              className={`text-xs ${quotaWarning ? 'font-medium text-amber-700' : 'text-ink-subtle'}`}
+            >
+              {t('games.quotaMeter', { used: quota.used, cap: quota.cap })}
+            </p>
+          )}
         </div>
       </header>
+
+      <ul className="mt-2 space-y-0.5 text-xs text-ink-subtle" data-testid="games-type-descriptions">
+        <li>{t('games.generateFillBlankDesc')}</li>
+        <li>{t('games.generateTimedQuizDesc')}</li>
+      </ul>
+
+      {!canGenerate && (
+        <p className="mt-3 text-sm text-ink-muted" data-testid="games-need-feedback">
+          {t('games.needFeedback')}
+        </p>
+      )}
+
+      {canGenerate && hasUnsavedFeedback && (
+        <p className="mt-3 text-sm text-amber-700" data-testid="games-feedback-dirty">
+          {t('games.saveFirst')}
+        </p>
+      )}
 
       {quotaError && (
         <div
@@ -105,18 +142,6 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
             })}
           </p>
         </div>
-      )}
-
-      {!canGenerate && (
-        <p className="mt-3 text-sm text-ink-muted" data-testid="games-need-feedback">
-          {t('games.needFeedback')}
-        </p>
-      )}
-
-      {canGenerate && hasUnsavedFeedback && (
-        <p className="mt-3 text-sm text-amber-700" data-testid="games-feedback-dirty">
-          {t('games.saveFirst')}
-        </p>
       )}
 
       {games.isLoading && (

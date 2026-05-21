@@ -92,7 +92,10 @@ export function FeedbackEditor({ lessonId, initialFeedback, onDirtyChange, onSav
       />
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-subtle">
-        <span data-testid="feedback-charcount">
+        <span
+          data-testid="feedback-charcount"
+          className={value.length >= 8_000 * 0.9 ? 'text-amber-700' : undefined}
+        >
           {t('feedback.charCount', { count: value.length, max: 8_000 })}
         </span>
         {dirty && (

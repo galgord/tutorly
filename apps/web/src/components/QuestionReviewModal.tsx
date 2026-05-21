@@ -66,6 +66,14 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
     });
   }, [editing, game]);
 
+  // Resolve a mutation error to a toast message. A 429 always means the
+  // tutor's monthly generation cap was hit; anything else gets the
+  // operation-specific generic fallback.
+  const errorToast = (err: unknown, genericKey: string): string =>
+    err instanceof ApiError && err.status === 429
+      ? t('review.error.quota')
+      : t(genericKey);
+
   const saveMutation = useMutation({
     mutationFn: () => api.updateGame(gameId, { questions: editing ?? [] }),
     onSuccess: async (next) => {
@@ -74,6 +82,7 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
       setEditing(next.questionPool);
       setToast(t('review.toast.saved'));
     },
+    onError: (err) => setToast(errorToast(err, 'review.error.save')),
   });
 
   const regenAllMutation = useMutation({
@@ -84,6 +93,7 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
       setEditing(null);
       setToast(t('review.toast.regenerating'));
     },
+    onError: (err) => setToast(errorToast(err, 'review.error.regenerateAll')),
   });
 
   const regenOneMutation = useMutation<GameResponse, ApiError, string>({
@@ -94,7 +104,10 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
       setEditing(next.questionPool);
       setPendingQuestionId(null);
     },
-    onError: () => setPendingQuestionId(null),
+    onError: (err) => {
+      setPendingQuestionId(null);
+      setToast(errorToast(err, 'review.error.regenerateOne'));
+    },
   });
 
   const assignMutation = useMutation({
@@ -106,6 +119,7 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
       // Close shortly after so the tutor sees the toast.
       window.setTimeout(() => onClose(), 600);
     },
+    onError: (err) => setToast(errorToast(err, 'review.error.assign')),
   });
 
   // Loading / GENERATING shell — keep the modal mounted so polling continues.
@@ -175,6 +189,21 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
             ? t('review.subtitleTimedQuiz')
             : t('review.subtitleGeneric')}
       </p>
+
+      {game && (
+        <p
+          data-testid="review-visibility"
+          className={`mt-3 rounded px-3 py-2 text-sm ${
+            game.status === 'ASSIGNED'
+              ? 'border border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border border-sky-200 bg-sky-50 text-sky-900'
+          }`}
+        >
+          {game.status === 'ASSIGNED'
+            ? t('review.visibility.live')
+            : t('review.visibility.draft')}
+        </p>
+      )}
 
       {isGenerating && (
         <div

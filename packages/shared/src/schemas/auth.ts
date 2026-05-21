@@ -22,6 +22,11 @@ export const MeResponseSchema = z.object({
   // pre-existing tutors won't have them set until they edit their profile.
   subject: z.string().nullable(),
   teachingLanguage: LanguageSchema.nullable(),
+  // Monthly AI-generation quota — lets the UI show a "X of N used" meter
+  // before the tutor hits the cap.
+  monthlyGenerations: z.number().int().min(0),
+  monthlyGenerationsCap: z.number().int().min(0),
+  monthlyGenerationsResetAt: z.string().datetime(),
 });
 export type MeResponse = z.infer<typeof MeResponseSchema>;
 

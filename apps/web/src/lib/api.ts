@@ -23,6 +23,7 @@ import type {
   PublicStudentResponse,
   StudentProgressResponse,
   StudentGameProgressResponse,
+  StudentGamesResponse,
   RegenerateQuestionRequest,
   RotateTokenResponse,
   StartAttemptResponse,
@@ -234,6 +235,8 @@ export const api = {
     request(`/lessons/${encodeURIComponent(lessonId)}/games`, { method: 'POST', body }),
   getGame: (id: string): Promise<GameResponse> =>
     request(`/games/${encodeURIComponent(id)}`),
+  listStudentGames: (studentId: string): Promise<StudentGamesResponse> =>
+    request(`/students/${encodeURIComponent(studentId)}/games`),
   updateGame: (id: string, body: UpdateGameRequest): Promise<GameResponse> =>
     request(`/games/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
   regenerateGame: (id: string): Promise<GameResponse> =>

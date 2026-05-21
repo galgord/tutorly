@@ -141,6 +141,7 @@ export class LessonsController {
         studentId: local?.studentId ?? null,
         studentName: local?.student.name ?? null,
         calendarId: ev.calendarId,
+        hasFeedback: hasFeedback(local),
       });
     }
 
@@ -160,6 +161,7 @@ export class LessonsController {
         studentId: local.studentId,
         studentName: local.student.name,
         calendarId: null,
+        hasFeedback: hasFeedback(local),
       });
     }
 
@@ -176,6 +178,7 @@ export class LessonsController {
         studentId: local.studentId,
         studentName: local.student.name,
         calendarId: null,
+        hasFeedback: hasFeedback(local),
       });
     }
 
@@ -345,4 +348,9 @@ function clientIp(req: AuthedRequest): string | null {
   const fwd = req.header('x-forwarded-for');
   if (fwd) return fwd.split(',')[0]?.trim() ?? null;
   return req.ip ?? null;
+}
+
+/** A lesson "has feedback" once its feedbackText is non-empty. */
+function hasFeedback(local: LessonWithStudent | undefined | null): boolean {
+  return !!local?.feedbackText && local.feedbackText.trim().length > 0;
 }

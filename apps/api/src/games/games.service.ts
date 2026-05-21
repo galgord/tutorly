@@ -36,6 +36,17 @@ export type GameWithTutorScope = Game & {
   lesson: { id: string; student: { id: string; tutorId: string } };
 };
 
+/** A student's game + its lesson context + play stats (see `listForStudent`). */
+export interface StudentGameListItem {
+  game: Game;
+  lessonOccurredAt: Date;
+  lessonTitle: string | null;
+  questionCount: number;
+  lastPlayedAt: Date | null;
+  playsCompleted: number;
+  accuracy: number | null;
+}
+
 /**
  * Tenant-scoped CRUD over games + the question pool. Mirrors the
  * LessonService pattern: every single-game loader funnels through
@@ -170,6 +181,64 @@ export class GamesService {
     return this.prisma.game.findMany({
       where: { lessonId: opts.lessonId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Every game across a student's lessons, with play stats — powers the
+   * tutor-facing student page's practice-games grid. Tenant scoping is
+   * enforced by the `lesson.student.tutorId` predicate; the controller also
+   * verifies the student belongs to the tutor (404 before this runs).
+   * One follow-up `attempt.findMany` keeps it O(games), not N+1.
+   */
+  async listForStudent(opts: {
+    studentId: string;
+    tutorId: string;
+  }): Promise<StudentGameListItem[]> {
+    const games = await this.prisma.game.findMany({
+      where: {
+        deletedAt: null,
+        lesson: {
+          deletedAt: null,
+          studentId: opts.studentId,
+          student: { tutorId: opts.tutorId },
+        },
+      },
+      include: { lesson: { select: { occurredAt: true, title: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (games.length === 0) return [];
+
+    const attempts = await this.prisma.attempt.findMany({
+      where: { gameId: { in: games.map((g) => g.id) }, finishedAt: { not: null } },
+      select: { gameId: true, score: true, questionResults: true, finishedAt: true },
+    });
+
+    type Stat = { plays: number; correct: number; answered: number; last: Date | null };
+    const byGame = new Map<string, Stat>();
+    for (const a of attempts) {
+      let s = byGame.get(a.gameId);
+      if (!s) {
+        s = { plays: 0, correct: 0, answered: 0, last: null };
+        byGame.set(a.gameId, s);
+      }
+      s.plays += 1;
+      s.correct += a.score;
+      s.answered += countAnswered(a.questionResults);
+      if (a.finishedAt && (s.last === null || a.finishedAt > s.last)) s.last = a.finishedAt;
+    }
+
+    return games.map((g) => {
+      const s = byGame.get(g.id);
+      return {
+        game: g,
+        lessonOccurredAt: g.lesson.occurredAt,
+        lessonTitle: g.lesson.title,
+        questionCount: parsePool(g.questionPool).length,
+        lastPlayedAt: s?.last ?? null,
+        playsCompleted: s?.plays ?? 0,
+        accuracy: s && s.answered > 0 ? s.correct / s.answered : null,
+      };
     });
   }
 
@@ -329,6 +398,21 @@ export function parsePool(raw: unknown): GameQuestion[] {
     if (parsed.success) out.push(parsed.data);
   }
   return out;
+}
+
+/**
+ * Length of the persisted answer array in `Attempt.questionResults`. The
+ * shape is `{ results: [...] }`; older rows may store a bare array. Returns
+ * 0 for anything malformed so the games-summary query stays robust.
+ */
+function countAnswered(raw: unknown): number {
+  if (raw == null) return 0;
+  if (Array.isArray(raw)) return raw.length;
+  if (typeof raw === 'object' && 'results' in raw) {
+    const r = (raw as { results: unknown }).results;
+    return Array.isArray(r) ? r.length : 0;
+  }
+  return 0;
 }
 
 /**

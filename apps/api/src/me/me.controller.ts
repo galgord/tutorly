@@ -50,6 +50,8 @@ export class MeController {
         locale: true,
         subject: true,
         teachingLanguage: true,
+        monthlyGenerations: true,
+        monthlyGenerationsResetAt: true,
       },
     });
     return MeResponseSchema.parse({
@@ -59,6 +61,9 @@ export class MeController {
       locale: row?.locale ?? tutor.locale,
       subject: row?.subject ?? null,
       teachingLanguage: row?.teachingLanguage ?? null,
+      monthlyGenerations: row?.monthlyGenerations ?? 0,
+      monthlyGenerationsCap: this.config.get('GAME_GEN_MONTHLY_CAP'),
+      monthlyGenerationsResetAt: (row?.monthlyGenerationsResetAt ?? new Date()).toISOString(),
     });
   }
 
@@ -96,6 +101,8 @@ export class MeController {
         locale: true,
         subject: true,
         teachingLanguage: true,
+        monthlyGenerations: true,
+        monthlyGenerationsResetAt: true,
       },
     });
 
@@ -110,7 +117,11 @@ export class MeController {
       userAgent: req.header('user-agent') ?? null,
     });
 
-    return MeResponseSchema.parse(updated);
+    return MeResponseSchema.parse({
+      ...updated,
+      monthlyGenerationsCap: this.config.get('GAME_GEN_MONTHLY_CAP'),
+      monthlyGenerationsResetAt: updated.monthlyGenerationsResetAt.toISOString(),
+    });
   }
 
   @Get('export')

@@ -120,6 +120,34 @@ export const GameListResponseSchema = z.object({
 });
 export type GameListResponse = z.infer<typeof GameListResponseSchema>;
 
+/**
+ * Lean per-game summary for the tutor-facing student page. Lists every game
+ * across all of a student's lessons (any status). Deliberately omits the
+ * heavy `questionPool` — the card grid only needs the count + play stats.
+ */
+export const StudentGameSummarySchema = z.object({
+  id: z.string().min(1),
+  lessonId: z.string().min(1),
+  type: GameTypeSchema,
+  title: z.string().min(1),
+  status: GameStatusSchema,
+  questionCount: z.number().int().min(0),
+  lessonOccurredAt: z.string().datetime(),
+  lessonTitle: z.string().nullable(),
+  createdAt: z.string().datetime(),
+  /** Most recent finished attempt; null = never played. */
+  lastPlayedAt: z.string().datetime().nullable(),
+  playsCompleted: z.number().int().min(0),
+  /** Correct / answered across all finished attempts; null when none. */
+  accuracy: z.number().min(0).max(1).nullable(),
+});
+export type StudentGameSummary = z.infer<typeof StudentGameSummarySchema>;
+
+export const StudentGamesResponseSchema = z.object({
+  items: z.array(StudentGameSummarySchema),
+});
+export type StudentGamesResponse = z.infer<typeof StudentGamesResponseSchema>;
+
 export const GameCreatedResponseSchema = z.object({
   game: GameResponseSchema,
 });

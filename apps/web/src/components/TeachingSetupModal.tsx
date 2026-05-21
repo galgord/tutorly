@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { SUPPORTED_LOCALES, type Language, type Locale } from '@tutor-app/shared';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Language } from '@tutor-app/shared';
 import { ApiError, api } from '../lib/api';
 import { LanguageSelect } from './LanguageSelect';
 import { Button, Field, Input, Modal } from './ui';
@@ -11,28 +11,50 @@ interface Props {
   onClose: () => void;
 }
 
+/** Endonyms — each UI language shown in its own script. */
+const LOCALE_LABELS: Record<Locale, string> = {
+  en: 'English',
+  pt: 'Português',
+  he: 'עברית',
+};
+
+const CONTROL_CLASS =
+  'w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-ink';
+
 /**
  * First-run setup shown on the Dashboard when the tutor has not yet set a
- * `subject`. Captures the subject + teaching language that shape the quality
- * of AI-generated practice games. Dismissible — the tutor can skip and set
- * these later from Settings.
+ * `subject`. Captures, in order: the app's interface language (applied live),
+ * the subject, and the teaching language — the latter two shape AI-generated
+ * games. Dismissible — these can also be set later from Settings.
  */
 export function TeachingSetupModal({ open, onClose }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
+  const [appLocale, setAppLocale] = useState<Locale>(
+    (i18n.resolvedLanguage ?? 'en') as Locale,
+  );
   const [subject, setSubject] = useState('');
   const [teachingLanguage, setTeachingLanguage] = useState<Language | null>(null);
 
   useEffect(() => {
     if (open) {
+      setAppLocale((i18n.resolvedLanguage ?? 'en') as Locale);
       setSubject('');
       setTeachingLanguage(null);
     }
-  }, [open]);
+  }, [open, i18n.resolvedLanguage]);
+
+  // Apply the chosen interface language immediately so the rest of the
+  // modal — and everything behind it — is in the tutor's language.
+  const onPickAppLocale = (next: Locale) => {
+    setAppLocale(next);
+    void i18n.changeLanguage(next);
+  };
 
   const mutation = useMutation({
     mutationFn: () =>
       api.updateMe({
+        locale: appLocale,
         subject: subject.trim(),
         teachingLanguage: teachingLanguage ?? undefined,
       }),
@@ -81,6 +103,28 @@ export function TeachingSetupModal({ open, onClose }: Props) {
       <form id="teaching-setup-form" onSubmit={onSubmit} className="space-y-4">
         <p className="text-sm text-ink-muted">{t('teachingSetup.explainer')}</p>
 
+        <Field
+          label={t('teachingSetup.appLanguageLabel')}
+          hint={t('teachingSetup.appLanguageHint')}
+        >
+          {(id) => (
+            <select
+              id={id}
+              dir="ltr"
+              value={appLocale}
+              onChange={(e) => onPickAppLocale(e.target.value as Locale)}
+              className={CONTROL_CLASS}
+              data-testid="teaching-setup-app-language"
+            >
+              {SUPPORTED_LOCALES.map((loc) => (
+                <option key={loc} value={loc}>
+                  {LOCALE_LABELS[loc]}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+
         <Field label={t('teachingSetup.subjectLabel')}>
           {(id) => (
             <Input
@@ -104,7 +148,7 @@ export function TeachingSetupModal({ open, onClose }: Props) {
               value={teachingLanguage}
               emptyLabel={t('teachingSetup.languageNone')}
               onChange={setTeachingLanguage}
-              className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-ink"
+              className={CONTROL_CLASS}
               testId="teaching-setup-language"
             />
           )}

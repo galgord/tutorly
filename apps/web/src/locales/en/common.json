@@ -66,6 +66,8 @@
   "teachingSetup": {
     "title": "Set up your teaching",
     "explainer": "Tell us what and how you teach — this shapes the practice games we generate for your students.",
+    "appLanguageLabel": "App language",
+    "appLanguageHint": "The language Tutorly's interface is shown in.",
     "subjectLabel": "Subject you teach",
     "subjectPlaceholder": "e.g. Portuguese, Math, Piano",
     "languageLabel": "Lesson language",
@@ -342,8 +344,10 @@
     "title": "Schedule",
     "subtitle": "Lessons you've added — past and upcoming. Use your Google Calendar for your day-to-day calendar.",
     "addCta": "Add a lesson",
+    "addStudentCta": "Add a student",
     "open": "Open",
     "empty": "No lessons yet. Add your first one.",
+    "emptyNoStudents": "Add your first student — you'll be able to schedule lessons for them right after.",
     "loadError": "Couldn't load the schedule. Try again.",
     "needsFeedback": "Needs feedback",
     "groups": {

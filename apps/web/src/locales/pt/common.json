@@ -66,6 +66,8 @@
   "teachingSetup": {
     "title": "Configure seu ensino",
     "explainer": "Conte o que e como você ensina — isso molda os jogos de prática que geramos para seus alunos.",
+    "appLanguageLabel": "Idioma da aplicação",
+    "appLanguageHint": "O idioma em que a interface do Tutorly é apresentada.",
     "subjectLabel": "Matéria que você ensina",
     "subjectPlaceholder": "ex.: Português, Matemática, Piano",
     "languageLabel": "Idioma da aula",
@@ -342,8 +344,10 @@
     "title": "Agenda",
     "subtitle": "Aulas que adicionou — passadas e próximas. Use o Google Agenda para o seu calendário do dia a dia.",
     "addCta": "Adicionar aula",
+    "addStudentCta": "Adicionar aluno",
     "open": "Abrir",
-    "empty": "Ainda sem aulas. Adicione uma a partir da página de um aluno.",
+    "empty": "Ainda sem aulas. Adicione a primeira.",
+    "emptyNoStudents": "Adicione o seu primeiro aluno — logo a seguir poderá agendar aulas para ele.",
     "loadError": "Não foi possível carregar a agenda. Tente novamente.",
     "needsFeedback": "Falta feedback",
     "groups": {

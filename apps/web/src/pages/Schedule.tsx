@@ -4,10 +4,12 @@ import { CalendarClock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddLessonModal } from '../components/AddLessonModal';
+import { AddStudentModal } from '../components/AddStudentModal';
 import { Bidi } from '../components/Bidi';
 import { StudentPickerModal } from '../components/StudentPickerModal';
 import { Button, EmptyState } from '../components/ui';
 import { useCalendar } from '../lib/lessons';
+import { useStudents } from '../lib/students';
 
 /**
  * /schedule
@@ -42,9 +44,22 @@ export function SchedulePage() {
 
   const { upcomingByDay, past } = useMemo(() => groupSchedule(lessons, locale), [lessons, locale]);
 
+  // You can't schedule a lesson without a student — the schedule's primary
+  // action adapts: "Add a student" when there are none, "Add a lesson" once
+  // there is at least one.
+  const students = useStudents({ page: 1, limit: 1 });
+  const hasStudents = (students.data?.total ?? 0) > 0;
+  const studentsReady = !!students.data;
+
   // Add-lesson flow: pick a student, then open the lesson modal for them.
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [addStudentOpen, setAddStudentOpen] = useState(false);
   const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
+
+  const primaryAction = () => {
+    if (hasStudents) setPickerOpen(true);
+    else setAddStudentOpen(true);
+  };
 
   return (
     <section data-testid="schedule-page" className="space-y-6">
@@ -53,9 +68,11 @@ export function SchedulePage() {
           <h1 className="text-2xl font-semibold text-ink">{t('schedule.title')}</h1>
           <p className="mt-1 text-sm text-ink-muted">{t('schedule.subtitle')}</p>
         </div>
-        <Button onClick={() => setPickerOpen(true)} data-testid="schedule-add-link">
-          {t('schedule.addCta')}
-        </Button>
+        {studentsReady && (
+          <Button onClick={primaryAction} data-testid="schedule-add-link">
+            {hasStudents ? t('schedule.addCta') : t('schedule.addStudentCta')}
+          </Button>
+        )}
       </header>
 
       {data.isLoading && (
@@ -74,13 +91,15 @@ export function SchedulePage() {
         </p>
       )}
 
-      {data.data && lessons.length === 0 && (
+      {data.data && studentsReady && lessons.length === 0 && (
         <EmptyState
           Icon={CalendarClock}
-          message={t('schedule.empty')}
+          message={hasStudents ? t('schedule.empty') : t('schedule.emptyNoStudents')}
           testId="schedule-empty"
           action={
-            <Button onClick={() => setPickerOpen(true)}>{t('schedule.addCta')}</Button>
+            <Button onClick={primaryAction}>
+              {hasStudents ? t('schedule.addCta') : t('schedule.addStudentCta')}
+            </Button>
           }
         />
       )}
@@ -108,6 +127,16 @@ export function SchedulePage() {
         onPicked={(studentId) => {
           setPickerOpen(false);
           setPendingStudentId(studentId);
+        }}
+      />
+      {/* No students yet → add one, then chain straight into the lesson
+          modal for that new student (no dead end). */}
+      <AddStudentModal
+        open={addStudentOpen}
+        onClose={() => setAddStudentOpen(false)}
+        onCreated={(student) => {
+          setAddStudentOpen(false);
+          setPendingStudentId(student.id);
         }}
       />
       <AddLessonModal

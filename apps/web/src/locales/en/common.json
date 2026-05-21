@@ -47,7 +47,9 @@
     "settingsLink": "Account settings",
     "logout": "Log out",
     "kpi": {
-      "activeStudents": "Active students"
+      "activeStudents": "Active students",
+      "lessonsThisWeek": "Lessons this week",
+      "gamesAssigned": "Games assigned"
     },
     "student": {
       "l1": "L1 · {{code}}",
@@ -57,7 +59,9 @@
     "toast": {
       "inviteCopied": "Invite link copied",
       "inviteCopyFailed": "Couldn't copy the link. Open the student's page to copy it manually."
-    }
+    },
+    "todayTitle": "Today's lessons",
+    "todayEmpty": "No lessons scheduled for today."
   },
   "teachingSetup": {
     "title": "Set up your teaching",
@@ -228,7 +232,10 @@
       "empty": "Trash is empty.",
       "back": "Back to students",
       "restore": "Restore",
-      "deletedOn": "Deleted {{date}}"
+      "deletedOn": "Deleted {{date}}",
+      "purgesIn": "Purges {{date}} · {{count}} days left",
+      "purgesIn_one": "Purges {{date}} · {{count}} day left",
+      "purgeImminent": "Purges today"
     },
     "pagination": {
       "label": "Pagination",
@@ -244,7 +251,9 @@
       "deleted": "Student moved to trash",
       "restored": "Student restored",
       "tokenRotated": "New share link issued"
-    }
+    },
+    "count": "{{count}} students",
+    "count_one": "{{count}} student"
   },
   "publicStudent": {
     "greeting": "Hi,",

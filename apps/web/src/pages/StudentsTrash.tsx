@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bidi } from '../components/Bidi';
 import { Toast } from '../components/Toast';
+import { EmptyState } from '../components/ui';
 import { api } from '../lib/api';
 import { useTrashStudents } from '../lib/students';
 
 const PAGE_SIZE = 10;
+/** Soft-deleted students are purged 30 days after `deletedAt`. */
+const PURGE_GRACE_DAYS = 30;
 
 export function StudentsTrashPage() {
   const { t, i18n } = useTranslation();
@@ -55,17 +58,14 @@ export function StudentsTrashPage() {
       )}
 
       {!list.isLoading && items.length === 0 && (
-        <div
-          data-testid="trash-empty"
-          className="rounded-lg border border-dashed border-line-strong bg-surface p-6 text-center text-sm text-ink-muted"
-        >
-          {t('students.trash.empty')}
-        </div>
+        <EmptyState testId="trash-empty" message={t('students.trash.empty')} />
       )}
 
       {items.length > 0 && (
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
-          {items.map((s) => (
+          {items.map((s) => {
+            const purge = s.deletedAt ? purgeCountdown(s.deletedAt) : null;
+            return (
             <li
               key={s.id}
               data-testid={`trash-row-${s.id}`}
@@ -80,6 +80,22 @@ export function StudentsTrashPage() {
                     date: s.deletedAt ? dateFmt.format(new Date(s.deletedAt)) : '',
                   })}
                 </p>
+                {purge && (
+                  <p
+                    data-testid={`trash-purge-${s.id}`}
+                    className={[
+                      'mt-0.5 text-xs',
+                      purge.daysLeft <= 3 ? 'text-rose-700' : 'text-amber-700',
+                    ].join(' ')}
+                  >
+                    {purge.daysLeft <= 0
+                      ? t('students.trash.purgeImminent')
+                      : t('students.trash.purgesIn', {
+                          count: purge.daysLeft,
+                          date: dateFmt.format(purge.purgeDate),
+                        })}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -91,7 +107,8 @@ export function StudentsTrashPage() {
                 {restoreMutation.isPending ? t('common.workingOn') : t('students.trash.restore')}
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
@@ -125,4 +142,14 @@ export function StudentsTrashPage() {
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="trash-toast" />}
     </section>
   );
+}
+
+/**
+ * Purge date (= `deletedAt` + 30 days) and whole days remaining until then.
+ * `daysLeft` is clamped at 0 once the grace window has elapsed.
+ */
+function purgeCountdown(deletedAt: string): { purgeDate: Date; daysLeft: number } {
+  const purgeDate = new Date(new Date(deletedAt).getTime() + PURGE_GRACE_DAYS * 86_400_000);
+  const daysLeft = Math.max(0, Math.ceil((purgeDate.getTime() - Date.now()) / 86_400_000));
+  return { purgeDate, daysLeft };
 }

@@ -47,7 +47,9 @@
     "settingsLink": "Definições da conta",
     "logout": "Terminar sessão",
     "kpi": {
-      "activeStudents": "Alunos ativos"
+      "activeStudents": "Alunos ativos",
+      "lessonsThisWeek": "Aulas esta semana",
+      "gamesAssigned": "Jogos atribuídos"
     },
     "student": {
       "l1": "L1 · {{code}}",
@@ -57,7 +59,9 @@
     "toast": {
       "inviteCopied": "Link de convite copiado",
       "inviteCopyFailed": "Não foi possível copiar o link. Abra a página do aluno para copiar manualmente."
-    }
+    },
+    "todayTitle": "Aulas de hoje",
+    "todayEmpty": "Nenhuma aula agendada para hoje."
   },
   "teachingSetup": {
     "title": "Configure seu ensino",
@@ -228,7 +232,10 @@
       "empty": "O lixo está vazio.",
       "back": "Voltar aos alunos",
       "restore": "Restaurar",
-      "deletedOn": "Eliminado em {{date}}"
+      "deletedOn": "Eliminado em {{date}}",
+      "purgesIn": "Exclusão em {{date}} · faltam {{count}} dias",
+      "purgesIn_one": "Exclusão em {{date}} · falta {{count}} dia",
+      "purgeImminent": "Exclusão hoje"
     },
     "pagination": {
       "label": "Paginação",
@@ -244,7 +251,9 @@
       "restored": "Aluno restaurado",
       "tokenRotated": "Novo link de partilha emitido",
       "saveFailed": "Não foi possível guardar. Tente novamente."
-    }
+    },
+    "count": "{{count}} alunos",
+    "count_one": "{{count}} aluno"
   },
   "publicStudent": {
     "greeting": "Olá,",

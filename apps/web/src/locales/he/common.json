@@ -47,7 +47,9 @@
     "settingsLink": "הגדרות חשבון",
     "logout": "התנתק",
     "kpi": {
-      "activeStudents": "תלמידים פעילים"
+      "activeStudents": "תלמידים פעילים",
+      "lessonsThisWeek": "שיעורים השבוע",
+      "gamesAssigned": "משחקים שהוקצו"
     },
     "student": {
       "l1": "שפת אם · {{code}}",
@@ -57,7 +59,9 @@
     "toast": {
       "inviteCopied": "קישור ההזמנה הועתק",
       "inviteCopyFailed": "לא ניתן להעתיק את הקישור. פתחו את עמוד התלמיד והעתיקו ידנית."
-    }
+    },
+    "todayTitle": "השיעורים של היום",
+    "todayEmpty": "אין שיעורים מתוכננים להיום."
   },
   "teachingSetup": {
     "title": "הגדירו את ההוראה שלכם",
@@ -228,7 +232,10 @@
       "empty": "האשפה ריקה.",
       "back": "חזרה לתלמידים",
       "restore": "שחזר",
-      "deletedOn": "נמחק בתאריך {{date}}"
+      "deletedOn": "נמחק בתאריך {{date}}",
+      "purgesIn": "יימחק ב-{{date}} · נותרו {{count}} ימים",
+      "purgesIn_one": "יימחק ב-{{date}} · נותר יום אחד",
+      "purgeImminent": "יימחק היום"
     },
     "pagination": {
       "label": "ניווט בעמודים",
@@ -244,7 +251,9 @@
       "restored": "התלמיד שוחזר",
       "tokenRotated": "הונפק קישור שיתוף חדש",
       "saveFailed": "לא ניתן היה לשמור. נסו שוב."
-    }
+    },
+    "count": "{{count}} תלמידים",
+    "count_one": "תלמיד אחד"
   },
   "publicStudent": {
     "greeting": "שלום,",

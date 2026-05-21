@@ -1,7 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import type { StudentListItem } from '@tutor-app/shared';
-import { Link as LinkIcon, Plus, Users } from 'lucide-react';
-import { useState } from 'react';
+import type { CalendarItem, StudentListItem } from '@tutor-app/shared';
+import { CalendarClock, Gamepad2, Link as LinkIcon, Plus, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddStudentModal } from '../components/AddStudentModal';
 import { Bidi } from '../components/Bidi';
@@ -11,11 +11,15 @@ import { OfflineBanner } from '../components/OfflineBanner';
 import { StudentIndicators, wasEverActive } from '../components/StudentIndicators';
 import { TeachingSetupModal } from '../components/TeachingSetupModal';
 import { Toast } from '../components/Toast';
+import { EmptyState, Skeleton, StatTile } from '../components/ui';
+import { ScheduleRow } from './Schedule';
 import { useMe } from '../lib/auth';
+import { useCalendar } from '../lib/lessons';
 import { buildShareUrl, useStudents } from '../lib/students';
 
 export function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? 'en';
   const navigate = useNavigate();
   const me = useMe();
   const [addOpen, setAddOpen] = useState(false);
@@ -29,10 +33,47 @@ export function DashboardPage() {
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
 
+  // A wider page powers the "games assigned" aggregate without a new endpoint.
+  const allStudents = useStudents({ page: 1, limit: 100 });
+  const gamesAssigned = useMemo(
+    () => (allStudents.data?.items ?? []).reduce((sum, s) => sum + s.summary.assignedGamesCount, 0),
+    [allStudents.data],
+  );
+
+  // Calendar for the current local week — drives both the KPI and the
+  // "Today's lessons" section. The range covers this week through end of day.
+  const weekRange = useMemo(() => weekBounds(), []);
+  const calendar = useCalendar(weekRange);
+  const localLessons: CalendarItem[] = useMemo(
+    () => (calendar.data?.items ?? []).filter((i) => i.hasLocalLesson && !!i.localLessonId),
+    [calendar.data],
+  );
+  const lessonsThisWeek = useMemo(() => {
+    const { weekStart, weekEnd } = weekRangeMs();
+    return localLessons.filter((i) => {
+      const ms = new Date(i.startsAt).getTime();
+      return ms >= weekStart && ms < weekEnd;
+    }).length;
+  }, [localLessons]);
+  const todaysLessons = useMemo(() => {
+    const { dayStart, dayEnd } = todayRangeMs();
+    return localLessons
+      .filter((i) => {
+        const ms = new Date(i.startsAt).getTime();
+        return ms >= dayStart && ms < dayEnd;
+      })
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  }, [localLessons]);
+
   if (me.isLoading) {
     return (
-      <div data-testid="dashboard-loading" className="text-sm text-ink-muted">
-        {t('common.loading')}
+      <div data-testid="dashboard-loading" className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
       </div>
     );
   }
@@ -72,14 +113,61 @@ export function DashboardPage() {
         </button>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <KpiCard label={t('dashboard.kpi.activeStudents')} value={String(total)} Icon={Users} />
+      <div
+        data-testid="dashboard-kpis"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <StatTile
+          label={t('dashboard.kpi.activeStudents')}
+          value={String(total)}
+          Icon={Users}
+          testId="dashboard-kpi-students"
+        />
+        <StatTile
+          label={t('dashboard.kpi.lessonsThisWeek')}
+          value={calendar.isLoading ? '–' : String(lessonsThisWeek)}
+          Icon={CalendarClock}
+          testId="dashboard-kpi-lessons"
+        />
+        <StatTile
+          label={t('dashboard.kpi.gamesAssigned')}
+          value={allStudents.isLoading ? '–' : String(gamesAssigned)}
+          Icon={Gamepad2}
+          testId="dashboard-kpi-games"
+        />
       </div>
 
+      <section className="space-y-3" data-testid="dashboard-today">
+        <h2 className="text-lg font-semibold text-ink">{t('dashboard.todayTitle')}</h2>
+        {calendar.isLoading && <Skeleton className="h-16 w-full" />}
+        {!calendar.isLoading && todaysLessons.length === 0 && (
+          <EmptyState
+            Icon={CalendarClock}
+            message={t('dashboard.todayEmpty')}
+            testId="dashboard-today-empty"
+          />
+        )}
+        {!calendar.isLoading && todaysLessons.length > 0 && (
+          <ul
+            data-testid="dashboard-today-list"
+            className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface"
+          >
+            {todaysLessons.map((item) => (
+              <ScheduleRow key={item.localLessonId} item={item} locale={locale} />
+            ))}
+          </ul>
+        )}
+      </section>
+
       {list.isLoading && (
-        <p data-testid="dashboard-students-loading" className="text-sm text-ink-muted">
-          {t('common.loading')}
-        </p>
+        <div data-testid="dashboard-students-loading" className="space-y-3">
+          <Skeleton className="h-6 w-40" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
       )}
 
       {!list.isLoading && items.length === 0 && (
@@ -125,24 +213,32 @@ export function DashboardPage() {
   );
 }
 
-interface KpiCardProps {
-  label: string;
-  value: string;
-  Icon: typeof Users;
+/** Local-time millisecond bounds for the current week (Mon 00:00 → next Mon 00:00). */
+function weekRangeMs(): { weekStart: number; weekEnd: number } {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  // getDay(): 0 = Sunday … 6 = Saturday. Treat Monday as the week start.
+  const dayOffset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - dayOffset);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  return { weekStart: start.getTime(), weekEnd: end.getTime() };
 }
 
-function KpiCard({ label, value, Icon }: KpiCardProps) {
-  return (
-    <div className="rounded-lg border border-line bg-surface p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">{label}</p>
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-brand-50 text-brand-600">
-          <Icon size={16} aria-hidden />
-        </span>
-      </div>
-      <p className="mt-2 text-3xl font-semibold text-ink">{value}</p>
-    </div>
-  );
+/** Local-time millisecond bounds for today (00:00 → next 00:00). */
+function todayRangeMs(): { dayStart: number; dayEnd: number } {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  return { dayStart: start.getTime(), dayEnd: end.getTime() };
+}
+
+/** ISO range for the calendar fetch — the full current week. */
+function weekBounds(): { from: string; to: string } {
+  const { weekStart, weekEnd } = weekRangeMs();
+  return { from: new Date(weekStart).toISOString(), to: new Date(weekEnd).toISOString() };
 }
 
 interface StudentCardProps {

@@ -96,21 +96,36 @@
     "title": "Account settings",
     "profile": {
       "title": "Profile",
+      "description": "Your identity and interface preferences.",
       "email": "Email",
+      "emailHint": "Your email is fixed and used to sign in.",
       "name": "Name",
-      "locale": "Language",
+      "locale": "Interface language",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "teaching": {
+      "title": "Teaching",
+      "description": "These settings shape the AI-generated practice games your students play.",
       "subject": "Subject you teach",
       "subjectPlaceholder": "e.g. Portuguese, Math, Piano",
       "subjectHint": "Helps the AI write questions on the right topic.",
       "teachingLanguage": "Lesson language",
       "teachingLanguageHint": "Practice questions will be generated in this language, even if you record feedback in a different one.",
-      "teachingLanguageNone": "Same as my UI language",
+      "teachingLanguageNone": "Same as my interface language",
       "save": "Save",
       "saved": "Saved"
     },
+    "integrations": {
+      "title": "Integrations",
+      "description": "Connect Google Calendar to surface past lessons you can attach feedback to.",
+      "manage": "Manage integrations",
+      "connect": "Connect Google Calendar"
+    },
     "delete": {
-      "title": "Delete account",
-      "warning": "This permanently soft-deletes your account and all student data. Your account is recoverable for 30 days before permanent purge.",
+      "title": "Danger zone",
+      "warning": "Deleting your account permanently removes your students, lessons, generated games, and all progress data. Your account is soft-deleted and recoverable for 30 days before it is purged for good.",
+      "exportHint": "Want a copy of your data first? Download a full export from {{path}}.",
       "confirmLabel": "Type your email ({{email}}) to confirm:",
       "button": "Delete account"
     }
@@ -352,8 +367,10 @@
         "unavailable": "Google is temporarily unavailable. Try again shortly.",
         "loadFailed": "Couldn't load calendars. Try again.",
         "saveFailed": "Couldn't save your selection. Try again.",
-        "callback": "Google reported an error during connect. Try again."
-      }
+        "callback": "Google reported an error during connect. Try again.",
+        "loadFailedTitle": "Couldnt load your calendars"
+      },
+      "reconnectAction": "Reconnect"
     }
   },
   "calendar": {

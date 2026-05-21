@@ -96,9 +96,17 @@
     "title": "Definições da conta",
     "profile": {
       "title": "Perfil",
+      "description": "A sua identidade e preferências da interface.",
       "email": "Email",
+      "emailHint": "O seu email é fixo e usado para iniciar sessão.",
       "name": "Nome",
-      "locale": "Idioma",
+      "locale": "Idioma da interface",
+      "save": "Guardar",
+      "saved": "Guardado"
+    },
+    "teaching": {
+      "title": "Ensino",
+      "description": "Estas definições moldam os jogos de prática gerados por IA que os seus alunos jogam.",
       "subject": "Disciplina que ensina",
       "subjectPlaceholder": "ex.: Português, Matemática, Piano",
       "subjectHint": "Ajuda a IA a criar questões sobre o tópico correto.",
@@ -108,9 +116,16 @@
       "save": "Guardar",
       "saved": "Guardado"
     },
+    "integrations": {
+      "title": "Integrações",
+      "description": "Conecte o Google Agenda para listar aulas passadas às quais pode anexar feedback.",
+      "manage": "Gerir integrações",
+      "connect": "Conectar Google Agenda"
+    },
     "delete": {
-      "title": "Eliminar conta",
-      "warning": "Esta ação faz uma eliminação suave da sua conta e de todos os dados de alunos. A conta pode ser recuperada durante 30 dias antes da remoção definitiva.",
+      "title": "Zona de perigo",
+      "warning": "Eliminar a sua conta remove permanentemente os seus alunos, aulas, jogos gerados e todos os dados de progresso. A conta é eliminada de forma suave e pode ser recuperada durante 30 dias antes da remoção definitiva.",
+      "exportHint": "Quer primeiro uma cópia dos seus dados? Descarregue uma exportação completa em {{path}}.",
       "confirmLabel": "Escreva o seu email ({{email}}) para confirmar:",
       "button": "Eliminar conta"
     }
@@ -352,8 +367,10 @@
         "unavailable": "Google está temporariamente indisponível. Tente novamente em breve.",
         "loadFailed": "Não foi possível carregar as agendas. Tente novamente.",
         "saveFailed": "Não foi possível guardar a sua seleção. Tente novamente.",
-        "callback": "O Google reportou um erro durante a ligação. Tente novamente."
-      }
+        "callback": "O Google reportou um erro durante a ligação. Tente novamente.",
+        "loadFailedTitle": "Não foi possível carregar as suas agendas"
+      },
+      "reconnectAction": "Reconectar"
     }
   },
   "calendar": {

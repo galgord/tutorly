@@ -47,5 +47,13 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      // Unit-test files legitimately use literal strings as fixtures/assertions —
+      // they are never user-visible, so the no-literal-string rule doesn't apply.
+      files: ['**/*.test.{ts,tsx}'],
+      rules: { 'i18next/no-literal-string': 'off' },
+    },
+  ],
   ignorePatterns: ['dist', 'node_modules', '*.config.*', 'tests/**'],
 };

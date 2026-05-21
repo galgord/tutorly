@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FeedbackSource, LessonSource } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makePrismaMock } from '../test/prisma-mock';
@@ -12,7 +12,8 @@ function fakeLesson(over: Partial<Record<string, unknown>> = {}) {
     source: (over.source as LessonSource | undefined) ?? LessonSource.MANUAL,
     title: (over.title as string | null | undefined) ?? null,
     occurredAt: (over.occurredAt as Date | undefined) ?? new Date('2026-05-01T10:00:00Z'),
-    feedbackText: null,
+    agenda: (over.agenda as string | null | undefined) ?? null,
+    feedbackText: (over.feedbackText as string | null | undefined) ?? null,
     feedbackSource: 'TEXT',
     audioUrl: null,
     transcriptionStatus: 'NONE',
@@ -291,5 +292,65 @@ describe('LessonService.updateFeedback', () => {
     });
     const data = vi.mocked(prisma.lesson.update).mock.calls[0]?.[0]?.data;
     expect(data?.feedbackSource).toBe(FeedbackSource.VOICE);
+  });
+
+  it('rejects feedback when the session is still in the future', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      ...fakeLesson({ occurredAt: new Date(Date.now() + 7 * 86_400_000) }),
+      student: { id: 'stu_1', name: 'Sara', tutorId: 'tutor_a' },
+    } as never);
+    await expect(
+      svc.updateFeedback({ id: 'les_1', tutorId: 'tutor_a', feedbackText: 'hi' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.lesson.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('LessonService.updateAgenda', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('refuses cross-tenant lesson with NotFound', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue(null as never);
+    await expect(
+      svc.updateAgenda({ id: 'les_1', tutorId: 'tutor_a', agenda: 'plan' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.lesson.update).not.toHaveBeenCalled();
+  });
+
+  it('persists the agenda text', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      ...fakeLesson(),
+      student: { id: 'stu_1', name: 'Sara', tutorId: 'tutor_a' },
+    } as never);
+    vi.mocked(prisma.lesson.update).mockResolvedValue(fakeLesson() as never);
+    await svc.updateAgenda({ id: 'les_1', tutorId: 'tutor_a', agenda: 'Review the conditional' });
+    expect(vi.mocked(prisma.lesson.update).mock.calls[0]?.[0]?.data).toEqual({
+      agenda: 'Review the conditional',
+    });
+  });
+
+  it('stores an empty string as null (clears the agenda)', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      ...fakeLesson(),
+      student: { id: 'stu_1', name: 'Sara', tutorId: 'tutor_a' },
+    } as never);
+    vi.mocked(prisma.lesson.update).mockResolvedValue(fakeLesson() as never);
+    await svc.updateAgenda({ id: 'les_1', tutorId: 'tutor_a', agenda: '' });
+    expect(vi.mocked(prisma.lesson.update).mock.calls[0]?.[0]?.data).toEqual({ agenda: null });
+  });
+
+  it('allows editing the agenda on a future lesson', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      ...fakeLesson({ occurredAt: new Date(Date.now() + 7 * 86_400_000) }),
+      student: { id: 'stu_1', name: 'Sara', tutorId: 'tutor_a' },
+    } as never);
+    vi.mocked(prisma.lesson.update).mockResolvedValue(fakeLesson() as never);
+    await svc.updateAgenda({ id: 'les_1', tutorId: 'tutor_a', agenda: 'Plan ahead' });
+    expect(prisma.lesson.update).toHaveBeenCalled();
   });
 });

@@ -35,7 +35,7 @@ export function Sparkline({
   tone = 'stable',
 }: Props) {
   if (points.length === 0) {
-    return <div aria-hidden className="text-xs text-slate-400">—</div>;
+    return <div aria-hidden className="text-xs text-ink-subtle">—</div>;
   }
   const stroke = TONE_STROKE[tone];
 

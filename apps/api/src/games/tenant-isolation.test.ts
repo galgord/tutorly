@@ -84,7 +84,7 @@ describe('Game tenant isolation (live db)', () => {
     const la = await lessons.createLesson({
       studentId: sa.id,
       tutorId: a.id,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await lessons.updateFeedback({
@@ -95,7 +95,7 @@ describe('Game tenant isolation (live db)', () => {
     const lb = await lessons.createLesson({
       studentId: sb.id,
       tutorId: b.id,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await lessons.updateFeedback({
@@ -202,6 +202,25 @@ describe('Game tenant isolation (live db)', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it("listForStudent never returns another tutor's games", async () => {
+    if (!dbReady) return;
+    const { game } = await games.createAndEnqueue({
+      lessonId: lessonA,
+      tutorId: tutorA,
+      type: GameType.FILL_BLANK,
+      poolSize: 3,
+      locale: 'en',
+    });
+    await queue.drain();
+    // Tutor A sees their student's game.
+    const ownList = await games.listForStudent({ studentId: studentA, tutorId: tutorA });
+    expect(ownList.map((i) => i.game.id)).toContain(game.id);
+    // Tutor B querying tutor A's student id gets nothing — the
+    // lesson.student.tutorId predicate filters it out entirely.
+    const crossList = await games.listForStudent({ studentId: studentA, tutorId: tutorB });
+    expect(crossList).toEqual([]);
+  });
+
   it('full happy path: create → generate → assign for tutor A', async () => {
     if (!dbReady) return;
     const { game } = await games.createAndEnqueue({
@@ -227,7 +246,7 @@ describe('Game tenant isolation (live db)', () => {
     const blank = await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await expect(

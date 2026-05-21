@@ -1,5 +1,5 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import type { GameListResponse, GameResponse } from '@tutor-app/shared';
+import type { GameListResponse, GameResponse, StudentGamesResponse } from '@tutor-app/shared';
 import { ApiError, api } from './api';
 
 /**
@@ -36,5 +36,17 @@ export function useGame(id: string | undefined): UseQueryResult<GameResponse, Ap
     refetchInterval: 800,
     refetchIntervalInBackground: false,
     staleTime: 500,
+  });
+}
+
+/** Every game across a student's lessons — for the student page's grid. */
+export function useStudentGames(
+  studentId: string | undefined,
+): UseQueryResult<StudentGamesResponse, ApiError> {
+  return useQuery<StudentGamesResponse, ApiError>({
+    queryKey: ['student-games', studentId],
+    queryFn: () => api.listStudentGames(studentId!),
+    enabled: !!studentId,
+    staleTime: 10_000,
   });
 }

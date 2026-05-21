@@ -17,7 +17,8 @@ function fakeLesson(over: Partial<Record<string, unknown>> = {}) {
     source: (over.source as LessonSource | undefined) ?? LessonSource.MANUAL,
     title: (over.title as string | null | undefined) ?? null,
     occurredAt: (over.occurredAt as Date | undefined) ?? new Date('2026-05-01T10:00:00Z'),
-    feedbackText: null,
+    agenda: (over.agenda as string | null | undefined) ?? null,
+    feedbackText: (over.feedbackText as string | null | undefined) ?? null,
     feedbackSource: 'TEXT',
     audioUrl: null,
     transcriptionStatus: 'NONE',
@@ -49,6 +50,7 @@ function makeController(overrides: {
     restore: vi.fn().mockResolvedValue(fakeLesson()),
     listLocalLessonsInRange: vi.fn().mockResolvedValue([]),
     updateFeedback: vi.fn().mockResolvedValue(fakeLesson({ feedbackText: 'saved' })),
+    updateAgenda: vi.fn().mockResolvedValue(fakeLesson({ agenda: 'saved plan' })),
     ...overrides.lessons,
   } as unknown as LessonService;
   const audit = { record: vi.fn().mockResolvedValue(undefined) } as unknown as AuditService;
@@ -337,8 +339,49 @@ describe('LessonsController.setFeedback', () => {
   });
 });
 
+describe('LessonsController.setAgenda', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('400 on agenda over the length cap', async () => {
+    const { controller } = makeController();
+    await expect(
+      controller.setAgenda(tutorA, 'les_1', { agenda: 'x'.repeat(4_001) }, fakeReq()),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('accepts an empty string (clears the agenda) and forwards to the service', async () => {
+    const { controller, lessons } = makeController();
+    await controller.setAgenda(tutorA, 'les_1', { agenda: '' }, fakeReq());
+    expect(lessons.updateAgenda).toHaveBeenCalledWith({
+      id: 'les_1',
+      tutorId: 'tutor_a',
+      agenda: '',
+    });
+  });
+
+  it('forwards to the service and audits with length (not raw text)', async () => {
+    const { controller, lessons, audit } = makeController();
+    await controller.setAgenda(
+      tutorA,
+      'les_1',
+      { agenda: 'Review past tense with Sara.' },
+      fakeReq(),
+    );
+    expect(lessons.updateAgenda).toHaveBeenCalledWith({
+      id: 'les_1',
+      tutorId: 'tutor_a',
+      agenda: 'Review past tense with Sara.',
+    });
+    const auditCall = vi.mocked(audit.record).mock.calls[0]?.[0];
+    expect(auditCall?.action).toBe('lesson.agenda.updated');
+    expect((auditCall?.metadata as Record<string, unknown>).length).toBe(28);
+    // PII: raw agenda text must NEVER appear in audit metadata.
+    expect(JSON.stringify(auditCall?.metadata)).not.toContain('Sara');
+  });
+});
+
 describe('serializeLesson', () => {
-  it('emits ISO strings, includes feedbackSource, and never leaks audioUrl', () => {
+  it('emits ISO strings, includes feedbackSource + agenda, and never leaks audioUrl', () => {
     const out = serializeLesson({
       id: 'les_1',
       studentId: 'stu_1',
@@ -346,6 +389,7 @@ describe('serializeLesson', () => {
       source: LessonSource.MANUAL,
       title: null,
       occurredAt: new Date('2026-05-01T10:00:00Z'),
+      agenda: 'Review the conditional.',
       feedbackText: null,
       feedbackSource: 'TEXT' as never,
       audioUrl: null,
@@ -356,6 +400,8 @@ describe('serializeLesson', () => {
       updatedAt: new Date('2026-05-01T00:00:00Z'),
     });
     expect(out.occurredAt).toBe('2026-05-01T10:00:00.000Z');
+    // agenda is part of the public response (free-text session plan).
+    expect(out.agenda).toBe('Review the conditional.');
     // Phase 4: feedbackSource is part of the public response so the UI can
     // distinguish TEXT vs VOICE-derived feedback when Phase 5 lands.
     expect(out.feedbackSource).toBe('TEXT');

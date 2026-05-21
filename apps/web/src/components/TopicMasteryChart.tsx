@@ -43,7 +43,7 @@ export function TopicMasteryChart({ topics, rtl = false }: Props) {
     return (
       <div
         data-testid="topic-mastery-empty"
-        className="rounded border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600"
+        className="rounded border border-dashed border-line bg-surface-muted p-4 text-center text-sm text-ink-muted"
       >
         {t('progress.topics.empty')}
       </div>
@@ -146,7 +146,7 @@ export function TopicMasteryChart({ topics, rtl = false }: Props) {
       {/* Legend — placed on the inline-start edge via logical Tailwind */}
       <ul
         data-testid="topic-mastery-legend"
-        className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700"
+        className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted"
       >
         {topics.map((tp, idx) => (
           <li
@@ -160,7 +160,7 @@ export function TopicMasteryChart({ topics, rtl = false }: Props) {
               style={{ background: PALETTE[idx % PALETTE.length] }}
             />
             <span>{tp.topic}</span>
-            <span className="text-slate-500">
+            <span className="text-ink-subtle">
               {t('progress.topics.accuracySuffix', {
                 pct: Math.round(tp.accuracy * 100),
               })}

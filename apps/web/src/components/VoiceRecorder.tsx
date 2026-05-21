@@ -228,11 +228,11 @@ export function VoiceRecorder({
   return (
     <section
       data-testid="voice-recorder"
-      className="rounded-lg border border-slate-200 bg-white p-6"
+      className="rounded-lg border border-line bg-surface p-6"
     >
       <header>
         <h2 className="text-lg font-semibold">{t('voice.title')}</h2>
-        <p className="mt-1 text-sm text-slate-600">{t('voice.subtitle')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('voice.subtitle')}</p>
       </header>
 
       {/* Mic-denied / unsupported empty state */}
@@ -303,7 +303,7 @@ export function VoiceRecorder({
           <button
             type="button"
             onClick={stopRecording}
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white"
+            className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white"
             data-testid="voice-stop"
           >
             {t('voice.stop')}
@@ -316,7 +316,7 @@ export function VoiceRecorder({
               type="button"
               onClick={submitRecording}
               disabled={upload.isPending}
-              className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
               data-testid="voice-submit"
             >
               {upload.isPending ? t('common.workingOn') : t('voice.submit')}
@@ -325,7 +325,7 @@ export function VoiceRecorder({
               type="button"
               onClick={resetRecording}
               disabled={upload.isPending}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+              className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted disabled:opacity-50"
               data-testid="voice-reset"
             >
               {t('voice.reset')}
@@ -336,7 +336,7 @@ export function VoiceRecorder({
         {recorderState === 'uploading' && (
           <span
             data-testid="voice-uploading"
-            className="text-sm text-slate-600"
+            className="text-sm text-ink-muted"
           >
             {t('voice.uploading')}
           </span>
@@ -347,12 +347,12 @@ export function VoiceRecorder({
           both LTR and RTL via logical inline-end). */}
       {(recorderState === 'recording' || recorderState === 'stopped') && (
         <div className="mt-4">
-          <div className="flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center justify-between text-xs text-ink-subtle">
             <span data-testid="voice-elapsed">{formattedElapsed}</span>
             <span>{formatElapsed(VOICE_MAX_DURATION_SECONDS * 1_000)}</span>
           </div>
           <div
-            className="mt-1 h-2 w-full overflow-hidden rounded bg-slate-200"
+            className="mt-1 h-2 w-full overflow-hidden rounded bg-surface-sunken"
             data-testid="voice-progress"
           >
             <div

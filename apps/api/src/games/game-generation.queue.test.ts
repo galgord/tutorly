@@ -31,7 +31,7 @@ function fakeGame(over: Partial<Record<string, unknown>> = {}) {
       feedbackText,
       student: {
         tutorId: 'tutor_a',
-        nativeLanguage: null,
+        nativeLanguage: (over.nativeLanguage as string | null) ?? null,
         tutor: { subject: null },
       },
     },
@@ -119,6 +119,62 @@ describe('GameGenerationQueue.processGeneration', () => {
     for (const q of pool) {
       expect(q.difficulty).toBeGreaterThanOrEqual(1);
       expect(q.difficulty).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('populates promptTranslation when the student L1 differs from the game locale', async () => {
+    const { queue, prisma } = makeQueue();
+    // Game taught in Portuguese, student's native language is Hebrew.
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(
+      fakeGame({ locale: 'pt', nativeLanguage: 'he' }) as never,
+    );
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    await queue.processGeneration('gm_1');
+    const updateCall = vi.mocked(prisma.game.update).mock.calls.find(
+      (c) => (c[0]?.data as Record<string, unknown>)?.status === GameStatus.DRAFT,
+    );
+    const pool = (updateCall![0]?.data as Record<string, unknown>).questionPool as Array<{
+      promptTranslation: string | null;
+    }>;
+    expect(pool.length).toBeGreaterThan(0);
+    for (const q of pool) {
+      expect(q.promptTranslation).toBeTruthy();
+    }
+  });
+
+  it('leaves promptTranslation null when the student has no L1', async () => {
+    const { queue, prisma } = makeQueue();
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(
+      fakeGame({ locale: 'pt', nativeLanguage: null }) as never,
+    );
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    await queue.processGeneration('gm_1');
+    const updateCall = vi.mocked(prisma.game.update).mock.calls.find(
+      (c) => (c[0]?.data as Record<string, unknown>)?.status === GameStatus.DRAFT,
+    );
+    const pool = (updateCall![0]?.data as Record<string, unknown>).questionPool as Array<{
+      promptTranslation: string | null;
+    }>;
+    for (const q of pool) {
+      expect(q.promptTranslation).toBeNull();
+    }
+  });
+
+  it('leaves promptTranslation null when the student L1 equals the game locale', async () => {
+    const { queue, prisma } = makeQueue();
+    vi.mocked(prisma.game.findUnique).mockResolvedValue(
+      fakeGame({ locale: 'pt', nativeLanguage: 'pt' }) as never,
+    );
+    vi.mocked(prisma.game.update).mockResolvedValue({} as never);
+    await queue.processGeneration('gm_1');
+    const updateCall = vi.mocked(prisma.game.update).mock.calls.find(
+      (c) => (c[0]?.data as Record<string, unknown>)?.status === GameStatus.DRAFT,
+    );
+    const pool = (updateCall![0]?.data as Record<string, unknown>).questionPool as Array<{
+      promptTranslation: string | null;
+    }>;
+    for (const q of pool) {
+      expect(q.promptTranslation).toBeNull();
     }
   });
 

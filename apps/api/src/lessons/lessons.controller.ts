@@ -21,6 +21,7 @@ import {
   LessonListResponseSchema,
   LessonResponseSchema,
   ListLessonsQuerySchema,
+  UpdateAgendaRequestSchema,
   UpdateFeedbackRequestSchema,
   type CalendarItem,
   type LessonResponse,
@@ -141,6 +142,7 @@ export class LessonsController {
         studentId: local?.studentId ?? null,
         studentName: local?.student.name ?? null,
         calendarId: ev.calendarId,
+        hasFeedback: hasFeedback(local),
       });
     }
 
@@ -160,6 +162,7 @@ export class LessonsController {
         studentId: local.studentId,
         studentName: local.student.name,
         calendarId: null,
+        hasFeedback: hasFeedback(local),
       });
     }
 
@@ -176,6 +179,7 @@ export class LessonsController {
         studentId: local.studentId,
         studentName: local.student.name,
         calendarId: null,
+        hasFeedback: hasFeedback(local),
       });
     }
 
@@ -284,7 +288,50 @@ export class LessonsController {
       userAgent: req.header('user-agent') ?? null,
     });
 
-    return serializeLesson(lesson);
+    // Return the lesson WITH its student so the client's cache keeps the
+    // join data (the editor does setQueryData with this response).
+    const withStudent = await this.lessons.getLessonForTutorOrFail({ id, tutorId: tutor.id });
+    return serializeLessonWithStudent(withStudent);
+  }
+
+  /**
+   * Persist the lesson's free-text agenda/plan. Allowed at any time —
+   * before the session (a plan) or after (a record of what was covered),
+   * unlike `setFeedback` which is gated on `occurredAt`.
+   */
+  @Patch(':id/agenda')
+  @HttpCode(200)
+  @UseGuards(CsrfGuard)
+  async setAgenda(
+    @CurrentTutor() tutor: CurrentTutorPayload,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: AuthedRequest,
+  ): Promise<LessonResponse> {
+    const parsed = UpdateAgendaRequestSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues);
+
+    const lesson = await this.lessons.updateAgenda({
+      id,
+      tutorId: tutor.id,
+      agenda: parsed.data.agenda,
+    });
+
+    await this.audit.record({
+      tutorId: tutor.id,
+      actorType: ActorType.TUTOR,
+      action: 'lesson.agenda.updated',
+      entityType: 'Lesson',
+      entityId: lesson.id,
+      // Length only — never the body itself (PII).
+      metadata: { length: parsed.data.agenda.length },
+      ipAddress: clientIp(req),
+      userAgent: req.header('user-agent') ?? null,
+    });
+
+    // Return the lesson WITH its student so the client cache keeps join data.
+    const withStudent = await this.lessons.getLessonForTutorOrFail({ id, tutorId: tutor.id });
+    return serializeLessonWithStudent(withStudent);
   }
 }
 
@@ -296,6 +343,7 @@ export function serializeLesson(l: Lesson): LessonResponse {
     title: l.title,
     occurredAt: l.occurredAt.toISOString(),
     googleEventId: l.googleEventId,
+    agenda: l.agenda,
     feedbackText: l.feedbackText,
     feedbackSource: l.feedbackSource,
     transcriptionStatus: l.transcriptionStatus,
@@ -316,6 +364,7 @@ export function serializeLessonWithStudent(l: LessonWithStudent): LessonResponse
     title: l.title,
     occurredAt: l.occurredAt.toISOString(),
     googleEventId: l.googleEventId,
+    agenda: l.agenda,
     feedbackText: l.feedbackText,
     feedbackSource: l.feedbackSource,
     transcriptionStatus: l.transcriptionStatus,
@@ -345,4 +394,9 @@ function clientIp(req: AuthedRequest): string | null {
   const fwd = req.header('x-forwarded-for');
   if (fwd) return fwd.split(',')[0]?.trim() ?? null;
   return req.ip ?? null;
+}
+
+/** A lesson "has feedback" once its feedbackText is non-empty. */
+function hasFeedback(local: LessonWithStudent | undefined | null): boolean {
+  return !!local?.feedbackText && local.feedbackText.trim().length > 0;
 }

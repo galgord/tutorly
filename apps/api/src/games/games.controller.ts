@@ -20,10 +20,12 @@ import {
   GameListResponseSchema,
   GameResponseSchema,
   RegenerateQuestionRequestSchema,
+  StudentGamesResponseSchema,
   UpdateGameRequestSchema,
   type GameListResponse,
   type GameResponse,
   type Language,
+  type StudentGamesResponse,
 } from '@tutor-app/shared';
 import type { Request, Response } from 'express';
 import { AuditService } from '../audit/audit.service';
@@ -31,7 +33,8 @@ import { AuthGuard, type AuthedRequest } from '../auth/auth.guard';
 import { CsrfGuard } from '../auth/csrf.guard';
 import { CurrentTutor, type CurrentTutorPayload } from '../auth/current-tutor.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { GamesService, parsePool } from './games.service';
+import { StudentService } from '../students/student.service';
+import { GamesService, parsePool, type StudentGameListItem } from './games.service';
 
 /**
  * Tutor-facing endpoints for game generation + review.
@@ -57,6 +60,7 @@ export class GamesController {
     private readonly games: GamesService,
     private readonly audit: AuditService,
     private readonly prisma: PrismaService,
+    private readonly students: StudentService,
   ) {}
 
   @Post('lessons/:lessonId/games')
@@ -138,6 +142,18 @@ export class GamesController {
   ): Promise<GameResponse> {
     const game = await this.games.getForTutorOrFail({ id, tutorId: tutor.id });
     return serializeGame(game);
+  }
+
+  /** Every game across a student's lessons — powers the student page's grid. */
+  @Get('students/:id/games')
+  async listForStudent(
+    @CurrentTutor() tutor: CurrentTutorPayload,
+    @Param('id') id: string,
+  ): Promise<StudentGamesResponse> {
+    // 404 (never 401) on a missing or cross-tenant student before querying.
+    await this.students.getForTutorOrFail({ id, tutorId: tutor.id });
+    const items = await this.games.listForStudent({ studentId: id, tutorId: tutor.id });
+    return StudentGamesResponseSchema.parse({ items: items.map(serializeStudentGame) });
   }
 
   @Patch('games/:id')
@@ -265,6 +281,24 @@ export class GamesController {
       userAgent: req.header('user-agent') ?? null,
     });
   }
+}
+
+export function serializeStudentGame(item: StudentGameListItem): StudentGamesResponse['items'][number] {
+  const g = item.game;
+  return {
+    id: g.id,
+    lessonId: g.lessonId,
+    type: g.type,
+    title: g.title,
+    status: g.status,
+    questionCount: item.questionCount,
+    lessonOccurredAt: item.lessonOccurredAt.toISOString(),
+    lessonTitle: item.lessonTitle,
+    createdAt: g.createdAt.toISOString(),
+    lastPlayedAt: item.lastPlayedAt ? item.lastPlayedAt.toISOString() : null,
+    playsCompleted: item.playsCompleted,
+    accuracy: item.accuracy,
+  };
 }
 
 export function serializeGame(g: Game): GameResponse {

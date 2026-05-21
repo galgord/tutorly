@@ -126,7 +126,10 @@ describe('GamesService.createAndEnqueue', () => {
 
   it('refuses to enqueue when lesson has no feedback', async () => {
     const { svc, prisma } = makeService();
-    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({ feedbackText: '' } as never);
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      feedbackText: '',
+      occurredAt: new Date(Date.now() - 86_400_000),
+    } as never);
     await expect(
       svc.createAndEnqueue({
         lessonId: 'les_1',
@@ -138,10 +141,30 @@ describe('GamesService.createAndEnqueue', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('refuses to enqueue when the session is still in the future', async () => {
+    const { svc, prisma } = makeService();
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      feedbackText: 'real feedback',
+      occurredAt: new Date(Date.now() + 7 * 86_400_000),
+    } as never);
+    await expect(
+      svc.createAndEnqueue({
+        lessonId: 'les_1',
+        tutorId: 'tutor_a',
+        type: GameType.FILL_BLANK,
+        poolSize: 30,
+        locale: 'en',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    // Future-gate fires before any quota reservation or game row.
+    expect(prisma.game.create).not.toHaveBeenCalled();
+  });
+
   it('creates a GENERATING game and enqueues a job with the tutor id', async () => {
     const { svc, prisma, queue } = makeService();
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
       feedbackText: 'real feedback',
+      occurredAt: new Date(Date.now() - 86_400_000),
     } as never);
     vi.mocked(prisma.game.create).mockResolvedValue(
       fakeGame({ status: GameStatus.GENERATING }) as never,
@@ -162,6 +185,7 @@ describe('GamesService.createAndEnqueue', () => {
     const { svc, prisma, queue, quota } = makeService();
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
       feedbackText: 'real feedback',
+      occurredAt: new Date(Date.now() - 86_400_000),
     } as never);
     vi.mocked(prisma.game.create).mockResolvedValue(
       fakeGame({ status: GameStatus.GENERATING }) as never,
@@ -193,7 +217,10 @@ describe('GamesService.createAndEnqueue', () => {
       })),
     } as never);
     const { svc, prisma } = makeService({ quota });
-    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({ feedbackText: 'fb' } as never);
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+      feedbackText: 'fb',
+      occurredAt: new Date(Date.now() - 86_400_000),
+    } as never);
     await expect(
       svc.createAndEnqueue({
         lessonId: 'les_1',

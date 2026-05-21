@@ -47,7 +47,9 @@
     "settingsLink": "Account settings",
     "logout": "Log out",
     "kpi": {
-      "activeStudents": "Active students"
+      "activeStudents": "Active students",
+      "lessonsThisWeek": "Lessons this week",
+      "gamesAssigned": "Games assigned"
     },
     "student": {
       "l1": "L1 · {{code}}",
@@ -57,27 +59,86 @@
     "toast": {
       "inviteCopied": "Invite link copied",
       "inviteCopyFailed": "Couldn't copy the link. Open the student's page to copy it manually."
+    },
+    "todayTitle": "Today's lessons",
+    "todayEmpty": "No lessons scheduled for today."
+  },
+  "teachingSetup": {
+    "title": "Set up your account",
+    "explainer": "Tell us what and how you teach — this shapes the practice games we generate for your students.",
+    "appLanguageLabel": "App language",
+    "appLanguageHint": "The language Tutorly's interface is shown in.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "e.g. Maria Silva",
+    "businessNameLabel": "Business name",
+    "businessNameHint": "The name of your tutoring practice.",
+    "businessNamePlaceholder": "e.g. Maria's Language Studio",
+    "subjectLabel": "Subject you teach",
+    "subjectPlaceholder": "e.g. Portuguese, Math, Piano",
+    "languageLabel": "Lesson language",
+    "languageHint": "Practice questions are generated in this language, even if you record feedback in another one.",
+    "languageNone": "Same as my UI language",
+    "submit": "Save and continue",
+    "skip": "Skip for now",
+    "errors": {
+      "invalid": "Please enter a valid subject.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "gettingStarted": {
+    "title": "How Tutorly works",
+    "subtitle": "Three steps to turn lessons into practice your students will play.",
+    "steps": {
+      "addStudent": {
+        "title": "1. Add a student",
+        "body": "Create a profile for each student you teach."
+      },
+      "feedback": {
+        "title": "2. Write lesson feedback",
+        "body": "After a lesson, jot down notes — we turn them into practice games."
+      },
+      "share": {
+        "title": "3. Share the game link",
+        "body": "Send the invite link so your student can play between sessions."
+      }
     }
   },
   "settings": {
     "title": "Account settings",
     "profile": {
       "title": "Profile",
+      "description": "Your identity and interface preferences.",
       "email": "Email",
+      "emailHint": "Your email is fixed and used to sign in.",
       "name": "Name",
-      "locale": "Language",
+      "businessName": "Business name",
+      "businessNameHint": "The name of your tutoring practice.",
+      "locale": "Interface language",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "teaching": {
+      "title": "Teaching",
+      "description": "These settings shape the AI-generated practice games your students play.",
       "subject": "Subject you teach",
       "subjectPlaceholder": "e.g. Portuguese, Math, Piano",
       "subjectHint": "Helps the AI write questions on the right topic.",
       "teachingLanguage": "Lesson language",
       "teachingLanguageHint": "Practice questions will be generated in this language, even if you record feedback in a different one.",
-      "teachingLanguageNone": "Same as my UI language",
+      "teachingLanguageNone": "Same as my interface language",
       "save": "Save",
       "saved": "Saved"
     },
+    "integrations": {
+      "title": "Integrations",
+      "description": "Connect Google Calendar to surface past lessons you can attach feedback to.",
+      "manage": "Manage integrations",
+      "connect": "Connect Google Calendar"
+    },
     "delete": {
-      "title": "Delete account",
-      "warning": "This permanently soft-deletes your account and all student data. Your account is recoverable for 30 days before permanent purge.",
+      "title": "Danger zone",
+      "warning": "Deleting your account permanently removes your students, lessons, generated games, and all progress data. Your account is soft-deleted and recoverable for 30 days before it is purged for good.",
+      "exportHint": "Want a copy of your data first? Download a full export from {{path}}.",
       "confirmLabel": "Type your email ({{email}}) to confirm:",
       "button": "Delete account"
     }
@@ -131,7 +192,36 @@
       "shareTitle": "Share link",
       "shareBody": "Send this URL to the student. They don't need an account — the link itself is their access.",
       "notFoundTitle": "Student not found",
-      "notFoundBody": "That student doesn't exist or you don't have access to it."
+      "notFoundBody": "That student doesn't exist or you don't have access to it.",
+      "editButton": "Edit",
+      "editModalTitle": "Edit student",
+      "lastActive": "Last active {{date}}",
+      "neverActive": "Hasn't played yet",
+      "adaptiveHint": "Levels rise automatically as your student succeeds — there's nothing to set here.",
+      "noProgressTitle": "No practice yet",
+      "noProgressBody": "Progress shows up here once your student plays their first game. Share their invite link to get started.",
+      "stats": {
+        "attempts": "Attempts",
+        "accuracy": "Accuracy",
+        "games": "Games"
+      }
+    },
+    "games": {
+      "title": "Games",
+      "empty": "No games yet — generate one from a lesson's feedback.",
+      "lastPlayed": "Last played {{date}}",
+      "neverPlayed": "Not played yet",
+      "accuracy": "{{pct}}% accuracy",
+      "plays": "{{count}} plays",
+      "plays_one": "{{count}} play",
+      "attempts": "{{count}} attempts",
+      "attempts_one": "{{count}} attempt",
+      "dueReviews": "{{count}} reviews due",
+      "dueReviews_one": "{{count}} review due",
+      "history": "History",
+      "hideHistory": "Hide",
+      "open": "Open lesson",
+      "preview": "Preview"
     },
     "rotate": {
       "title": "Rotate share link?",
@@ -151,7 +241,10 @@
       "empty": "Trash is empty.",
       "back": "Back to students",
       "restore": "Restore",
-      "deletedOn": "Deleted {{date}}"
+      "deletedOn": "Deleted {{date}}",
+      "purgesIn": "Purges {{date}} · {{count}} days left",
+      "purgesIn_one": "Purges {{date}} · {{count}} day left",
+      "purgeImminent": "Purges today"
     },
     "pagination": {
       "label": "Pagination",
@@ -163,10 +256,13 @@
       "linkCopied": "Share link copied to clipboard",
       "linkCopyFailed": "Could not copy link. Select and copy manually.",
       "saved": "Changes saved",
+      "saveFailed": "Couldn't save changes. Try again.",
       "deleted": "Student moved to trash",
       "restored": "Student restored",
       "tokenRotated": "New share link issued"
-    }
+    },
+    "count": "{{count}} students",
+    "count_one": "{{count}} student"
   },
   "publicStudent": {
     "greeting": "Hi,",
@@ -255,9 +351,12 @@
     "title": "Schedule",
     "subtitle": "Lessons you've added — past and upcoming. Use your Google Calendar for your day-to-day calendar.",
     "addCta": "Add a lesson",
+    "addStudentCta": "Add a student",
     "open": "Open",
-    "empty": "No lessons yet. Add one from a student's page.",
+    "empty": "No lessons yet. Add your first one.",
+    "emptyNoStudents": "Add your first student — you'll be able to schedule lessons for them right after.",
     "loadError": "Couldn't load the schedule. Try again.",
+    "needsFeedback": "Needs feedback",
     "groups": {
       "upcoming": "Upcoming",
       "past": "Past"
@@ -288,8 +387,10 @@
         "unavailable": "Google is temporarily unavailable. Try again shortly.",
         "loadFailed": "Couldn't load calendars. Try again.",
         "saveFailed": "Couldn't save your selection. Try again.",
-        "callback": "Google reported an error during connect. Try again."
-      }
+        "callback": "Google reported an error during connect. Try again.",
+        "loadFailedTitle": "Couldnt load your calendars"
+      },
+      "reconnectAction": "Reconnect"
     }
   },
   "calendar": {
@@ -336,7 +437,20 @@
       "sourceManual": "Added manually",
       "sourceGoogle": "From Google Calendar",
       "notFoundTitle": "Lesson not found",
-      "notFoundBody": "That lesson doesn't exist or you don't have access to it."
+      "notFoundBody": "That lesson doesn't exist or you don't have access to it.",
+      "futureLocked": "Feedback and practice games unlock once the session starts ({{date}})."
+    }
+  },
+  "agenda": {
+    "title": "Lesson plan",
+    "subtitle": "Jot what this session will cover. Editable any time — a plan before, a record after.",
+    "label": "Plan",
+    "placeholder": "Review past tense, then introduce conditional. Bring the worksheet.",
+    "save": "Save plan",
+    "unsaved": "Unsaved changes",
+    "charCount": "{{count}} / {{max}} characters",
+    "toast": {
+      "saved": "Lesson plan saved"
     }
   },
   "feedback": {
@@ -388,9 +502,12 @@
     "title": "Practice games",
     "generateFillBlank": "Generate Fill-in-Blank",
     "generateTimedQuiz": "Generate Timed Quiz",
+    "generateFillBlankDesc": "Fill-in-blank — the student types the missing word.",
+    "generateTimedQuizDesc": "Timed quiz — multiple-choice against a clock, 3 lives.",
     "needFeedback": "Save feedback first — the AI generates from what you wrote.",
     "saveFirst": "You have unsaved feedback edits — save them before generating.",
     "empty": "No games yet. Click a generate button to create one.",
+    "quotaMeter": "{{used}} / {{cap}} games generated this month",
     "typeFillBlank": "Fill-in-the-blank",
     "typeTimedQuiz": "Timed quiz",
     "questionCount": "{{count}} questions",
@@ -420,6 +537,17 @@
     "subtitleFillBlank": "Edit each question, or regenerate any you don't like. Assign when ready.",
     "subtitleTimedQuiz": "Edit the prompt, answer, and distractors. Assign when ready.",
     "subtitleGeneric": "Review and edit the generated questions, then assign to your student.",
+    "visibility": {
+      "draft": "Not visible to your student yet.",
+      "live": "Live — your student can play this now."
+    },
+    "error": {
+      "quota": "Monthly generation limit reached.",
+      "regenerateAll": "Couldn't regenerate the pool — try again.",
+      "regenerateOne": "Couldn't regenerate that question — try again.",
+      "save": "Couldn't save your edits — try again.",
+      "assign": "Couldn't assign the game — try again."
+    },
     "generating": "Generating questions…",
     "generatingHint": "This typically takes a few seconds.",
     "failedTitle": "Generation failed",

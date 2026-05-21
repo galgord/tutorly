@@ -39,6 +39,11 @@ export const DEFAULT_DIFFICULTY = 3;
 export const LlmQuestionSchema = z.object({
   prompt: z.string().trim().min(1).max(500),
   answer: z.string().trim().min(1).max(200),
+  // The `prompt` translated into the student's native language (L1) so a
+  // beginner can read the question instruction. `null` when the student has
+  // no L1 set, or their L1 equals the question's target language.
+  // `.optional()` keeps pre-existing LLM responses (no key) parsing.
+  promptTranslation: z.string().trim().min(1).max(500).nullable().optional().default(null),
   // Multiple-choice distractors for TIMED_QUIZ. Empty/omitted for FILL_BLANK.
   distractors: z.array(z.string().trim().min(1).max(200)).max(8).optional(),
   // Tutor-curated alternate accepted answers (synonyms, alternate spellings).
@@ -60,6 +65,9 @@ export const GameQuestionSchema = z.object({
   id: z.string().min(1),
   prompt: z.string().trim().min(1).max(500),
   answer: z.string().trim().min(1).max(200),
+  // L1 translation of `prompt` (see LlmQuestionSchema). `.optional()` +
+  // `.default(null)` keeps pre-existing JSON pools (no key) parsing safely.
+  promptTranslation: z.string().trim().min(1).max(500).nullable().optional().default(null),
   distractors: z.array(z.string().trim().min(1).max(200)).max(8).default([]),
   acceptAlternates: z.array(z.string().trim().min(1).max(200)).max(10).default([]),
   topicTags: TopicTagsField,
@@ -119,6 +127,34 @@ export const GameListResponseSchema = z.object({
   items: z.array(GameResponseSchema),
 });
 export type GameListResponse = z.infer<typeof GameListResponseSchema>;
+
+/**
+ * Lean per-game summary for the tutor-facing student page. Lists every game
+ * across all of a student's lessons (any status). Deliberately omits the
+ * heavy `questionPool` — the card grid only needs the count + play stats.
+ */
+export const StudentGameSummarySchema = z.object({
+  id: z.string().min(1),
+  lessonId: z.string().min(1),
+  type: GameTypeSchema,
+  title: z.string().min(1),
+  status: GameStatusSchema,
+  questionCount: z.number().int().min(0),
+  lessonOccurredAt: z.string().datetime(),
+  lessonTitle: z.string().nullable(),
+  createdAt: z.string().datetime(),
+  /** Most recent finished attempt; null = never played. */
+  lastPlayedAt: z.string().datetime().nullable(),
+  playsCompleted: z.number().int().min(0),
+  /** Correct / answered across all finished attempts; null when none. */
+  accuracy: z.number().min(0).max(1).nullable(),
+});
+export type StudentGameSummary = z.infer<typeof StudentGameSummarySchema>;
+
+export const StudentGamesResponseSchema = z.object({
+  items: z.array(StudentGameSummarySchema),
+});
+export type StudentGamesResponse = z.infer<typeof StudentGamesResponseSchema>;
 
 export const GameCreatedResponseSchema = z.object({
   game: GameResponseSchema,

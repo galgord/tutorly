@@ -61,7 +61,7 @@ function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
           type="button"
           aria-label={t('common.close')}
           onClick={onCloseMobile}
-          className="fixed inset-0 z-30 bg-ink/40 md:hidden"
+          className="fixed inset-0 z-30 bg-scrim md:hidden"
         />
       )}
       <aside

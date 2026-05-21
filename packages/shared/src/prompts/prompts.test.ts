@@ -165,6 +165,43 @@ describe('buildGenerationPrompt', () => {
     expect(built.gameTypeBlock).not.toContain("Student's native language (L1):");
   });
 
+  // ---- Per-question L1 translation (promptTranslation) ------------------
+
+  it('instructs the LLM to translate the prompt into the L1 when one is set', () => {
+    const built = buildGenerationPrompt({
+      gameType: 'FILL_BLANK',
+      locale: 'he',
+      targetLanguage: 'pt',
+      studentL1: 'he',
+      poolSize: 3,
+      feedbackText: 'x',
+    });
+    expect(built.gameTypeBlock).toContain('`promptTranslation`');
+    expect(built.gameTypeBlock).toContain('translated into Hebrew');
+    expect(SYSTEM_PROMPT_BASE).toContain('"promptTranslation"');
+  });
+
+  it('instructs the LLM to set promptTranslation to null when there is no distinct L1', () => {
+    const noL1 = buildGenerationPrompt({
+      gameType: 'FILL_BLANK',
+      locale: 'pt',
+      targetLanguage: 'pt',
+      poolSize: 3,
+      feedbackText: 'x',
+    });
+    expect(noL1.gameTypeBlock).toContain('`promptTranslation` to `null`');
+
+    const sameL1 = buildGenerationPrompt({
+      gameType: 'FILL_BLANK',
+      locale: 'pt',
+      targetLanguage: 'pt',
+      studentL1: 'pt',
+      poolSize: 3,
+      feedbackText: 'x',
+    });
+    expect(sameL1.gameTypeBlock).toContain('`promptTranslation` to `null`');
+  });
+
   // ---- Phase 12E: top-up prompt -----------------------------------------
 
   it('buildTopUpPrompt keeps the cached blocks byte-identical to the normal prompt', () => {

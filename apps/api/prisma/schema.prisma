@@ -16,6 +16,9 @@ model Tutor {
   id                         String    @id @default(cuid())
   email                      String    @unique
   name                       String?
+  // White-labeling (upcoming): the tutor's tutoring-practice brand name.
+  // Students will see this; for now we only store + let the tutor edit it.
+  businessName               String?
   locale                     String    @default("en") // en | pt | he — UI direction
   // Phase 11: what the tutor teaches (free text, e.g. "Portuguese", "Math").
   // Shown to the LLM as context so it generates subject-appropriate
@@ -160,6 +163,10 @@ model Lesson {
   source               LessonSource        @default(MANUAL)
   title                String?
   occurredAt           DateTime
+  // Free-text plan / agenda for the session. Editable at ANY time — before
+  // the lesson as a plan, after as a record of what was covered. Distinct
+  // from `feedbackText` (post-lesson notes that drive game generation).
+  agenda               String?
   feedbackText         String?
   feedbackSource       FeedbackSource      @default(TEXT)
   // Phase 5: storage-relative path to the uploaded audio while

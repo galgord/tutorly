@@ -47,18 +47,25 @@ export class MeController {
         id: true,
         email: true,
         name: true,
+        businessName: true,
         locale: true,
         subject: true,
         teachingLanguage: true,
+        monthlyGenerations: true,
+        monthlyGenerationsResetAt: true,
       },
     });
     return MeResponseSchema.parse({
       id: row?.id ?? tutor.id,
       email: row?.email ?? tutor.email,
       name: row?.name ?? tutor.name,
+      businessName: row?.businessName ?? null,
       locale: row?.locale ?? tutor.locale,
       subject: row?.subject ?? null,
       teachingLanguage: row?.teachingLanguage ?? null,
+      monthlyGenerations: row?.monthlyGenerations ?? 0,
+      monthlyGenerationsCap: this.config.get('GAME_GEN_MONTHLY_CAP'),
+      monthlyGenerationsResetAt: (row?.monthlyGenerationsResetAt ?? new Date()).toISOString(),
     });
   }
 
@@ -80,6 +87,12 @@ export class MeController {
         // `null` is meaningful (clear the field); `undefined` (key absent)
         // leaves it untouched. Zod gives us `undefined` when the key wasn't
         // sent, so the ternary is safe.
+        businessName:
+          parsed.data.businessName === undefined
+            ? undefined
+            : parsed.data.businessName === null
+              ? null
+              : parsed.data.businessName.trim(),
         subject:
           parsed.data.subject === undefined
             ? undefined
@@ -93,9 +106,12 @@ export class MeController {
         id: true,
         email: true,
         name: true,
+        businessName: true,
         locale: true,
         subject: true,
         teachingLanguage: true,
+        monthlyGenerations: true,
+        monthlyGenerationsResetAt: true,
       },
     });
 
@@ -110,7 +126,11 @@ export class MeController {
       userAgent: req.header('user-agent') ?? null,
     });
 
-    return MeResponseSchema.parse(updated);
+    return MeResponseSchema.parse({
+      ...updated,
+      monthlyGenerationsCap: this.config.get('GAME_GEN_MONTHLY_CAP'),
+      monthlyGenerationsResetAt: updated.monthlyGenerationsResetAt.toISOString(),
+    });
   }
 
   @Get('export')

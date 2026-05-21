@@ -10,6 +10,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { StudentIndicators, wasEverActive } from '../components/StudentIndicators';
 import { StudentRowMenu } from '../components/StudentRowMenu';
 import { Toast } from '../components/Toast';
+import { EmptyState, Skeleton } from '../components/ui';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { api } from '../lib/api';
 import { buildShareUrl, useStudents } from '../lib/students';
 
@@ -26,7 +28,11 @@ export function StudentsListPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [rotateTarget, setRotateTarget] = useState<{ id: string; name: string } | null>(null);
 
-  const list = useStudents({ q: search.trim() || undefined, page, limit: PAGE_SIZE });
+  // Debounce so a query doesn't fire on every keystroke; the input stays
+  // controlled by `search` for instant feedback.
+  const debouncedSearch = useDebouncedValue(search.trim(), 250);
+
+  const list = useStudents({ q: debouncedSearch || undefined, page, limit: PAGE_SIZE });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteStudent(id),
@@ -63,7 +69,14 @@ export function StudentsListPage() {
   return (
     <section data-testid="students-list" className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-ink">{t('students.title')}</h1>
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-2xl font-semibold text-ink">{t('students.title')}</h1>
+          {list.data && (
+            <span className="text-sm text-ink-muted" data-testid="students-total">
+              {t('students.count', { count: total })}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <Link
             to="/students/trash"
@@ -103,18 +116,24 @@ export function StudentsListPage() {
       </div>
 
       {list.isLoading && (
-        <p data-testid="students-loading" className="text-sm text-ink-muted">
-          {t('common.loading')}
-        </p>
+        <div data-testid="students-loading" className="space-y-px overflow-hidden rounded-lg border border-line bg-surface">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-56" />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {!list.isLoading && items.length === 0 && (
-        <div
-          data-testid="students-empty"
-          className="rounded-lg border border-dashed border-line-strong bg-surface p-8 text-center text-sm text-ink-muted"
-        >
-          {search.trim() ? t('students.emptySearch') : t('students.emptyAll')}
-        </div>
+        <EmptyState
+          testId="students-empty"
+          message={debouncedSearch ? t('students.emptySearch') : t('students.emptyAll')}
+        />
       )}
 
       {items.length > 0 && (

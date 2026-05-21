@@ -96,7 +96,7 @@ export function PlayGamePage() {
 
   if (!attempt || start.isPending) {
     return (
-      <p data-testid="play-loading" className="text-sm text-slate-600">
+      <p data-testid="play-loading" className="text-sm text-ink-muted">
         {t('play.loading')}
       </p>
     );
@@ -144,7 +144,7 @@ export function PlayGamePage() {
           type="button"
           data-testid="play-back"
           onClick={goBack}
-          className="text-sm text-slate-600 underline-offset-2 hover:underline"
+          className="text-sm text-ink-muted underline-offset-2 hover:underline"
         >
           {t('play.backToDashboard')}
         </button>
@@ -201,7 +201,7 @@ function SummaryView({
       data-testid="play-summary"
       data-score={summary.score}
       data-total={summary.total}
-      className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 text-center"
+      className="space-y-6 rounded-lg border border-line bg-surface p-6 text-center"
     >
       <h1 className="text-2xl font-semibold">{title}</h1>
       <p className="text-4xl font-bold" data-testid="play-summary-score">
@@ -220,7 +220,7 @@ function SummaryView({
           {beatLabel}
         </p>
       )}
-      <p className="text-sm text-slate-600" data-testid="play-summary-best">
+      <p className="text-sm text-ink-muted" data-testid="play-summary-best">
         {bestEverLabel}
       </p>
       <div className="flex flex-wrap justify-center gap-3">
@@ -228,7 +228,7 @@ function SummaryView({
           type="button"
           data-testid="play-again"
           onClick={onPlayAgain}
-          className="rounded bg-slate-900 px-5 py-2 text-sm font-medium text-white"
+          className="rounded bg-ink px-5 py-2 text-sm font-medium text-white"
         >
           {playAgainLabel}
         </button>
@@ -236,7 +236,7 @@ function SummaryView({
           type="button"
           data-testid="play-summary-back"
           onClick={onBack}
-          className="rounded border border-slate-300 px-5 py-2 text-sm font-medium"
+          className="rounded border border-line-strong px-5 py-2 text-sm font-medium"
         >
           {backLabel}
         </button>
@@ -267,7 +267,7 @@ function ErrorState({ title, body, retryLabel, onRetry, backLabel, onBack }: Err
           type="button"
           data-testid="play-error-retry"
           onClick={onRetry}
-          className="rounded bg-slate-900 px-5 py-2 text-sm font-medium text-white"
+          className="rounded bg-ink px-5 py-2 text-sm font-medium text-white"
         >
           {retryLabel}
         </button>
@@ -275,7 +275,7 @@ function ErrorState({ title, body, retryLabel, onRetry, backLabel, onBack }: Err
           type="button"
           data-testid="play-error-back"
           onClick={onBack}
-          className="rounded border border-slate-300 px-5 py-2 text-sm font-medium"
+          className="rounded border border-line-strong px-5 py-2 text-sm font-medium"
         >
           {backLabel}
         </button>

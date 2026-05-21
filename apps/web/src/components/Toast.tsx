@@ -24,7 +24,7 @@ export function Toast({ message, durationMs = 2500, onDismiss, testId }: ToastPr
       aria-live="polite"
       data-testid={testId}
       // bottom-end-corner via logical insets; stays visually correct in RTL.
-      className="fixed bottom-4 end-4 z-50 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg"
+      className="fixed bottom-4 end-4 z-50 rounded-md bg-ink px-4 py-2 text-sm font-medium text-white shadow-lg"
     >
       {message}
     </div>

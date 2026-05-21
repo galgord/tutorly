@@ -45,6 +45,7 @@ export const LessonResponseSchema = z.object({
   title: z.string().nullable(),
   occurredAt: z.string().datetime(),
   googleEventId: z.string().nullable(),
+  agenda: z.string().nullable(),
   feedbackText: z.string().nullable(),
   feedbackSource: FeedbackSourceSchema,
   transcriptionStatus: TranscriptionStatusSchema,
@@ -78,6 +79,10 @@ export const CalendarItemSchema = z.object({
   studentId: z.string().nullable(),
   studentName: z.string().nullable(),
   calendarId: z.string().nullable(),
+  /** True when the local lesson has saved feedback — lets the Schedule mark
+   *  past sessions that still need a write-up. Always false for Google-only
+   *  events with no attached lesson. */
+  hasFeedback: z.boolean(),
 });
 export type CalendarItem = z.infer<typeof CalendarItemSchema>;
 

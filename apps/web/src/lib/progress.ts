@@ -25,19 +25,3 @@ export function useStudentGameProgress(studentId: string | null) {
       err instanceof ApiError && err.status >= 500 && failureCount < 2,
   });
 }
-
-/** Paginated recent attempts (with per-question detail inline). */
-export function useStudentAttempts(
-  studentId: string | null,
-  page: number,
-  limit: number,
-) {
-  return useQuery({
-    queryKey: ['student-attempts', studentId, page, limit],
-    enabled: !!studentId,
-    queryFn: () => api.listStudentAttempts(studentId!, { page, limit }),
-    staleTime: 30_000,
-    retry: (failureCount, err) =>
-      err instanceof ApiError && err.status >= 500 && failureCount < 2,
-  });
-}

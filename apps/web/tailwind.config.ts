@@ -38,6 +38,9 @@ const config: Config = {
           muted: 'var(--color-ink-muted)',
           subtle: 'var(--color-ink-subtle)',
         },
+        // Translucent backdrop for modals/drawers — already has alpha baked in,
+        // so use it as a plain `bg-scrim` (no `/opacity` modifier).
+        scrim: 'var(--color-scrim)',
       },
     },
   },

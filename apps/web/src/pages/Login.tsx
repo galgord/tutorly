@@ -47,9 +47,9 @@ export function LoginPage() {
       : null;
 
   return (
-    <form onSubmit={onSubmit} className="rounded-lg border border-slate-200 bg-white p-6">
+    <form onSubmit={onSubmit} className="rounded-lg border border-line bg-surface p-6">
       <h1 className="text-xl font-semibold">{t('login.title')}</h1>
-      <p className="mt-1 text-sm text-slate-600">{t('login.subtitle')}</p>
+      <p className="mt-1 text-sm text-ink-muted">{t('login.subtitle')}</p>
 
       <label htmlFor="email" className="mt-6 block text-sm font-medium">
         {t('login.emailLabel')}
@@ -63,7 +63,7 @@ export function LoginPage() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
-        className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         data-testid="login-email"
       />
 
@@ -76,7 +76,7 @@ export function LoginPage() {
       <button
         type="submit"
         disabled={mutation.isPending || !email.trim()}
-        className="mt-6 rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        className="mt-6 rounded bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         data-testid="login-submit"
       >
         {mutation.isPending ? t('login.sending') : t('login.submit')}

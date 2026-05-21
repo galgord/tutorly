@@ -174,14 +174,14 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
     <section
       data-testid="timed-quiz-engine"
       data-attempt-id={attempt.attemptId}
-      className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
+      className="space-y-6 rounded-lg border border-line bg-surface p-6"
     >
       <header className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span
             data-testid="play-score"
             aria-live="polite"
-            className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold"
+            className="rounded-full bg-surface-sunken px-3 py-1 text-sm font-semibold"
           >
             {t('play.scoreLabel', { score })}
           </span>
@@ -198,7 +198,7 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
             <li
               key={i}
               aria-hidden="true"
-              className={`text-lg ${filled ? 'text-rose-600' : 'text-slate-300'}`}
+              className={`text-lg ${filled ? 'text-rose-600' : 'text-ink-subtle'}`}
               data-testid={`play-life-${i}`}
               data-filled={filled ? 'true' : 'false'}
             >
@@ -215,10 +215,10 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
         aria-valuenow={timeLeft}
         aria-valuemin={0}
         aria-valuemax={attempt.perQuestionSeconds}
-        className="h-2 w-full overflow-hidden rounded-full bg-slate-200"
+        className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken"
       >
         <div
-          className="h-full bg-slate-900 transition-[inline-size] duration-300 ease-linear"
+          className="h-full bg-ink transition-[inline-size] duration-300 ease-linear"
           // Logical inline-size so the bar drains from start-edge in
           // both LTR and RTL (in RTL, "left" would be the wrong edge).
           style={{ inlineSize: `${barWidthPct}%` }}
@@ -231,9 +231,22 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
         </div>
       )}
 
-      <p data-testid="play-prompt" dir="auto" className="text-lg leading-relaxed">
-        {current.prompt}
-      </p>
+      <div className="space-y-1.5">
+        <p data-testid="play-prompt" dir="auto" className="text-lg leading-relaxed">
+          {current.prompt}
+        </p>
+        {current.promptTranslation && (
+          // L1 translation of the prompt for students whose native language
+          // differs from the question's language. `dir="auto"` handles RTL.
+          <p
+            data-testid="play-prompt-translation"
+            dir="auto"
+            className="text-sm leading-relaxed text-ink-muted"
+          >
+            {current.promptTranslation}
+          </p>
+        )}
+      </div>
 
       <ul className="grid gap-2">
         {choicesForCurrent.map((choice, i) => {
@@ -252,7 +265,7 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
                     ? 'border-emerald-500 bg-emerald-50'
                     : isPicked
                       ? 'border-amber-500 bg-amber-50'
-                      : 'border-slate-300 hover:bg-slate-50'
+                      : 'border-line-strong hover:bg-surface-sunken'
                 } disabled:cursor-not-allowed`}
               >
                 {choice}
@@ -281,7 +294,7 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
               type="button"
               data-testid="play-next"
               onClick={next}
-              className="inline-flex items-center gap-2 rounded bg-slate-900 px-5 py-2 text-sm font-medium text-white"
+              className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2 text-sm font-medium text-white"
             >
               {answered.gameOver || answered.livesRemaining <= 0
                 ? t('play.finish')

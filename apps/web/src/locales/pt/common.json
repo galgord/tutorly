@@ -47,7 +47,9 @@
     "settingsLink": "Definições da conta",
     "logout": "Terminar sessão",
     "kpi": {
-      "activeStudents": "Alunos ativos"
+      "activeStudents": "Alunos ativos",
+      "lessonsThisWeek": "Aulas esta semana",
+      "gamesAssigned": "Jogos atribuídos"
     },
     "student": {
       "l1": "L1 · {{code}}",
@@ -57,15 +59,67 @@
     "toast": {
       "inviteCopied": "Link de convite copiado",
       "inviteCopyFailed": "Não foi possível copiar o link. Abra a página do aluno para copiar manualmente."
+    },
+    "todayTitle": "Aulas de hoje",
+    "todayEmpty": "Nenhuma aula agendada para hoje."
+  },
+  "teachingSetup": {
+    "title": "Configure a sua conta",
+    "explainer": "Conte o que e como você ensina — isso molda os jogos de prática que geramos para seus alunos.",
+    "appLanguageLabel": "Idioma da aplicação",
+    "appLanguageHint": "O idioma em que a interface do Tutorly é apresentada.",
+    "nameLabel": "O seu nome",
+    "namePlaceholder": "ex.: Maria Silva",
+    "businessNameLabel": "Nome do negócio",
+    "businessNameHint": "O nome da sua prática de tutoria.",
+    "businessNamePlaceholder": "ex.: Estúdio de Línguas da Maria",
+    "subjectLabel": "Matéria que você ensina",
+    "subjectPlaceholder": "ex.: Português, Matemática, Piano",
+    "languageLabel": "Idioma da aula",
+    "languageHint": "As perguntas de prática são geradas neste idioma, mesmo que você grave o feedback em outro.",
+    "languageNone": "Mesmo idioma da interface",
+    "submit": "Salvar e continuar",
+    "skip": "Pular por enquanto",
+    "errors": {
+      "invalid": "Informe uma matéria válida.",
+      "generic": "Algo deu errado. Tente novamente."
+    }
+  },
+  "gettingStarted": {
+    "title": "Como o Tutorly funciona",
+    "subtitle": "Três passos para transformar aulas em prática que seus alunos vão jogar.",
+    "steps": {
+      "addStudent": {
+        "title": "1. Adicione um aluno",
+        "body": "Crie um perfil para cada aluno que você ensina."
+      },
+      "feedback": {
+        "title": "2. Escreva o feedback da aula",
+        "body": "Após a aula, anote observações — nós as transformamos em jogos de prática."
+      },
+      "share": {
+        "title": "3. Compartilhe o link do jogo",
+        "body": "Envie o link de convite para o aluno jogar entre as aulas."
+      }
     }
   },
   "settings": {
     "title": "Definições da conta",
     "profile": {
       "title": "Perfil",
+      "description": "A sua identidade e preferências da interface.",
       "email": "Email",
+      "emailHint": "O seu email é fixo e usado para iniciar sessão.",
       "name": "Nome",
-      "locale": "Idioma",
+      "businessName": "Nome do negócio",
+      "businessNameHint": "O nome da sua prática de tutoria.",
+      "locale": "Idioma da interface",
+      "save": "Guardar",
+      "saved": "Guardado"
+    },
+    "teaching": {
+      "title": "Ensino",
+      "description": "Estas definições moldam os jogos de prática gerados por IA que os seus alunos jogam.",
       "subject": "Disciplina que ensina",
       "subjectPlaceholder": "ex.: Português, Matemática, Piano",
       "subjectHint": "Ajuda a IA a criar questões sobre o tópico correto.",
@@ -75,9 +129,16 @@
       "save": "Guardar",
       "saved": "Guardado"
     },
+    "integrations": {
+      "title": "Integrações",
+      "description": "Conecte o Google Agenda para listar aulas passadas às quais pode anexar feedback.",
+      "manage": "Gerir integrações",
+      "connect": "Conectar Google Agenda"
+    },
     "delete": {
-      "title": "Eliminar conta",
-      "warning": "Esta ação faz uma eliminação suave da sua conta e de todos os dados de alunos. A conta pode ser recuperada durante 30 dias antes da remoção definitiva.",
+      "title": "Zona de perigo",
+      "warning": "Eliminar a sua conta remove permanentemente os seus alunos, aulas, jogos gerados e todos os dados de progresso. A conta é eliminada de forma suave e pode ser recuperada durante 30 dias antes da remoção definitiva.",
+      "exportHint": "Quer primeiro uma cópia dos seus dados? Descarregue uma exportação completa em {{path}}.",
       "confirmLabel": "Escreva o seu email ({{email}}) para confirmar:",
       "button": "Eliminar conta"
     }
@@ -131,7 +192,36 @@
       "shareTitle": "Link de partilha",
       "shareBody": "Envie este URL ao aluno. Não precisa de conta — o próprio link é o acesso.",
       "notFoundTitle": "Aluno não encontrado",
-      "notFoundBody": "Esse aluno não existe ou não tem acesso a ele."
+      "notFoundBody": "Esse aluno não existe ou não tem acesso a ele.",
+      "editButton": "Editar",
+      "editModalTitle": "Editar aluno",
+      "lastActive": "Ativo pela última vez em {{date}}",
+      "neverActive": "Ainda não jogou",
+      "adaptiveHint": "Os níveis sobem automaticamente conforme o aluno acerta — não há nada para configurar aqui.",
+      "noProgressTitle": "Ainda sem prática",
+      "noProgressBody": "O progresso aparece aqui quando o aluno jogar o primeiro jogo. Partilhe o link de convite para começar.",
+      "stats": {
+        "attempts": "Tentativas",
+        "accuracy": "Precisão",
+        "games": "Jogos"
+      }
+    },
+    "games": {
+      "title": "Jogos",
+      "empty": "Ainda sem jogos — gere um a partir do feedback de uma aula.",
+      "lastPlayed": "Jogado pela última vez em {{date}}",
+      "neverPlayed": "Ainda não jogado",
+      "accuracy": "{{pct}}% de precisão",
+      "plays": "{{count}} partidas",
+      "plays_one": "{{count}} partida",
+      "attempts": "{{count}} tentativas",
+      "attempts_one": "{{count}} tentativa",
+      "dueReviews": "{{count}} revisões pendentes",
+      "dueReviews_one": "{{count}} revisão pendente",
+      "history": "Histórico",
+      "hideHistory": "Ocultar",
+      "open": "Abrir aula",
+      "preview": "Pré-visualizar"
     },
     "rotate": {
       "title": "Renovar link de partilha?",
@@ -151,7 +241,10 @@
       "empty": "O lixo está vazio.",
       "back": "Voltar aos alunos",
       "restore": "Restaurar",
-      "deletedOn": "Eliminado em {{date}}"
+      "deletedOn": "Eliminado em {{date}}",
+      "purgesIn": "Exclusão em {{date}} · faltam {{count}} dias",
+      "purgesIn_one": "Exclusão em {{date}} · falta {{count}} dia",
+      "purgeImminent": "Exclusão hoje"
     },
     "pagination": {
       "label": "Paginação",
@@ -165,8 +258,11 @@
       "saved": "Alterações guardadas",
       "deleted": "Aluno movido para o lixo",
       "restored": "Aluno restaurado",
-      "tokenRotated": "Novo link de partilha emitido"
-    }
+      "tokenRotated": "Novo link de partilha emitido",
+      "saveFailed": "Não foi possível guardar. Tente novamente."
+    },
+    "count": "{{count}} alunos",
+    "count_one": "{{count}} aluno"
   },
   "publicStudent": {
     "greeting": "Olá,",
@@ -255,9 +351,12 @@
     "title": "Agenda",
     "subtitle": "Aulas que adicionou — passadas e próximas. Use o Google Agenda para o seu calendário do dia a dia.",
     "addCta": "Adicionar aula",
+    "addStudentCta": "Adicionar aluno",
     "open": "Abrir",
-    "empty": "Ainda sem aulas. Adicione uma a partir da página de um aluno.",
+    "empty": "Ainda sem aulas. Adicione a primeira.",
+    "emptyNoStudents": "Adicione o seu primeiro aluno — logo a seguir poderá agendar aulas para ele.",
     "loadError": "Não foi possível carregar a agenda. Tente novamente.",
+    "needsFeedback": "Falta feedback",
     "groups": {
       "upcoming": "Próximas",
       "past": "Anteriores"
@@ -288,8 +387,10 @@
         "unavailable": "Google está temporariamente indisponível. Tente novamente em breve.",
         "loadFailed": "Não foi possível carregar as agendas. Tente novamente.",
         "saveFailed": "Não foi possível guardar a sua seleção. Tente novamente.",
-        "callback": "O Google reportou um erro durante a ligação. Tente novamente."
-      }
+        "callback": "O Google reportou um erro durante a ligação. Tente novamente.",
+        "loadFailedTitle": "Não foi possível carregar as suas agendas"
+      },
+      "reconnectAction": "Reconectar"
     }
   },
   "calendar": {
@@ -336,7 +437,20 @@
       "sourceManual": "Adicionada manualmente",
       "sourceGoogle": "Do Google Agenda",
       "notFoundTitle": "Aula não encontrada",
-      "notFoundBody": "Essa aula não existe ou não tem acesso a ela."
+      "notFoundBody": "Essa aula não existe ou não tem acesso a ela.",
+      "futureLocked": "O feedback e os jogos de prática ficam disponíveis quando a aula começar ({{date}})."
+    }
+  },
+  "agenda": {
+    "title": "Plano da aula",
+    "subtitle": "Anote o que esta aula vai abordar. Editável a qualquer momento — um plano antes, um registo depois.",
+    "label": "Plano",
+    "placeholder": "Rever o pretérito e depois introduzir o condicional. Levar a ficha de exercícios.",
+    "save": "Guardar plano",
+    "unsaved": "Alterações não guardadas",
+    "charCount": "{{count}} / {{max}} caracteres",
+    "toast": {
+      "saved": "Plano da aula guardado"
     }
   },
   "feedback": {
@@ -388,9 +502,12 @@
     "title": "Jogos de prática",
     "generateFillBlank": "Gerar Preencher Lacunas",
     "generateTimedQuiz": "Gerar Quiz Cronometrado",
+    "generateFillBlankDesc": "Preencher lacunas — o aluno escreve a palavra que falta.",
+    "generateTimedQuizDesc": "Quiz cronometrado — escolha múltipla contra o relógio, 3 vidas.",
     "needFeedback": "Guarde primeiro o feedback — a IA gera a partir do que escreveu.",
     "saveFirst": "Tem alterações ao feedback por guardar — guarde antes de gerar.",
     "empty": "Ainda sem jogos. Clique num botão de gerar para criar um.",
+    "quotaMeter": "{{used}} / {{cap}} jogos gerados este mês",
     "typeFillBlank": "Preencher lacunas",
     "typeTimedQuiz": "Quiz cronometrado",
     "questionCount": "{{count}} perguntas",
@@ -420,6 +537,17 @@
     "subtitleFillBlank": "Edite cada pergunta ou regenere as que não gostar. Atribua quando estiver pronto.",
     "subtitleTimedQuiz": "Edite a pergunta, a resposta e os distratores. Atribua quando estiver pronto.",
     "subtitleGeneric": "Reveja e edite as perguntas geradas e depois atribua ao aluno.",
+    "visibility": {
+      "draft": "Ainda não visível para o seu aluno.",
+      "live": "Ativo — o seu aluno já pode jogar isto."
+    },
+    "error": {
+      "quota": "Limite mensal de gerações atingido.",
+      "regenerateAll": "Não foi possível regenerar o conjunto — tente novamente.",
+      "regenerateOne": "Não foi possível regenerar essa pergunta — tente novamente.",
+      "save": "Não foi possível guardar as alterações — tente novamente.",
+      "assign": "Não foi possível atribuir o jogo — tente novamente."
+    },
     "generating": "A gerar perguntas…",
     "generatingHint": "Normalmente demora alguns segundos.",
     "failedTitle": "Geração falhou",

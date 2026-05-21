@@ -62,7 +62,7 @@ describe('Lesson tenant isolation (live db)', () => {
     const les = await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await expect(
@@ -76,7 +76,7 @@ describe('Lesson tenant isolation (live db)', () => {
     const les = await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await expect(lessons.softDelete({ id: les.id, tutorId: tutorB })).rejects.toBeInstanceOf(
@@ -91,7 +91,7 @@ describe('Lesson tenant isolation (live db)', () => {
     const les = await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await lessons.softDelete({ id: les.id, tutorId: tutorA });
@@ -108,7 +108,7 @@ describe('Lesson tenant isolation (live db)', () => {
       lessons.createLesson({
         studentId: studentA, // belongs to tutor A
         tutorId: tutorB,
-        occurredAt: new Date(),
+        occurredAt: new Date(Date.now() - 86_400_000),
         source: LessonSource.MANUAL,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -119,7 +119,7 @@ describe('Lesson tenant isolation (live db)', () => {
     await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await expect(
@@ -167,14 +167,14 @@ describe('Lesson tenant isolation (live db)', () => {
     const a1 = await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       googleEventId: 'gevt-iso-1',
       source: LessonSource.GOOGLE_CALENDAR,
     });
     const a2 = await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       googleEventId: 'gevt-iso-1',
       source: LessonSource.GOOGLE_CALENDAR,
     });

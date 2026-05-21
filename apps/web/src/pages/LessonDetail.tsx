@@ -1,11 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import { useState } from 'react';
+import { Lock } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AgendaEditor } from '../components/AgendaEditor';
 import { Bidi } from '../components/Bidi';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import { FeedbackEditor } from '../components/FeedbackEditor';
 import { GamesPanel } from '../components/GamesPanel';
 import { VoiceRecorder } from '../components/VoiceRecorder';
+import { Card, CardBody } from '../components/ui';
 import { useLesson } from '../lib/lessons';
 
 /**
@@ -28,10 +32,26 @@ export function LessonDetailPage() {
   const detail = useLesson(id);
   const [feedbackDirty, setFeedbackDirty] = useState(false);
   const [feedbackMode, setFeedbackMode] = useState<'text' | 'voice'>('text');
+  // Whether to show the "transcribed from voice — review before saving" hint.
+  // Local UI state, not a server-derived flag: saving the feedback sets
+  // `feedbackSource = TEXT` (still `!== 'VOICE'`), so a server-derived
+  // condition would never clear. We seed it once from the server state on
+  // first load, flip it true when a fresh transcript lands, and false on save.
+  const [transcriptHintVisible, setTranscriptHintVisible] = useState(false);
+  const transcriptHintSeeded = useRef(false);
+  useEffect(() => {
+    if (transcriptHintSeeded.current || !detail.data) return;
+    transcriptHintSeeded.current = true;
+    const l = detail.data;
+    const hasText = !!l.feedbackText && l.feedbackText.trim().length > 0;
+    setTranscriptHintVisible(
+      l.transcriptionStatus === 'DONE' && hasText && l.feedbackSource !== 'VOICE',
+    );
+  }, [detail.data]);
 
   if (detail.isLoading) {
     return (
-      <p data-testid="lesson-detail-loading" className="text-sm text-slate-600">
+      <p data-testid="lesson-detail-loading" className="text-sm text-ink-muted">
         {t('common.loading')}
       </p>
     );
@@ -41,14 +61,14 @@ export function LessonDetailPage() {
     return (
       <div
         data-testid="lesson-not-found"
-        className="rounded-lg border border-slate-200 bg-white p-6 text-center"
+        className="rounded-lg border border-line bg-surface p-6 text-center"
       >
         <h1 className="text-xl font-semibold">{t('lessons.detail.notFoundTitle')}</h1>
-        <p className="mt-2 text-sm text-slate-600">{t('lessons.detail.notFoundBody')}</p>
+        <p className="mt-2 text-sm text-ink-muted">{t('lessons.detail.notFoundBody')}</p>
         <button
           type="button"
           onClick={() => navigate({ to: '/schedule' })}
-          className="mt-4 rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          className="mt-4 rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted"
         >
           {t('lessons.detail.back')}
         </button>
@@ -62,130 +82,163 @@ export function LessonDetailPage() {
     timeStyle: 'short',
   });
   const hasFeedback = !!lesson.feedbackText && lesson.feedbackText.trim().length > 0;
-  // When the transcript landed but the tutor hasn't saved yet, hint that
-  // the editor is showing a suggestion.
-  const transcribedNotSaved =
-    lesson.transcriptionStatus === 'DONE' && hasFeedback && lesson.feedbackSource !== 'VOICE';
+  // Feedback + game generation are post-lesson actions — locked until the
+  // session has started. The agenda/plan stays editable regardless.
+  const isFuture = new Date(lesson.occurredAt) > new Date();
+
+  const lessonLabel = lesson.title
+    ? lesson.title
+    : t('lessons.detail.occurredAt', { date: dateFmt.format(new Date(lesson.occurredAt)) });
 
   return (
     <section data-testid="lesson-detail" className="space-y-6">
-      <Link
-        to="/calendar"
-        className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
-        data-testid="lesson-detail-back"
-      >
-        {t('lessons.detail.back')}
-      </Link>
+      <Breadcrumbs
+        crumbs={[
+          { label: t('nav.students'), to: '/students' },
+          ...(lesson.studentName
+            ? [
+                {
+                  label: <Bidi>{lesson.studentName}</Bidi>,
+                  to: '/students/$id' as const,
+                  params: { id: lesson.studentId },
+                },
+              ]
+            : []),
+          { label: <Bidi>{lessonLabel}</Bidi>, current: true as const },
+        ]}
+      />
 
-      <header>
-        <h1 className="text-2xl font-semibold">
-          {lesson.title ? <Bidi>{lesson.title}</Bidi> : t('lessons.detail.occurredAt', {
-            date: dateFmt.format(new Date(lesson.occurredAt)),
-          })}
-        </h1>
-        <dl className="mt-2 grid grid-cols-1 gap-1 text-sm text-slate-600 sm:grid-cols-2">
-          <div className="flex gap-2">
-            <dt className="font-medium">{t('lessons.detail.dateLabel')}</dt>
-            <dd>{dateFmt.format(new Date(lesson.occurredAt))}</dd>
-          </div>
-          {lesson.studentName && (
-            <div className="flex gap-2">
-              <dt className="font-medium">{t('lessons.detail.studentLabel')}</dt>
-              <dd>
+      {/* Header card — student is the prominent attribute, source a quiet chip. */}
+      <Card>
+        <CardBody className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-ink">
+              <Bidi>{lessonLabel}</Bidi>
+            </h1>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-ink-muted">
+              {lesson.studentName && (
                 <Link
                   to="/students/$id"
                   params={{ id: lesson.studentId }}
-                  className="underline-offset-2 hover:underline"
+                  className="font-medium text-brand-700 hover:underline"
                   data-testid="lesson-detail-student"
                 >
                   <Bidi>{lesson.studentName}</Bidi>
                 </Link>
-              </dd>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <dt className="font-medium">{t('lessons.detail.sourceLabel')}</dt>
-            <dd>
-              {lesson.source === 'GOOGLE_CALENDAR'
-                ? t('lessons.detail.sourceGoogle')
-                : t('lessons.detail.sourceManual')}
-            </dd>
+              )}
+              {lesson.studentName && <span aria-hidden>·</span>}
+              <span>{dateFmt.format(new Date(lesson.occurredAt))}</span>
+            </p>
           </div>
-        </dl>
-      </header>
+          <span className="rounded-full bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink-muted">
+            {lesson.source === 'GOOGLE_CALENDAR'
+              ? t('lessons.detail.sourceGoogle')
+              : t('lessons.detail.sourceManual')}
+          </span>
+        </CardBody>
+      </Card>
 
-      {/* TEXT / VOICE feedback mode toggle */}
-      <div
-        role="tablist"
-        aria-label={t('feedback.modeLabel')}
-        data-testid="feedback-mode-toggle"
-        className="inline-flex rounded border border-slate-300 bg-white text-sm"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={feedbackMode === 'text'}
-          onClick={() => setFeedbackMode('text')}
-          data-testid="feedback-mode-text"
-          className={
-            feedbackMode === 'text'
-              ? 'rounded-s px-3 py-1.5 font-medium bg-slate-900 text-white'
-              : 'rounded-s px-3 py-1.5 text-slate-700 hover:bg-slate-50'
-          }
-        >
-          {t('feedback.modeText')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={feedbackMode === 'voice'}
-          onClick={() => setFeedbackMode('voice')}
-          data-testid="feedback-mode-voice"
-          className={
-            feedbackMode === 'voice'
-              ? 'rounded-e px-3 py-1.5 font-medium bg-slate-900 text-white'
-              : 'rounded-e px-3 py-1.5 text-slate-700 hover:bg-slate-50'
-          }
-        >
-          {t('feedback.modeVoice')}
-        </button>
-      </div>
+      {/* Lesson plan — always visible, editable before and after the
+          session. Distinct from the post-lesson feedback below. */}
+      <AgendaEditor lessonId={lesson.id} initialAgenda={lesson.agenda ?? ''} />
 
-      {feedbackMode === 'voice' && (
-        <VoiceRecorder
-          lessonId={lesson.id}
-          initialStatus={lesson.transcriptionStatus}
-          initialError={lesson.transcriptionError}
-          disabled={feedbackDirty}
-          onTranscriptionDone={() => {
-            // Pull the new feedbackText into the editor + nudge the tutor
-            // to switch back to the text tab to review/save.
-            void qc.invalidateQueries({ queryKey: ['lesson', lesson.id] });
-            setFeedbackMode('text');
-          }}
-        />
+      {isFuture ? (
+        /* Future session — feedback + games haven't unlocked yet. */
+        <Card>
+          <CardBody
+            data-testid="lesson-future-locked"
+            className="flex items-start gap-3 text-sm text-ink-muted"
+          >
+            <Lock size={18} className="mt-0.5 shrink-0 text-ink-subtle" aria-hidden />
+            <p>
+              {t('lessons.detail.futureLocked', {
+                date: dateFmt.format(new Date(lesson.occurredAt)),
+              })}
+            </p>
+          </CardBody>
+        </Card>
+      ) : (
+        <>
+          {/* Feedback workbench — Text + Voice swap IN PLACE in one slot, so
+              toggling never reflows the page (the old jump). Both stay
+              mounted; only visibility toggles, which preserves recording
+              state. */}
+          <div className="space-y-4">
+            <div
+              role="tablist"
+              aria-label={t('feedback.modeLabel')}
+              data-testid="feedback-mode-toggle"
+              className="inline-flex overflow-hidden rounded-md border border-line-strong text-sm"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={feedbackMode === 'text'}
+                onClick={() => setFeedbackMode('text')}
+                data-testid="feedback-mode-text"
+                className={
+                  feedbackMode === 'text'
+                    ? 'bg-brand-500 px-3 py-1.5 font-medium text-white'
+                    : 'px-3 py-1.5 text-ink-muted hover:bg-surface-sunken'
+                }
+              >
+                {t('feedback.modeText')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={feedbackMode === 'voice'}
+                onClick={() => setFeedbackMode('voice')}
+                data-testid="feedback-mode-voice"
+                className={
+                  feedbackMode === 'voice'
+                    ? 'bg-brand-500 px-3 py-1.5 font-medium text-white'
+                    : 'px-3 py-1.5 text-ink-muted hover:bg-surface-sunken'
+                }
+              >
+                {t('feedback.modeVoice')}
+              </button>
+            </div>
+
+            <div className={feedbackMode === 'text' ? 'space-y-4' : 'hidden'}>
+              {transcriptHintVisible && (
+                <p
+                  data-testid="feedback-transcribed-hint"
+                  className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2 text-sm text-sky-900"
+                >
+                  {t('feedback.transcribedHint')}
+                </p>
+              )}
+              <FeedbackEditor
+                lessonId={lesson.id}
+                initialFeedback={lesson.feedbackText ?? ''}
+                onDirtyChange={setFeedbackDirty}
+                onSaved={() => setTranscriptHintVisible(false)}
+              />
+            </div>
+
+            <div className={feedbackMode === 'voice' ? '' : 'hidden'}>
+              <VoiceRecorder
+                lessonId={lesson.id}
+                initialStatus={lesson.transcriptionStatus}
+                initialError={lesson.transcriptionError}
+                disabled={feedbackDirty}
+                onTranscriptionDone={() => {
+                  void qc.invalidateQueries({ queryKey: ['lesson', lesson.id] });
+                  setTranscriptHintVisible(true);
+                  setFeedbackMode('text');
+                }}
+              />
+            </div>
+          </div>
+
+          <GamesPanel
+            lessonId={lesson.id}
+            canGenerate={hasFeedback}
+            hasUnsavedFeedback={feedbackDirty}
+          />
+        </>
       )}
-
-      {feedbackMode === 'text' && transcribedNotSaved && (
-        <p
-          data-testid="feedback-transcribed-hint"
-          className="rounded border border-sky-300 bg-sky-50 px-3 py-2 text-sm text-sky-900"
-        >
-          {t('feedback.transcribedHint')}
-        </p>
-      )}
-
-      <FeedbackEditor
-        lessonId={lesson.id}
-        initialFeedback={lesson.feedbackText ?? ''}
-        onDirtyChange={setFeedbackDirty}
-      />
-
-      <GamesPanel
-        lessonId={lesson.id}
-        canGenerate={hasFeedback}
-        hasUnsavedFeedback={feedbackDirty}
-      />
     </section>
   );
 }

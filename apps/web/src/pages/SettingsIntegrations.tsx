@@ -6,6 +6,7 @@ import type { GoogleCalendarSummary } from '@tutor-app/shared';
 import { Bidi } from '../components/Bidi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Toast } from '../components/Toast';
+import { Button, Card, CardBody, CardHeader } from '../components/ui';
 import { ApiError, api } from '../lib/api';
 import { useGoogleCalendars, useIntegrationStatus } from '../lib/integrations';
 
@@ -118,14 +119,25 @@ export function SettingsIntegrationsPage() {
   const calendarsContent = useMemo(() => {
     if (!connected) return null;
     if (calendarsQuery.isLoading) {
-      return <p className="text-sm text-slate-600">{t('integrations.google.loadingCalendars')}</p>;
+      return <p className="text-sm text-ink-muted">{t('integrations.google.loadingCalendars')}</p>;
     }
     const data = calendarsQuery.data;
     if (!data) {
+      // Distinct from the reconnect banner: this is a transient calendar-load
+      // failure (network / server), not an expired Google connection.
       return (
-        <p role="alert" className="text-sm text-rose-700" data-testid="integrations-calendars-error">
-          {t('integrations.google.errors.loadFailed')}
-        </p>
+        <div
+          role="alert"
+          className="mt-3 rounded border border-rose-300 bg-rose-50 px-3 py-2"
+          data-testid="integrations-calendars-error"
+        >
+          <p className="text-sm font-medium text-rose-900">
+            {t('integrations.google.errors.loadFailedTitle')}
+          </p>
+          <p className="mt-0.5 text-sm text-rose-800">
+            {t('integrations.google.errors.loadFailed')}
+          </p>
+        </div>
       );
     }
     if ('error' in data) {
@@ -136,7 +148,11 @@ export function SettingsIntegrationsPage() {
             ? 'integrations.google.errors.unavailable'
             : 'integrations.google.reconnectBanner';
       return (
-        <p role="alert" className="text-sm text-amber-800" data-testid="integrations-calendars-error">
+        <p
+          role="alert"
+          className="mt-3 text-sm text-amber-800"
+          data-testid="integrations-calendars-error"
+        >
           {t(key)}
         </p>
       );
@@ -144,7 +160,7 @@ export function SettingsIntegrationsPage() {
     return (
       <ul
         data-testid="integrations-google-calendars"
-        className="mt-3 divide-y divide-slate-200 rounded border border-slate-200 bg-white"
+        className="mt-3 divide-y divide-line rounded border border-line bg-surface"
       >
         {data.items.map((c: GoogleCalendarSummary) => {
           const checked = selected.has(c.id);
@@ -167,7 +183,7 @@ export function SettingsIntegrationsPage() {
               <label htmlFor={`cal-${c.id}`} className="flex-1">
                 <Bidi>{c.summary}</Bidi>
                 {c.primary && (
-                  <span className="ms-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">
+                  <span className="ms-2 rounded bg-surface-sunken px-1.5 py-0.5 text-xs text-ink-muted">
                     {t('integrations.google.primaryBadge')}
                   </span>
                 )}
@@ -183,7 +199,7 @@ export function SettingsIntegrationsPage() {
     <section data-testid="integrations" className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold">{t('integrations.title')}</h1>
-        <p className="mt-1 text-sm text-slate-600">{t('integrations.subtitle')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('integrations.subtitle')}</p>
       </header>
 
       {oauthFlash === 'error' && (
@@ -200,35 +216,44 @@ export function SettingsIntegrationsPage() {
         <div
           role="alert"
           data-testid="integrations-reconnect-banner"
-          className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          className="flex flex-wrap items-center justify-between gap-3 rounded border border-amber-300 bg-amber-50 px-4 py-3"
         >
-          {t('integrations.google.reconnectBanner')}
+          <p className="text-sm text-amber-900">{t('integrations.google.reconnectBanner')}</p>
+          <Button
+            size="sm"
+            onClick={() => connectMutation.mutate()}
+            loading={connectMutation.isPending}
+            data-testid="integrations-reconnect"
+          >
+            {connectMutation.isPending
+              ? t('integrations.google.connecting')
+              : t('integrations.google.reconnectAction')}
+          </Button>
         </div>
       )}
 
-      <section
-        className="rounded-lg border border-slate-200 bg-white p-6"
-        data-testid="integrations-google"
-      >
-        <h2 className="text-lg font-semibold">{t('integrations.google.title')}</h2>
-        <p className="mt-1 text-sm text-slate-600">{t('integrations.google.description')}</p>
-
+      <Card data-testid="integrations-google">
+        <CardHeader>
+          <div>
+            <h2 className="text-lg font-semibold">{t('integrations.google.title')}</h2>
+            <p className="text-sm text-ink-muted">{t('integrations.google.description')}</p>
+          </div>
+        </CardHeader>
+        <CardBody>
         {!connected && (
-          <button
-            type="button"
+          <Button
             onClick={() => connectMutation.mutate()}
-            disabled={connectMutation.isPending}
-            className="mt-4 rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            loading={connectMutation.isPending}
             data-testid="integrations-google-connect"
           >
             {connectMutation.isPending
               ? t('integrations.google.connecting')
               : t('integrations.google.connect')}
-          </button>
+          </Button>
         )}
 
         {connected && (
-          <div className="mt-4 space-y-4" data-testid="integrations-google-connected">
+          <div className="space-y-4" data-testid="integrations-google-connected">
             <p className="text-sm font-medium text-emerald-800">
               {t('integrations.google.connectedTitle')}
             </p>
@@ -236,33 +261,30 @@ export function SettingsIntegrationsPage() {
               <label className="block text-sm font-medium">
                 {t('integrations.google.selectLabel')}
               </label>
-              <p className="mt-1 text-xs text-slate-500">{t('integrations.google.selectHelp')}</p>
+              <p className="mt-1 text-xs text-ink-subtle">{t('integrations.google.selectHelp')}</p>
               {calendarsContent}
               {selected.size === 0 && status.data?.lessonCalendarIds.length === 0 && (
                 <p className="mt-2 text-xs text-amber-700">{t('integrations.google.noneSelected')}</p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
                 onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
-                className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                loading={saveMutation.isPending}
                 data-testid="integrations-google-save"
               >
                 {saveMutation.isPending ? t('common.workingOn') : t('integrations.google.save')}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="danger"
                 onClick={() => setDisconnectOpen(true)}
-                className="rounded border border-rose-300 px-3 py-1.5 text-sm text-rose-700 hover:bg-rose-50"
                 data-testid="integrations-google-disconnect"
               >
                 {t('integrations.google.disconnect')}
-              </button>
+              </Button>
               <Link
                 to="/schedule"
-                className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
+                className="text-sm font-medium text-ink-muted underline-offset-2 hover:underline"
               >
                 {t('nav.schedule')}
               </Link>
@@ -274,7 +296,8 @@ export function SettingsIntegrationsPage() {
             )}
           </div>
         )}
-      </section>
+        </CardBody>
+      </Card>
 
       <ConfirmDialog
         open={disconnectOpen}

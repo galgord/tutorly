@@ -1,27 +1,32 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import type { CalendarItem } from '@tutor-app/shared';
-import { CalendarClock, Plus } from 'lucide-react';
-import { useMemo } from 'react';
+import { CalendarClock } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AddLessonModal } from '../components/AddLessonModal';
+import { AddStudentModal } from '../components/AddStudentModal';
 import { Bidi } from '../components/Bidi';
+import { StudentPickerModal } from '../components/StudentPickerModal';
+import { Button, EmptyState } from '../components/ui';
 import { useCalendar } from '../lib/lessons';
+import { useStudents } from '../lib/students';
 
 /**
  * /schedule
  *
  * Chronological list of recorded lessons (manual or attached-from-Google).
- * Replaces the FullCalendar grid — tutors keep their actual day calendar in
- * Google, and this view exists only to surface the sessions they teach in
- * this app, with the *student* as the dominant attribute (not the time).
+ * The session *time* leads each row — it's the sort key — and upcoming
+ * sessions are grouped by day so a tutor can scan their week. Past rows flag
+ * lessons that still need a feedback write-up.
  *
- * Google-only events are intentionally hidden here; the "attach an event as
- * a lesson" flow is deferred to a later pass.
+ * Google-only events are intentionally hidden here; attaching them is a
+ * later pass.
  */
 export function SchedulePage() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const locale = i18n.resolvedLanguage ?? 'en';
 
-  // Wide window so "past" can scroll meaningfully without a paginate-back UI.
   const range = useMemo(() => {
     const now = new Date();
     const from = new Date(now.getTime() - 90 * 86_400_000);
@@ -31,14 +36,30 @@ export function SchedulePage() {
 
   const data = useCalendar(range);
 
-  // Only lessons the tutor has actually added (manual or attached from Google).
-  // Google-only events aren't part of "scheduled" until they're attached.
+  // Only lessons the tutor has actually added; Google-only events are excluded.
   const lessons: CalendarItem[] = useMemo(() => {
     if (!data.data) return [];
     return data.data.items.filter((i) => i.hasLocalLesson && !!i.localLessonId);
   }, [data.data]);
 
-  const groups = useMemo(() => groupByPeriod(lessons), [lessons]);
+  const { upcomingByDay, past } = useMemo(() => groupSchedule(lessons, locale), [lessons, locale]);
+
+  // You can't schedule a lesson without a student — the schedule's primary
+  // action adapts: "Add a student" when there are none, "Add a lesson" once
+  // there is at least one.
+  const students = useStudents({ page: 1, limit: 1 });
+  const hasStudents = (students.data?.total ?? 0) > 0;
+  const studentsReady = !!students.data;
+
+  // Add-lesson flow: pick a student, then open the lesson modal for them.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [addStudentOpen, setAddStudentOpen] = useState(false);
+  const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
+
+  const primaryAction = () => {
+    if (hasStudents) setPickerOpen(true);
+    else setAddStudentOpen(true);
+  };
 
   return (
     <section data-testid="schedule-page" className="space-y-6">
@@ -47,13 +68,11 @@ export function SchedulePage() {
           <h1 className="text-2xl font-semibold text-ink">{t('schedule.title')}</h1>
           <p className="mt-1 text-sm text-ink-muted">{t('schedule.subtitle')}</p>
         </div>
-        <Link
-          to="/students"
-          className="inline-flex items-center gap-2 rounded-md bg-brand-500 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-600"
-          data-testid="schedule-add-link"
-        >
-          <Plus size={16} aria-hidden /> {t('schedule.addCta')}
-        </Link>
+        {studentsReady && (
+          <Button onClick={primaryAction} data-testid="schedule-add-link">
+            {hasStudents ? t('schedule.addCta') : t('schedule.addStudentCta')}
+          </Button>
+        )}
       </header>
 
       {data.isLoading && (
@@ -72,90 +91,151 @@ export function SchedulePage() {
         </p>
       )}
 
-      {data.data && lessons.length === 0 && (
-        <div
-          data-testid="schedule-empty"
-          className="rounded-lg border border-dashed border-line-strong bg-surface p-8 text-center"
-        >
-          <CalendarClock size={28} aria-hidden className="mx-auto text-ink-subtle" />
-          <p className="mt-3 text-sm text-ink-muted">{t('schedule.empty')}</p>
-          <Link
-            to="/students"
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
-          >
-            <Plus size={14} aria-hidden /> {t('schedule.addCta')}
-          </Link>
-        </div>
+      {data.data && studentsReady && lessons.length === 0 && (
+        <EmptyState
+          Icon={CalendarClock}
+          message={hasStudents ? t('schedule.empty') : t('schedule.emptyNoStudents')}
+          testId="schedule-empty"
+          action={
+            <Button onClick={primaryAction}>
+              {hasStudents ? t('schedule.addCta') : t('schedule.addStudentCta')}
+            </Button>
+          }
+        />
       )}
 
-      {groups.upcoming.length > 0 && (
-        <GroupSection title={t('schedule.groups.upcoming')} items={groups.upcoming} locale={locale} />
+      {upcomingByDay.map((day) => (
+        <ScheduleGroup key={day.label} label={day.label} testId="upcoming">
+          {day.items.map((item) => (
+            <ScheduleRow key={item.localLessonId} item={item} locale={locale} />
+          ))}
+        </ScheduleGroup>
+      ))}
+
+      {past.length > 0 && (
+        <ScheduleGroup label={t('schedule.groups.past')} testId="past">
+          {past.map((item) => (
+            <ScheduleRow key={item.localLessonId} item={item} locale={locale} withDate />
+          ))}
+        </ScheduleGroup>
       )}
-      {groups.past.length > 0 && (
-        <GroupSection title={t('schedule.groups.past')} items={groups.past} locale={locale} pastTense />
-      )}
+
+      <StudentPickerModal
+        open={pickerOpen}
+        contextLabel={t('schedule.addCta')}
+        onClose={() => setPickerOpen(false)}
+        onPicked={(studentId) => {
+          setPickerOpen(false);
+          setPendingStudentId(studentId);
+        }}
+      />
+      {/* No students yet → add one, then chain straight into the lesson
+          modal for that new student (no dead end). */}
+      <AddStudentModal
+        open={addStudentOpen}
+        onClose={() => setAddStudentOpen(false)}
+        onCreated={(student) => {
+          setAddStudentOpen(false);
+          setPendingStudentId(student.id);
+        }}
+      />
+      <AddLessonModal
+        open={!!pendingStudentId}
+        studentId={pendingStudentId ?? ''}
+        onClose={() => setPendingStudentId(null)}
+        onCreated={(lessonId) => {
+          setPendingStudentId(null);
+          void navigate({ to: '/lessons/$id', params: { id: lessonId } });
+        }}
+      />
     </section>
   );
 }
 
-interface GroupSectionProps {
-  title: string;
-  items: CalendarItem[];
-  locale: string;
-  pastTense?: boolean;
+interface ScheduleGroupProps {
+  label: string;
+  testId: string;
+  children: React.ReactNode;
 }
 
-function GroupSection({ title, items, locale, pastTense }: GroupSectionProps) {
-  const { t } = useTranslation();
+function ScheduleGroup({ label, testId, children }: ScheduleGroupProps) {
   return (
-    <section className="space-y-2" data-testid={`schedule-group-${pastTense ? 'past' : 'upcoming'}`}>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">{title}</h2>
+    <section className="space-y-2" data-testid={`schedule-group-${testId}`}>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">{label}</h2>
       <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
-        {items.map((item) => {
-          const id = item.localLessonId!;
-          return (
-            <li key={id} className="relative">
-              <Link
-                to="/lessons/$id"
-                params={{ id }}
-                data-testid={`schedule-lesson-${id}`}
-                className="flex items-center gap-4 px-4 py-3 hover:bg-surface-sunken focus:bg-surface-sunken focus:outline-none"
-              >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-100 text-base font-semibold text-brand-700">
-                  {initialsFor(item.studentName ?? item.title)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-semibold text-ink">
-                    <Bidi>{item.studentName ?? item.title}</Bidi>
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-muted">
-                    {formatWhen(new Date(item.startsAt), locale)}
-                    {item.studentName && item.title && item.title !== item.studentName && (
-                      <>
-                        {' · '}
-                        <span className="text-ink-subtle">
-                          <Bidi>{item.title}</Bidi>
-                        </span>
-                      </>
-                    )}
-                  </p>
-                </div>
-                <span className="text-xs font-medium text-brand-700">{t('schedule.open')}</span>
-              </Link>
-            </li>
-          );
-        })}
+        {children}
       </ul>
     </section>
   );
 }
 
-interface GroupedItems {
-  upcoming: CalendarItem[];
-  past: CalendarItem[];
+interface ScheduleRowProps {
+  item: CalendarItem;
+  locale: string;
+  /** Show the date next to the time (used in the flat "Past" group). */
+  withDate?: boolean;
 }
 
-function groupByPeriod(items: CalendarItem[]): GroupedItems {
+/** A schedule row — the time leads, the student is the strong secondary. */
+export function ScheduleRow({ item, locale, withDate }: ScheduleRowProps) {
+  const { t } = useTranslation();
+  const id = item.localLessonId!;
+  const date = new Date(item.startsAt);
+  const timeFmt = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' });
+  const dayFmt = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' });
+  const isPast = date.getTime() < Date.now();
+  const needsFeedback = isPast && !item.hasFeedback;
+
+  return (
+    <li>
+      <Link
+        to="/lessons/$id"
+        params={{ id }}
+        data-testid={`schedule-lesson-${id}`}
+        className="flex items-center gap-4 px-4 py-3 hover:bg-surface-sunken focus:bg-surface-sunken focus:outline-none"
+      >
+        <div className="w-20 shrink-0 text-center">
+          {withDate && <div className="text-xs text-ink-subtle">{dayFmt.format(date)}</div>}
+          <div className="text-base font-semibold tabular-nums text-ink">
+            {timeFmt.format(date)}
+          </div>
+        </div>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+          {initialsFor(item.studentName ?? item.title)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-ink">
+            <Bidi>{item.studentName ?? item.title}</Bidi>
+          </p>
+          {item.studentName && item.title && item.title !== item.studentName && (
+            <p className="truncate text-xs text-ink-subtle">
+              <Bidi>{item.title}</Bidi>
+            </p>
+          )}
+        </div>
+        {needsFeedback && (
+          <span
+            data-testid={`schedule-needs-feedback-${id}`}
+            className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900"
+          >
+            {t('schedule.needsFeedback')}
+          </span>
+        )}
+      </Link>
+    </li>
+  );
+}
+
+interface DayGroup {
+  label: string;
+  items: CalendarItem[];
+}
+
+/** Upcoming sessions bucketed by day (Today / Tomorrow / weekday); past flat. */
+function groupSchedule(
+  items: CalendarItem[],
+  locale: string,
+): { upcomingByDay: DayGroup[]; past: CalendarItem[] } {
   const now = Date.now();
   const upcoming: CalendarItem[] = [];
   const past: CalendarItem[] = [];
@@ -165,14 +245,15 @@ function groupByPeriod(items: CalendarItem[]): GroupedItems {
   }
   upcoming.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   past.sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
-  return { upcoming, past };
-}
 
-/** "Today · 3:00 PM" / "Tomorrow · 10:00 AM" / "Mar 12 · 4:00 PM" */
-function formatWhen(date: Date, locale: string): string {
-  const dayLabel = relativeDayLabel(date, locale);
-  const timeFmt = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' });
-  return `${dayLabel} · ${timeFmt.format(date)}`;
+  const byDay: DayGroup[] = [];
+  for (const item of upcoming) {
+    const label = relativeDayLabel(new Date(item.startsAt), locale);
+    const last = byDay[byDay.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else byDay.push({ label, items: [item] });
+  }
+  return { upcomingByDay: byDay, past };
 }
 
 function relativeDayLabel(date: Date, locale: string): string {
@@ -181,13 +262,15 @@ function relativeDayLabel(date: Date, locale: string): string {
   const target = new Date(date);
   target.setHours(0, 0, 0, 0);
   const diffDays = Math.round((target.getTime() - today.getTime()) / 86_400_000);
-
-  if (diffDays === 0 || diffDays === 1 || diffDays === -1) {
+  if (diffDays === 0 || diffDays === 1) {
     const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
     return capitalize(rtf.format(diffDays, 'day'));
   }
-  const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short', month: 'short', day: 'numeric' });
-  return fmt.format(date);
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
 }
 
 function capitalize(s: string): string {

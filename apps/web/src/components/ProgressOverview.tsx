@@ -8,6 +8,9 @@ interface Props {
   data: StudentProgressResponse;
   rtl: boolean;
   locale: string;
+  /** When false, the per-game cards are hidden — the student page shows its
+   *  own "Practice games" grid, so rendering them here would duplicate. */
+  showGames?: boolean;
 }
 
 const TREND_COPY = {
@@ -20,11 +23,11 @@ const TREND_COPY = {
 const TREND_BADGE: Record<keyof typeof TREND_COPY, string> = {
   improving: 'bg-green-50 text-green-800 border-green-200',
   declining: 'bg-rose-50 text-rose-800 border-rose-200',
-  stable: 'bg-slate-50 text-slate-700 border-slate-200',
-  insufficient: 'bg-slate-50 text-slate-500 border-slate-200',
+  stable: 'bg-surface-muted text-ink-muted border-line',
+  insufficient: 'bg-surface-muted text-ink-subtle border-line',
 };
 
-export function ProgressOverview({ data, rtl, locale }: Props) {
+export function ProgressOverview({ data, rtl, locale, showGames = true }: Props) {
   const { t } = useTranslation();
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
   const pct = (n: number | null): string =>
@@ -37,7 +40,7 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
       {/* Totals strip */}
       <div
         data-testid="progress-totals"
-        className="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-4"
+        className="grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-4"
       >
         <Totals
           label={t('progress.totals.completedAttempts')}
@@ -61,15 +64,16 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
         />
       </div>
 
-      {/* Game cards */}
+      {/* Game cards — hidden on the student page, which has its own grid. */}
+      {showGames && (
       <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
           {t('progress.games.title')}
         </h3>
         {data.games.length === 0 ? (
           <div
             data-testid="progress-games-empty"
-            className="mt-2 rounded border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600"
+            className="mt-2 rounded border border-dashed border-line bg-surface-muted p-4 text-center text-sm text-ink-muted"
           >
             {t('progress.games.empty')}
           </div>
@@ -84,14 +88,14 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
                 <li
                   key={g.id}
                   data-testid={`progress-game-${g.id}`}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
+                  className="rounded-lg border border-line bg-surface p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">
                         <Bidi>{g.title}</Bidi>
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-ink-subtle">
                         {t(`progress.games.type_${g.type}`)}
                       </p>
                     </div>
@@ -104,7 +108,7 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
                   </div>
 
                   <div className="mt-3 flex items-end justify-between gap-3">
-                    <div className="text-xs text-slate-600">
+                    <div className="text-xs text-ink-muted">
                       <p>
                         <span className="font-medium">{t('progress.games.latest')}: </span>
                         {pct(g.latestAccuracy)}
@@ -130,13 +134,14 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
           </ul>
         )}
       </div>
+      )}
 
       {/* Topic mastery chart */}
       <div data-testid="progress-topics">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
           {t('progress.topics.title')}
         </h3>
-        <div className="mt-2 rounded-lg border border-slate-200 bg-white p-4">
+        <div className="mt-2 rounded-lg border border-line bg-surface p-4">
           <TopicMasteryChart topics={data.topics} rtl={rtl} />
         </div>
       </div>
@@ -144,10 +149,10 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
       {/* Hardest questions */}
       {data.hardestQuestions.length > 0 && (
         <div data-testid="progress-hardest">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
             {t('progress.hardest.title')}
           </h3>
-          <ul className="mt-2 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+          <ul className="mt-2 divide-y divide-line rounded-lg border border-line bg-surface">
             {data.hardestQuestions.map((q) => (
               <li
                 key={q.questionId}
@@ -159,7 +164,7 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
                     <Bidi>{q.prompt}</Bidi>
                   </p>
                   {q.topicTags.length > 0 && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-ink-subtle">
                       {q.topicTags.join(' · ')}
                     </p>
                   )}
@@ -179,8 +184,8 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
 function Totals({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-ink-subtle">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-ink">{value}</p>
     </div>
   );
 }

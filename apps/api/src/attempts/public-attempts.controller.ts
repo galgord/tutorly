@@ -97,6 +97,10 @@ export class PublicAttemptsController {
         PublicQuestionSchema.parse({
           id: q.id,
           prompt: q.prompt,
+          // L1 translation of the prompt (Phase: per-question L1). `null`
+          // when the student has no native language or it equals the
+          // game's target language — the UI renders nothing extra then.
+          promptTranslation: q.promptTranslation ?? null,
           choices: r.type === GameType.TIMED_QUIZ ? choicesByQuestion[q.id] ?? [] : [],
           topicTags: q.topicTags,
           difficulty: q.difficulty,

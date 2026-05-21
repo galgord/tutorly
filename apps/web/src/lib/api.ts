@@ -23,6 +23,7 @@ import type {
   PublicStudentResponse,
   StudentProgressResponse,
   StudentGameProgressResponse,
+  StudentGamesResponse,
   RegenerateQuestionRequest,
   RotateTokenResponse,
   StartAttemptResponse,
@@ -31,6 +32,7 @@ import type {
   SubmitAnswerRequest,
   SubmitAnswerResponse,
   TranscriptionStatusResponse,
+  UpdateAgendaRequest,
   UpdateFeedbackRequest,
   UpdateGameRequest,
   UpdateLessonCalendarsRequest,
@@ -194,6 +196,8 @@ export const api = {
   },
   setLessonFeedback: (id: string, body: UpdateFeedbackRequest): Promise<LessonResponse> =>
     request(`/lessons/${encodeURIComponent(id)}/feedback`, { method: 'PATCH', body }),
+  setLessonAgenda: (id: string, body: UpdateAgendaRequest): Promise<LessonResponse> =>
+    request(`/lessons/${encodeURIComponent(id)}/agenda`, { method: 'PATCH', body }),
 
   // Voice (Phase 5) ------------------------------------------------------
   uploadLessonAudio: async (
@@ -234,6 +238,8 @@ export const api = {
     request(`/lessons/${encodeURIComponent(lessonId)}/games`, { method: 'POST', body }),
   getGame: (id: string): Promise<GameResponse> =>
     request(`/games/${encodeURIComponent(id)}`),
+  listStudentGames: (studentId: string): Promise<StudentGamesResponse> =>
+    request(`/students/${encodeURIComponent(studentId)}/games`),
   updateGame: (id: string, body: UpdateGameRequest): Promise<GameResponse> =>
     request(`/games/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
   regenerateGame: (id: string): Promise<GameResponse> =>

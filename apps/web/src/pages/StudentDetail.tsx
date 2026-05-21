@@ -1,87 +1,40 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import type { GameProgress, StudentGameProgressItem, StudentGameSummary } from '@tutor-app/shared';
+import { ChevronDown, ClipboardList, GraduationCap, Pencil, Plus, Share2, Target } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Language } from '@tutor-app/shared';
 import { AddLessonModal } from '../components/AddLessonModal';
 import { Bidi } from '../components/Bidi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import { LanguageSelect } from '../components/LanguageSelect';
-import { GameProgressPanel } from '../components/GameProgressPanel';
+import { GamePreviewDialog } from '../components/GamePreviewDialog';
+import { LevelBadge } from '../components/games/LevelBadge';
 import { ProgressOverview } from '../components/ProgressOverview';
-import { RecentAttemptsList } from '../components/RecentAttemptsList';
+import { Sparkline } from '../components/Sparkline';
+import { StudentEditModal } from '../components/StudentEditModal';
 import { Toast } from '../components/Toast';
-import { api } from '../lib/api';
+import { Button, Card, CardBody, CardHeader, EmptyState, StatTile } from '../components/ui';
+import { useStudentGames } from '../lib/games';
 import { useLessonsForStudent } from '../lib/lessons';
-import { useStudentAttempts, useStudentGameProgress, useStudentProgress } from '../lib/progress';
+import { useStudentGameProgress, useStudentProgress } from '../lib/progress';
 import { buildShareUrl, useStudent } from '../lib/students';
-
-const ATTEMPTS_PAGE_SIZE = 10;
 
 export function StudentDetailPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const params = useParams({ from: '/students/$id' });
   const id = params.id;
-  const qc = useQueryClient();
+  const locale = i18n.resolvedLanguage ?? 'en';
 
   const detail = useStudent(id);
   const lessons = useLessonsForStudent(id ? { studentId: id, page: 1, limit: 10 } : null);
+  const games = useStudentGames(id);
   const progress = useStudentProgress(id);
   const gameProgress = useStudentGameProgress(id);
-  const [attemptsPage, setAttemptsPage] = useState(1);
-  const attempts = useStudentAttempts(id, attemptsPage, ATTEMPTS_PAGE_SIZE);
 
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState('');
-  const [notes, setNotes] = useState('');
-  const [nativeLanguage, setNativeLanguage] = useState<Language | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [rotateOpen, setRotateOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [addLessonOpen, setAddLessonOpen] = useState(false);
-
-  useEffect(() => {
-    if (detail.data && !editing) {
-      setName(detail.data.name);
-      setNotes(detail.data.notes ?? '');
-      setNativeLanguage(detail.data.nativeLanguage ?? null);
-    }
-  }, [detail.data, editing]);
-
-  const saveMutation = useMutation({
-    mutationFn: () =>
-      api.updateStudent(id, {
-        name: name.trim() || undefined,
-        notes: notes.trim() === '' ? null : notes.trim(),
-        nativeLanguage,
-      }),
-    onSuccess: async (updated) => {
-      qc.setQueryData(['student', id], updated);
-      await qc.invalidateQueries({ queryKey: ['students'] });
-      setEditing(false);
-      setToast(t('students.toast.saved'));
-    },
-  });
-
-  const rotateMutation = useMutation({
-    mutationFn: () => api.rotateStudentToken(id),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ['student', id] });
-      await qc.invalidateQueries({ queryKey: ['students'] });
-      setRotateOpen(false);
-      setToast(t('students.toast.tokenRotated'));
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: () => api.deleteStudent(id),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ['students'] });
-      void navigate({ to: '/students' });
-    },
-  });
+  const [previewGameId, setPreviewGameId] = useState<string | null>(null);
 
   const onCopyShare = async () => {
     if (!detail.data) return;
@@ -95,7 +48,7 @@ export function StudentDetailPage() {
 
   if (detail.isLoading) {
     return (
-      <p data-testid="student-detail-loading" className="text-sm text-slate-600">
+      <p data-testid="student-detail-loading" className="text-sm text-ink-muted">
         {t('common.loading')}
       </p>
     );
@@ -105,22 +58,37 @@ export function StudentDetailPage() {
     return (
       <div
         data-testid="student-not-found"
-        className="rounded-lg border border-slate-200 bg-white p-6 text-center"
+        className="rounded-lg border border-line bg-surface p-6 text-center"
       >
         <h1 className="text-xl font-semibold">{t('students.detail.notFoundTitle')}</h1>
-        <p className="mt-2 text-sm text-slate-600">{t('students.detail.notFoundBody')}</p>
+        <p className="mt-2 text-sm text-ink-muted">{t('students.detail.notFoundBody')}</p>
         <Link
           to="/students"
-          className="mt-4 inline-block text-sm font-medium underline"
+          className="mt-4 inline-block text-sm font-medium text-brand-700 hover:underline"
           data-testid="student-back-from-missing"
         >
-          {t('students.detail.back')}
+          {t('nav.students')}
         </Link>
       </div>
     );
   }
 
   const student = detail.data;
+  const totals = progress.data?.totals;
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+  const lastActive = totals?.lastAttemptAt
+    ? t('students.detail.lastActive', { date: dateFmt.format(new Date(totals.lastAttemptAt)) })
+    : t('students.detail.neverActive');
+  const hasActivity = (totals?.totalAttempts ?? 0) > 0;
+  const gameItems = games.data?.items ?? [];
+  // Join the three game data sources by id so each game renders as one row:
+  // summary (status/counts) + adaptive level + accuracy history.
+  const levelByGame = new Map<string, StudentGameProgressItem>(
+    (gameProgress.data?.games ?? []).map((g) => [g.gameId, g]),
+  );
+  const detailByGame = new Map<string, GameProgress>(
+    (progress.data?.games ?? []).map((g) => [g.id, g]),
+  );
 
   return (
     <section data-testid="student-detail" className="space-y-6">
@@ -131,49 +99,135 @@ export function StudentDetailPage() {
         ]}
       />
 
-      <header>
-        <h1 className="text-2xl font-semibold">
-          <Bidi>{student.name}</Bidi>
-        </h1>
-      </header>
+      {/* Header card */}
+      <Card>
+        <CardBody className="flex flex-wrap items-center gap-4">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand-100 text-lg font-semibold text-brand-700">
+            {initialsFor(student.name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-semibold text-ink">
+              <Bidi>{student.name}</Bidi>
+            </h1>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
+              {student.nativeLanguage && (
+                <span>{t('students.row.l1', { code: student.nativeLanguage.toUpperCase() })}</span>
+              )}
+              {student.nativeLanguage && <span aria-hidden>·</span>}
+              <span>{lastActive}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Share2 size={14} aria-hidden />}
+              onClick={() => void onCopyShare()}
+              data-testid="student-copy-share"
+            >
+              {t('students.actions.invite')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Pencil size={14} aria-hidden />}
+              onClick={() => setEditOpen(true)}
+              data-testid="student-edit-open"
+            >
+              {t('students.detail.editButton')}
+            </Button>
+          </div>
+          <code
+            dir="ltr"
+            data-testid="student-share-url"
+            className="w-full overflow-hidden text-ellipsis whitespace-nowrap rounded bg-surface-sunken px-2 py-1 text-xs text-ink-muted"
+          >
+            {buildShareUrl(student.shareToken)}
+          </code>
+        </CardBody>
+      </Card>
 
-      <div className="rounded-lg border border-line bg-surface p-6" data-testid="student-lessons">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Stat strip */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <StatTile
+          label={t('students.detail.stats.attempts')}
+          value={String(totals?.totalAttempts ?? 0)}
+          Icon={ClipboardList}
+        />
+        <StatTile
+          label={t('students.detail.stats.accuracy')}
+          value={
+            totals?.overallAccuracy == null
+              ? '—'
+              : `${Math.round(totals.overallAccuracy * 100)}%`
+          }
+          Icon={Target}
+        />
+        <StatTile
+          label={t('students.detail.stats.games')}
+          value={String(gameItems.length)}
+          Icon={GraduationCap}
+        />
+      </div>
+
+      {/* Games — one row per game: status, adaptive level, and an expandable
+          accuracy history. Replaces the old practice-games / adaptive /
+          recent-attempts trio. */}
+      <Card data-testid="student-games">
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-ink">{t('students.games.title')}</h2>
+        </CardHeader>
+        <CardBody>
+          {games.isLoading && <p className="text-sm text-ink-muted">{t('common.loading')}</p>}
+          {!games.isLoading && gameItems.length === 0 && (
+            <EmptyState
+              Icon={GraduationCap}
+              message={t('students.games.empty')}
+              testId="student-games-empty"
+            />
+          )}
+          {gameItems.length > 0 && (
+            <ul className="space-y-3">
+              {gameItems.map((g) => (
+                <StudentGameCard
+                  key={g.id}
+                  game={g}
+                  level={levelByGame.get(g.id)}
+                  detail={detailByGame.get(g.id)}
+                  locale={locale}
+                  rtl={i18n.dir(i18n.resolvedLanguage) === 'rtl'}
+                  onPreview={() => setPreviewGameId(g.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Lessons */}
+      <Card data-testid="student-lessons">
+        <CardHeader>
           <h2 className="text-lg font-semibold text-ink">{t('lessons.recent.title')}</h2>
-          <button
-            type="button"
+          <Button
+            size="sm"
+            icon={<Plus size={14} aria-hidden />}
             onClick={() => setAddLessonOpen(true)}
-            className="rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-brand-600"
             data-testid="student-add-lesson"
           >
             {t('lessons.manualAdd.button')}
-          </button>
-        </div>
-
-        {lessons.isLoading && (
-          <p className="mt-4 text-sm text-ink-muted">{t('common.loading')}</p>
-        )}
-
-        {!lessons.isLoading && lessons.data && lessons.data.items.length === 0 && (
-          <p
-            data-testid="student-lessons-empty"
-            className="mt-4 rounded-md border border-dashed border-line bg-surface-muted px-3 py-4 text-center text-sm text-ink-muted"
-          >
-            {t('lessons.recent.empty')}
-          </p>
-        )}
-
-        {lessons.data && lessons.data.items.length > 0 && (
-          <ul
-            data-testid="student-lessons-list"
-            className="mt-4 divide-y divide-line rounded-md border border-line"
-          >
-            {lessons.data.items.map((l) => {
-              const dateFmt = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? 'en', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              });
-              return (
+          </Button>
+        </CardHeader>
+        <CardBody>
+          {lessons.isLoading && <p className="text-sm text-ink-muted">{t('common.loading')}</p>}
+          {!lessons.isLoading && lessons.data && lessons.data.items.length === 0 && (
+            <EmptyState message={t('lessons.recent.empty')} testId="student-lessons-empty" />
+          )}
+          {lessons.data && lessons.data.items.length > 0 && (
+            <ul
+              data-testid="student-lessons-list"
+              className="divide-y divide-line rounded-md border border-line"
+            >
+              {lessons.data.items.map((l) => (
                 <li
                   key={l.id}
                   data-testid={`student-lesson-row-${l.id}`}
@@ -181,10 +235,16 @@ export function StudentDetailPage() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-ink">
-                      {l.title ? <Bidi>{l.title}</Bidi> : dateFmt.format(new Date(l.occurredAt))}
+                      {l.title ? (
+                        <Bidi>{l.title}</Bidi>
+                      ) : (
+                        dateFmt.format(new Date(l.occurredAt))
+                      )}
                     </p>
                     {l.title && (
-                      <p className="text-xs text-ink-muted">{dateFmt.format(new Date(l.occurredAt))}</p>
+                      <p className="text-xs text-ink-muted">
+                        {dateFmt.format(new Date(l.occurredAt))}
+                      </p>
                     )}
                   </div>
                   <Link
@@ -196,238 +256,219 @@ export function StudentDetailPage() {
                     {t('lessons.recent.open')}
                   </Link>
                 </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          saveMutation.mutate();
-        }}
-        className="rounded-lg border border-slate-200 bg-white p-6"
-      >
-        <h2 className="text-lg font-semibold">{t('students.detail.profileTitle')}</h2>
-
-        <label htmlFor="student-name" className="mt-4 block text-sm font-medium">
-          {t('students.fields.name')}
-        </label>
-        <input
-          id="student-name"
-          type="text"
-          dir="auto"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setEditing(true);
-          }}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          data-testid="student-name-input"
-        />
-
-        <label htmlFor="student-notes" className="mt-4 block text-sm font-medium">
-          {t('students.fields.notes')}
-        </label>
-        <textarea
-          id="student-notes"
-          dir="auto"
-          value={notes}
-          onChange={(e) => {
-            setNotes(e.target.value);
-            setEditing(true);
-          }}
-          rows={4}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          data-testid="student-notes-input"
-        />
-
-        <label htmlFor="student-native-language" className="mt-4 block text-sm font-medium">
-          {t('students.fields.nativeLanguage')}
-        </label>
-        <LanguageSelect
-          id="student-native-language"
-          value={nativeLanguage}
-          emptyLabel={t('students.fields.nativeLanguageNone')}
-          onChange={(next) => {
-            setNativeLanguage(next);
-            setEditing(true);
-          }}
-          testId="student-native-language-input"
-        />
-        <p className="mt-1 text-xs text-slate-500">{t('students.fields.nativeLanguageHint')}</p>
-
-        <div className="mt-6 flex items-center gap-2">
-          <button
-            type="submit"
-            disabled={!editing || saveMutation.isPending}
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            data-testid="student-save"
-          >
-            {saveMutation.isPending ? t('common.workingOn') : t('students.detail.save')}
-          </button>
-          {editing && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditing(false);
-                setName(student.name);
-                setNotes(student.notes ?? '');
-                setNativeLanguage(student.nativeLanguage ?? null);
-              }}
-              className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
-              data-testid="student-cancel-edit"
-            >
-              {t('common.cancel')}
-            </button>
+              ))}
+            </ul>
           )}
-        </div>
-      </form>
+        </CardBody>
+      </Card>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 className="text-lg font-semibold">{t('students.detail.shareTitle')}</h2>
-        <p className="mt-1 text-sm text-slate-600">{t('students.detail.shareBody')}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <code
-            dir="ltr"
-            data-testid="student-share-url"
-            className="block min-w-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded bg-slate-100 px-2 py-1 text-xs"
-          >
-            {buildShareUrl(student.shareToken)}
-          </code>
-          <button
-            type="button"
-            onClick={onCopyShare}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-            data-testid="student-copy-share"
-          >
-            {t('students.actions.copyShare')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setRotateOpen(true)}
-            className="rounded border border-amber-300 px-3 py-1.5 text-sm text-amber-800 hover:bg-amber-50"
-            data-testid="student-rotate-token"
-          >
-            {t('students.actions.rotateToken')}
-          </button>
-        </div>
-      </div>
-
-      <section data-testid="student-progress-section" className="space-y-6">
-        <h2 className="text-lg font-semibold">{t('progress.title')}</h2>
-        {progress.isLoading ? (
-          <p className="text-sm text-slate-600">{t('common.loading')}</p>
-        ) : progress.error ? (
-          <div
-            data-testid="student-progress-error"
-            className="rounded border border-rose-200 bg-rose-50 px-3 py-4 text-sm text-rose-900"
-          >
-            {t('progress.error')}
-          </div>
-        ) : progress.data ? (
-          <ProgressOverview
-            data={progress.data}
-            rtl={(i18n.dir(i18n.resolvedLanguage) === 'rtl')}
-            locale={i18n.resolvedLanguage ?? 'en'}
-          />
-        ) : null}
-
-        <div data-testid="student-game-progress-section" className="space-y-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-            {t('progress.adaptive.title')}
-          </h3>
-          {gameProgress.isLoading ? (
-            <p className="text-sm text-slate-600">{t('common.loading')}</p>
-          ) : gameProgress.error ? (
-            <div
-              data-testid="student-game-progress-error"
-              className="rounded border border-rose-200 bg-rose-50 px-3 py-4 text-sm text-rose-900"
-            >
-              {t('progress.error')}
-            </div>
-          ) : gameProgress.data ? (
-            <GameProgressPanel data={gameProgress.data} locale={i18n.resolvedLanguage ?? 'en'} />
-          ) : null}
-        </div>
-
-        <div data-testid="student-attempts-section" className="space-y-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
-            {t('progress.attempts.title')}
-          </h3>
-          {attempts.isLoading ? (
-            <p className="text-sm text-slate-600">{t('common.loading')}</p>
-          ) : attempts.error ? (
-            <div
-              data-testid="student-attempts-error"
-              className="rounded border border-rose-200 bg-rose-50 px-3 py-4 text-sm text-rose-900"
-            >
-              {t('progress.error')}
-            </div>
-          ) : attempts.data ? (
-            <RecentAttemptsList
-              data={attempts.data}
-              locale={i18n.resolvedLanguage ?? 'en'}
-              page={attemptsPage}
-              onPageChange={setAttemptsPage}
+      {/* Progress — collapses to one friendly empty state until the student plays. */}
+      {!hasActivity ? (
+        <Card data-testid="student-progress-section">
+          <CardBody>
+            <EmptyState
+              Icon={Target}
+              title={t('students.detail.noProgressTitle')}
+              message={t('students.detail.noProgressBody')}
             />
-          ) : null}
-        </div>
-      </section>
+          </CardBody>
+        </Card>
+      ) : (
+        <>
+          <Card data-testid="student-progress-section">
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-ink">{t('progress.title')}</h2>
+            </CardHeader>
+            <CardBody>
+              {progress.isLoading ? (
+                <p className="text-sm text-ink-muted">{t('common.loading')}</p>
+              ) : progress.error ? (
+                <p data-testid="student-progress-error" className="text-sm text-rose-700">
+                  {t('progress.error')}
+                </p>
+              ) : progress.data ? (
+                <ProgressOverview
+                  data={progress.data}
+                  rtl={i18n.dir(i18n.resolvedLanguage) === 'rtl'}
+                  locale={locale}
+                  showGames={false}
+                />
+              ) : null}
+            </CardBody>
+          </Card>
+        </>
+      )}
 
-      <div className="rounded-lg border border-rose-200 bg-rose-50 p-6">
-        <h2 className="text-lg font-semibold text-rose-900">{t('students.delete.title')}</h2>
-        <p className="mt-1 text-sm text-rose-900">{t('students.delete.warningGeneric')}</p>
-        <button
-          type="button"
-          onClick={() => setDeleteOpen(true)}
-          className="mt-4 rounded bg-rose-700 px-4 py-2 text-sm font-medium text-white"
-          data-testid="student-delete"
-        >
-          {t('students.delete.button')}
-        </button>
-      </div>
-
-      <ConfirmDialog
-        open={rotateOpen}
-        testId="rotate-confirm"
-        title={t('students.rotate.title')}
-        body={t('students.rotate.warning')}
-        confirmLabel={t('students.rotate.button')}
-        busy={rotateMutation.isPending}
-        onConfirm={() => rotateMutation.mutate()}
-        onCancel={() => setRotateOpen(false)}
-      />
-
-      <ConfirmDialog
-        open={deleteOpen}
-        destructive
-        testId="delete-confirm"
-        title={t('students.delete.title')}
-        body={
-          <p>
-            {t('students.delete.warning')} <Bidi>{student.name}</Bidi>
-          </p>
-        }
-        expectedConfirmText={student.name}
-        confirmInputLabel={t('students.delete.confirmLabel', { name: student.name })}
-        confirmLabel={t('students.delete.button')}
-        busy={deleteMutation.isPending}
-        onConfirm={() => deleteMutation.mutate()}
-        onCancel={() => setDeleteOpen(false)}
+      <StudentEditModal
+        open={editOpen}
+        student={student}
+        onClose={() => setEditOpen(false)}
+        onToast={setToast}
+        onDeleted={() => void navigate({ to: '/students' })}
       />
 
       <AddLessonModal
         open={addLessonOpen}
         studentId={id}
         onClose={() => setAddLessonOpen(false)}
-        onCreated={(lessonId) => {
-          void navigate({ to: '/lessons/$id', params: { id: lessonId } });
-        }}
+        onCreated={(lessonId) => void navigate({ to: '/lessons/$id', params: { id: lessonId } })}
       />
+
+      <GamePreviewDialog gameId={previewGameId} onClose={() => setPreviewGameId(null)} />
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="student-toast" />}
     </section>
   );
+}
+
+interface StudentGameCardProps {
+  game: StudentGameSummary;
+  level?: StudentGameProgressItem;
+  detail?: GameProgress;
+  locale: string;
+  rtl: boolean;
+  onPreview: () => void;
+}
+
+function StudentGameCard({ game, level, detail, locale, rtl, onPreview }: StudentGameCardProps) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+  const pct = (n: number | null | undefined): string =>
+    n == null ? '—' : `${Math.round(n * 100)}%`;
+  const played = !!detail && detail.attemptCount > 0;
+
+  return (
+    <li
+      data-testid={`student-game-${game.id}`}
+      className="rounded-lg border border-line bg-surface"
+    >
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-600">
+            <GraduationCap size={16} aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-sm font-semibold text-ink">
+                <Bidi>{game.title}</Bidi>
+              </p>
+              {level && <LevelBadge level={level.currentLevel} />}
+              <span
+                className={[
+                  'rounded px-1.5 py-0.5 text-xs font-medium',
+                  game.status === 'ASSIGNED'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : game.status === 'FAILED'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-surface-sunken text-ink-muted',
+                ].join(' ')}
+              >
+                {t(`games.status.${game.status}`)}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-ink-subtle">
+              {game.type === 'FILL_BLANK' ? t('games.typeFillBlank') : t('games.typeTimedQuiz')}
+              {game.questionCount > 0 && (
+                <> · {t('games.questionCount', { count: game.questionCount })}</>
+              )}
+            </p>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              {game.accuracy != null
+                ? t('students.games.accuracy', { pct: Math.round(game.accuracy * 100) })
+                : t('students.games.neverPlayed')}
+              {game.playsCompleted > 0 && (
+                <> · {t('students.games.plays', { count: game.playsCompleted })}</>
+              )}
+              {game.lastPlayedAt && (
+                <>
+                  {' · '}
+                  {t('students.games.lastPlayed', {
+                    date: dateFmt.format(new Date(game.lastPlayedAt)),
+                  })}
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/lessons/$id"
+            params={{ id: game.lessonId }}
+            className="inline-flex items-center justify-center rounded-md border border-line px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken"
+            data-testid={`student-game-open-${game.id}`}
+          >
+            {t('students.games.open')}
+          </Link>
+          {game.questionCount > 0 && (
+            <button
+              type="button"
+              onClick={onPreview}
+              className="inline-flex items-center justify-center rounded-md bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+              data-testid={`student-game-preview-${game.id}`}
+            >
+              {t('students.games.preview')}
+            </button>
+          )}
+          {played && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              data-testid={`student-game-history-${game.id}`}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-ink-muted hover:bg-surface-sunken ms-auto"
+            >
+              {expanded ? t('students.games.hideHistory') : t('students.games.history')}
+              <ChevronDown
+                size={14}
+                aria-hidden
+                className={expanded ? 'rotate-180' : ''}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {expanded && detail && (
+        <div
+          data-testid={`student-game-detail-${game.id}`}
+          className="flex flex-wrap items-center gap-4 border-t border-line bg-surface-muted p-4"
+        >
+          <Sparkline
+            points={detail.sparkline.map((p) => ({ accuracy: p.accuracy }))}
+            rtl={rtl}
+            tone={detail.trend}
+          />
+          <div className="space-y-0.5 text-xs text-ink-muted">
+            <p>
+              <span className="font-medium">{t('progress.games.latest')}: </span>
+              {pct(detail.latestAccuracy)} · <span className="font-medium">{t('progress.games.best')}: </span>
+              {pct(detail.bestAccuracy)}
+            </p>
+            <p>
+              {t('students.games.attempts', { count: detail.attemptCount })} ·{' '}
+              {t(`progress.games.trend${capitalizeTrend(detail.trend)}`)}
+            </p>
+            {level && level.dueReviewCount > 0 && (
+              <p className="text-amber-700">
+                {t('students.games.dueReviews', { count: level.dueReviewCount })}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function capitalizeTrend(trend: string): string {
+  return trend.charAt(0).toUpperCase() + trend.slice(1);
+}
+
+function initialsFor(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return '–';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return (parts[0]?.slice(0, 2) ?? '–').toUpperCase();
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
 }

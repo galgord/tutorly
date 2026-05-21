@@ -31,7 +31,7 @@ export function LanguageSelect({ id, value, emptyLabel, onChange, className, tes
       }}
       className={
         className ??
-        'mt-1 rounded border border-slate-300 px-3 py-2 text-sm'
+        'mt-1 rounded border border-line-strong px-3 py-2 text-sm'
       }
       data-testid={testId}
     >

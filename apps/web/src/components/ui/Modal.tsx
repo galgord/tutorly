@@ -15,8 +15,10 @@ interface ModalProps {
   /** Footer actions, typically `<Button>`s. */
   footer?: ReactNode;
   size?: keyof typeof SIZE;
-  /** data-testid for the panel; the close button gets `${testId}-close`. */
+  /** data-testid for the panel. */
   testId?: string;
+  /** data-testid for the close button. Defaults to `${testId}-close`. */
+  closeTestId?: string;
   /** Focus this element on open instead of letting child autoFocus / panel win. */
   initialFocusRef?: RefObject<HTMLElement>;
   /** When false, Escape + backdrop click do not close (e.g. during a mutation). */
@@ -38,6 +40,7 @@ export function Modal({
   footer,
   size = 'md',
   testId,
+  closeTestId,
   initialFocusRef,
   dismissable = true,
 }: ModalProps) {
@@ -119,7 +122,7 @@ export function Modal({
             type="button"
             aria-label={t('common.close')}
             onClick={onClose}
-            data-testid={testId ? `${testId}-close` : undefined}
+            data-testid={closeTestId ?? (testId ? `${testId}-close` : undefined)}
             className="me-1 rounded p-0.5 text-ink-subtle hover:bg-surface-sunken hover:text-ink"
           >
             <X size={18} aria-hidden />

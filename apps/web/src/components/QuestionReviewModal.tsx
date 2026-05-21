@@ -6,6 +6,7 @@ import { ApiError, api } from '../lib/api';
 import { useGame } from '../lib/games';
 import { Bidi } from './Bidi';
 import { Toast } from './Toast';
+import { Button, Modal } from './ui';
 
 interface Props {
   open: boolean;
@@ -107,166 +108,134 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
     },
   });
 
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !saveMutation.isPending && !assignMutation.isPending) onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, saveMutation.isPending, assignMutation.isPending]);
-
-  if (!open) return null;
-
   // Loading / GENERATING shell — keep the modal mounted so polling continues.
   const isGenerating = !game || game.status === 'GENERATING';
+  const showActions =
+    !isGenerating && game && (game.status === 'DRAFT' || game.status === 'ASSIGNED');
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="review-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="lg"
+      testId="question-review-modal"
+      closeTestId="review-close"
+      dismissable={!saveMutation.isPending && !assignMutation.isPending}
+      title={game ? <Bidi>{game.title}</Bidi> : t('review.loadingTitle')}
+      footer={
+        showActions ? (
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => regenAllMutation.mutate()}
+              disabled={assignMutation.isPending}
+              loading={regenAllMutation.isPending}
+              data-testid="review-regenerate-all"
+            >
+              {regenAllMutation.isPending ? t('common.workingOn') : t('review.regenerateAll')}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => saveMutation.mutate()}
+              disabled={!dirty || assignMutation.isPending}
+              loading={saveMutation.isPending}
+              data-testid="review-save"
+            >
+              {saveMutation.isPending ? t('common.workingOn') : t('review.saveEdits')}
+            </Button>
+            <Button
+              onClick={() => {
+                // If there are pending edits, save first so the assigned pool reflects them.
+                if (dirty) {
+                  saveMutation.mutate(undefined, {
+                    onSuccess: () => assignMutation.mutate(),
+                  });
+                } else {
+                  assignMutation.mutate();
+                }
+              }}
+              disabled={saveMutation.isPending}
+              loading={assignMutation.isPending}
+              data-testid="review-assign"
+            >
+              {assignMutation.isPending
+                ? t('common.workingOn')
+                : game?.status === 'ASSIGNED'
+                  ? t('review.reassign')
+                  : t('review.assign')}
+            </Button>
+          </>
+        ) : undefined
+      }
     >
-      <div
-        data-testid="question-review-modal"
-        className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-lg bg-surface p-6 shadow-xl"
-      >
-        <div className="flex items-start gap-2">
+      <p className="text-sm text-ink-muted">
+        {game?.type === 'FILL_BLANK'
+          ? t('review.subtitleFillBlank')
+          : game?.type === 'TIMED_QUIZ'
+            ? t('review.subtitleTimedQuiz')
+            : t('review.subtitleGeneric')}
+      </p>
+
+      {isGenerating && (
+        <div
+          data-testid="review-generating"
+          className="mt-6 rounded border border-dashed border-line-strong bg-surface-muted p-6 text-center text-sm text-ink-muted"
+        >
+          <p>{t('review.generating')}</p>
+          <p className="mt-1 text-xs text-ink-subtle">{t('review.generatingHint')}</p>
+        </div>
+      )}
+
+      {!isGenerating && game?.status === 'FAILED' && (
+        <div
+          role="alert"
+          data-testid="review-failed"
+          className="mt-6 rounded border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900"
+        >
+          <p className="font-medium">{t('review.failedTitle')}</p>
+          <p className="mt-1">
+            {game.generationError === 'AI_UNAVAILABLE_CIRCUIT_OPEN'
+              ? t('review.failedBreaker')
+              : t('review.failedGeneric')}
+          </p>
           <button
             type="button"
-            aria-label={t('common.close')}
-            onClick={onClose}
-            // Close sits on the inline-start edge (visual-left in LTR,
-            // visual-right in RTL) per Phase 8 RTL convention.
-            className="me-1 text-ink-subtle hover:text-ink-muted"
-            data-testid="review-close"
+            onClick={() => regenAllMutation.mutate()}
+            disabled={regenAllMutation.isPending}
+            className="mt-3 rounded bg-rose-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            data-testid="review-retry"
           >
-            ×
+            {regenAllMutation.isPending ? t('common.workingOn') : t('review.retry')}
           </button>
-          <div className="flex-1">
-            <h2 id="review-title" className="text-lg font-semibold">
-              {game ? <Bidi>{game.title}</Bidi> : t('review.loadingTitle')}
-            </h2>
-            <p className="mt-1 text-sm text-ink-muted">
-              {game?.type === 'FILL_BLANK'
-                ? t('review.subtitleFillBlank')
-                : game?.type === 'TIMED_QUIZ'
-                  ? t('review.subtitleTimedQuiz')
-                  : t('review.subtitleGeneric')}
-            </p>
-          </div>
         </div>
+      )}
 
-        {isGenerating && (
-          <div
-            data-testid="review-generating"
-            className="mt-6 rounded border border-dashed border-line-strong bg-surface-muted p-6 text-center text-sm text-ink-muted"
-          >
-            <p>{t('review.generating')}</p>
-            <p className="mt-1 text-xs text-ink-subtle">{t('review.generatingHint')}</p>
-          </div>
-        )}
+      {showActions && (
+        <div className="mt-6 space-y-4">
+          {(editing ?? game!.questionPool).map((q, idx) => (
+            <QuestionRow
+              key={q.id}
+              index={idx}
+              question={q}
+              onChange={(next) => {
+                setEditing((prev) => {
+                  const base = prev ?? game!.questionPool;
+                  return base.map((p) => (p.id === q.id ? next : p));
+                });
+              }}
+              onRegenerate={() => {
+                setPendingQuestionId(q.id);
+                regenOneMutation.mutate(q.id);
+              }}
+              regenerating={pendingQuestionId === q.id && regenOneMutation.isPending}
+              showDistractors={game!.type === 'TIMED_QUIZ'}
+            />
+          ))}
+        </div>
+      )}
 
-        {!isGenerating && game?.status === 'FAILED' && (
-          <div
-            role="alert"
-            data-testid="review-failed"
-            className="mt-6 rounded border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900"
-          >
-            <p className="font-medium">{t('review.failedTitle')}</p>
-            <p className="mt-1">
-              {game.generationError === 'AI_UNAVAILABLE_CIRCUIT_OPEN'
-                ? t('review.failedBreaker')
-                : t('review.failedGeneric')}
-            </p>
-            <button
-              type="button"
-              onClick={() => regenAllMutation.mutate()}
-              disabled={regenAllMutation.isPending}
-              className="mt-3 rounded bg-rose-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              data-testid="review-retry"
-            >
-              {regenAllMutation.isPending ? t('common.workingOn') : t('review.retry')}
-            </button>
-          </div>
-        )}
-
-        {!isGenerating && game && (game.status === 'DRAFT' || game.status === 'ASSIGNED') && (
-          <>
-            <div className="mt-6 space-y-4">
-              {(editing ?? game.questionPool).map((q, idx) => (
-                <QuestionRow
-                  key={q.id}
-                  index={idx}
-                  question={q}
-                  onChange={(next) => {
-                    setEditing((prev) => {
-                      const base = prev ?? game.questionPool;
-                      return base.map((p) => (p.id === q.id ? next : p));
-                    });
-                  }}
-                  onRegenerate={() => {
-                    setPendingQuestionId(q.id);
-                    regenOneMutation.mutate(q.id);
-                  }}
-                  regenerating={pendingQuestionId === q.id && regenOneMutation.isPending}
-                  showDistractors={game.type === 'TIMED_QUIZ'}
-                />
-              ))}
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
-              <button
-                type="button"
-                onClick={() => regenAllMutation.mutate()}
-                disabled={regenAllMutation.isPending || assignMutation.isPending}
-                className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted disabled:opacity-50"
-                data-testid="review-regenerate-all"
-              >
-                {regenAllMutation.isPending ? t('common.workingOn') : t('review.regenerateAll')}
-              </button>
-              <button
-                type="button"
-                onClick={() => saveMutation.mutate()}
-                disabled={!dirty || saveMutation.isPending || assignMutation.isPending}
-                className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted disabled:opacity-50"
-                data-testid="review-save"
-              >
-                {saveMutation.isPending ? t('common.workingOn') : t('review.saveEdits')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  // If there are pending edits, save first so the assigned pool reflects them.
-                  if (dirty) {
-                    saveMutation.mutate(undefined, {
-                      onSuccess: () => assignMutation.mutate(),
-                    });
-                  } else {
-                    assignMutation.mutate();
-                  }
-                }}
-                disabled={assignMutation.isPending || saveMutation.isPending}
-                className="rounded bg-ink px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                data-testid="review-assign"
-              >
-                {assignMutation.isPending
-                  ? t('common.workingOn')
-                  : game.status === 'ASSIGNED'
-                    ? t('review.reassign')
-                    : t('review.assign')}
-              </button>
-            </div>
-          </>
-        )}
-
-        {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="review-toast" />}
-      </div>
-    </div>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="review-toast" />}
+    </Modal>
   );
 }
 

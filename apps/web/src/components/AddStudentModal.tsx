@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { Language, StudentResponse } from '@tutor-app/shared';
 import { ApiError, api } from '../lib/api';
 import { LanguageSelect } from './LanguageSelect';
+import { Button, Modal } from './ui';
 
 interface Props {
   open: boolean;
@@ -26,15 +27,6 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
   const mutation = useMutation({
     mutationFn: () =>
       api.createStudent({
@@ -48,8 +40,6 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
       onClose();
     },
   });
-
-  if (!open) return null;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -65,37 +55,30 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
       : null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="add-student-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-md rounded-lg bg-surface p-6 shadow-xl"
-        data-testid="add-student-modal"
-      >
-        <div className="flex items-start gap-2">
-          <button
-            type="button"
-            aria-label={t('common.close')}
-            onClick={onClose}
-            // Close sits on the inline-start edge (visual-left in LTR,
-            // visual-right in RTL) per Phase 8 RTL convention.
-            className="me-1 text-ink-subtle hover:text-ink-muted"
+    <Modal
+      open={open}
+      onClose={onClose}
+      testId="add-student-modal"
+      title={t('students.add.title')}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form="add-student-form"
+            disabled={!name.trim()}
+            loading={mutation.isPending}
+            data-testid="add-student-submit"
           >
-            ×
-          </button>
-          <h2 id="add-student-title" className="flex-1 text-lg font-semibold">
-            {t('students.add.title')}
-          </h2>
-        </div>
-
-        <label htmlFor="new-student-name" className="mt-4 block text-sm font-medium">
+            {mutation.isPending ? t('common.workingOn') : t('students.add.submit')}
+          </Button>
+        </>
+      }
+    >
+      <form id="add-student-form" onSubmit={onSubmit}>
+        <label htmlFor="new-student-name" className="block text-sm font-medium">
           {t('students.fields.name')}
         </label>
         <input
@@ -141,25 +124,7 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
             {errorMessage}
           </p>
         )}
-
-        <div className="mt-6 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={!name.trim() || mutation.isPending}
-            className="rounded bg-ink px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            data-testid="add-student-submit"
-          >
-            {mutation.isPending ? t('common.workingOn') : t('students.add.submit')}
-          </button>
-        </div>
       </form>
-    </div>
+    </Modal>
   );
 }

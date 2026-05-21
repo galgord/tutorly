@@ -25,6 +25,11 @@
   --color-ink: #0f172a;
   --color-ink-muted: #475569;
   --color-ink-subtle: #94a3b8;
+
+  /* Modal / drawer backdrop. A ready-made translucent value — Tailwind's
+     `/opacity` modifier does NOT work on var()-based colors, so the scrim
+     carries its own alpha. */
+  --color-scrim: rgb(15 23 42 / 0.6);
 }
 
 @layer base {

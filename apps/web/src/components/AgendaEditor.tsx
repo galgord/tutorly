@@ -33,8 +33,10 @@ export function AgendaEditor({ lessonId, initialAgenda }: Props) {
 
   const mutation = useMutation({
     mutationFn: () => api.setLessonAgenda(lessonId, { agenda: value.trim() }),
-    onSuccess: (updated) => {
+    onSuccess: async (updated) => {
       qc.setQueryData(['lesson', lessonId], updated);
+      // Keep the schedule / dashboard calendar cache in sync.
+      await qc.invalidateQueries({ queryKey: ['calendar'] });
       setToast(t('agenda.toast.saved'));
     },
   });

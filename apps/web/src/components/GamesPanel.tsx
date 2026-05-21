@@ -193,7 +193,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
                     ? t('games.review')
                     : t('games.view')}
                 </button>
-                {g.questionPool.length > 0 && (
+                {g.questionPool.length > 0 && g.status !== 'FAILED' && (
                   <button
                     type="button"
                     onClick={() => setPreviewGameId(g.id)}

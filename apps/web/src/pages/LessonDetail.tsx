@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { Lock } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AgendaEditor } from '../components/AgendaEditor';
 import { Bidi } from '../components/Bidi';
@@ -32,6 +32,22 @@ export function LessonDetailPage() {
   const detail = useLesson(id);
   const [feedbackDirty, setFeedbackDirty] = useState(false);
   const [feedbackMode, setFeedbackMode] = useState<'text' | 'voice'>('text');
+  // Whether to show the "transcribed from voice — review before saving" hint.
+  // Local UI state, not a server-derived flag: saving the feedback sets
+  // `feedbackSource = TEXT` (still `!== 'VOICE'`), so a server-derived
+  // condition would never clear. We seed it once from the server state on
+  // first load, flip it true when a fresh transcript lands, and false on save.
+  const [transcriptHintVisible, setTranscriptHintVisible] = useState(false);
+  const transcriptHintSeeded = useRef(false);
+  useEffect(() => {
+    if (transcriptHintSeeded.current || !detail.data) return;
+    transcriptHintSeeded.current = true;
+    const l = detail.data;
+    const hasText = !!l.feedbackText && l.feedbackText.trim().length > 0;
+    setTranscriptHintVisible(
+      l.transcriptionStatus === 'DONE' && hasText && l.feedbackSource !== 'VOICE',
+    );
+  }, [detail.data]);
 
   if (detail.isLoading) {
     return (
@@ -66,10 +82,6 @@ export function LessonDetailPage() {
     timeStyle: 'short',
   });
   const hasFeedback = !!lesson.feedbackText && lesson.feedbackText.trim().length > 0;
-  // When the transcript landed but the tutor hasn't saved yet, hint that
-  // the editor is showing a suggestion.
-  const transcribedNotSaved =
-    lesson.transcriptionStatus === 'DONE' && hasFeedback && lesson.feedbackSource !== 'VOICE';
   // Feedback + game generation are post-lesson actions — locked until the
   // session has started. The agenda/plan stays editable regardless.
   const isFuture = new Date(lesson.occurredAt) > new Date();
@@ -189,7 +201,7 @@ export function LessonDetailPage() {
             </div>
 
             <div className={feedbackMode === 'text' ? 'space-y-4' : 'hidden'}>
-              {transcribedNotSaved && (
+              {transcriptHintVisible && (
                 <p
                   data-testid="feedback-transcribed-hint"
                   className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2 text-sm text-sky-900"
@@ -201,6 +213,7 @@ export function LessonDetailPage() {
                 lessonId={lesson.id}
                 initialFeedback={lesson.feedbackText ?? ''}
                 onDirtyChange={setFeedbackDirty}
+                onSaved={() => setTranscriptHintVisible(false)}
               />
             </div>
 
@@ -212,6 +225,7 @@ export function LessonDetailPage() {
                 disabled={feedbackDirty}
                 onTranscriptionDone={() => {
                   void qc.invalidateQueries({ queryKey: ['lesson', lesson.id] });
+                  setTranscriptHintVisible(true);
                   setFeedbackMode('text');
                 }}
               />

@@ -54,6 +54,9 @@ export function FeedbackEditor({ lessonId, initialFeedback, onDirtyChange, onSav
     mutationFn: () => api.setLessonFeedback(lessonId, { feedbackText: value.trim() }),
     onSuccess: async (updated) => {
       qc.setQueryData(['lesson', lessonId], updated);
+      // The schedule / dashboard "needs feedback" badge keys off hasFeedback,
+      // so refresh the calendar cache that feeds both views.
+      await qc.invalidateQueries({ queryKey: ['calendar'] });
       setToast(t('feedback.toast.saved'));
       onSaved?.(updated.feedbackText ?? '');
     },

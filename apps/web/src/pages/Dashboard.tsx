@@ -1,22 +1,28 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import type { StudentListItem } from '@tutor-app/shared';
 import { Link as LinkIcon, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddStudentModal } from '../components/AddStudentModal';
 import { Bidi } from '../components/Bidi';
+import { GettingStartedPanel } from '../components/GettingStartedPanel';
 import { InstallPrompt } from '../components/InstallPrompt';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { StudentIndicators, wasEverActive } from '../components/StudentIndicators';
+import { TeachingSetupModal } from '../components/TeachingSetupModal';
 import { Toast } from '../components/Toast';
 import { useMe } from '../lib/auth';
 import { buildShareUrl, useStudents } from '../lib/students';
 
 export function DashboardPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const me = useMe();
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // First-run teaching setup: dismissed flag lets a tutor skip without it
+  // reappearing for the rest of the session.
+  const [setupDismissed, setSetupDismissed] = useState(false);
 
   // Dashboard surfaces the first page of students; deeper paging lives on /students.
   const list = useStudents({ page: 1, limit: 6 });
@@ -33,6 +39,7 @@ export function DashboardPage() {
   if (!me.data) return null;
 
   const displayName = me.data.name ?? me.data.email.split('@')[0] ?? '';
+  const needsTeachingSetup = me.data.subject == null && !setupDismissed;
 
   const onCopy = async (token: string) => {
     try {
@@ -69,44 +76,33 @@ export function DashboardPage() {
         <KpiCard label={t('dashboard.kpi.activeStudents')} value={String(total)} Icon={Users} />
       </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">{t('dashboard.studentsTitle')}</h2>
-          {total > items.length && (
-            <Link
-              to="/students"
-              className="text-sm font-medium text-brand-700 hover:underline"
-              data-testid="dashboard-view-all-students"
-            >
-              {t('dashboard.viewAllStudents')}
-            </Link>
-          )}
+      {list.isLoading && (
+        <p data-testid="dashboard-students-loading" className="text-sm text-ink-muted">
+          {t('common.loading')}
+        </p>
+      )}
+
+      {!list.isLoading && items.length === 0 && (
+        <div data-testid="dashboard-students-empty">
+          <GettingStartedPanel onAddStudent={() => setAddOpen(true)} />
         </div>
+      )}
 
-        {list.isLoading && (
-          <p data-testid="dashboard-students-loading" className="text-sm text-ink-muted">
-            {t('common.loading')}
-          </p>
-        )}
-
-        {!list.isLoading && items.length === 0 && (
-          <div
-            data-testid="dashboard-students-empty"
-            className="rounded-lg border border-dashed border-line-strong bg-surface p-8 text-center"
-          >
-            <Users size={28} aria-hidden className="mx-auto text-ink-subtle" />
-            <p className="mt-3 text-sm text-ink-muted">{t('dashboard.emptyStudents')}</p>
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="mt-4 inline-flex items-center gap-2 rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
-            >
-              <Plus size={14} aria-hidden /> {t('students.add.button')}
-            </button>
+      {items.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-ink">{t('dashboard.studentsTitle')}</h2>
+            {total > items.length && (
+              <Link
+                to="/students"
+                className="text-sm font-medium text-brand-700 hover:underline"
+                data-testid="dashboard-view-all-students"
+              >
+                {t('dashboard.viewAllStudents')}
+              </Link>
+            )}
           </div>
-        )}
 
-        {items.length > 0 && (
           <ul
             data-testid="dashboard-students-grid"
             className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -115,10 +111,15 @@ export function DashboardPage() {
               <StudentCard key={s.id} student={s} onCopyInvite={() => void onCopy(s.shareToken)} />
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
 
-      <AddStudentModal open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddStudentModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreated={(student) => void navigate({ to: '/students/$id', params: { id: student.id } })}
+      />
+      <TeachingSetupModal open={needsTeachingSetup} onClose={() => setSetupDismissed(true)} />
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="dashboard-toast" />}
     </section>
   );

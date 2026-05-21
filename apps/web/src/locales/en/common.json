@@ -59,6 +59,39 @@
       "inviteCopyFailed": "Couldn't copy the link. Open the student's page to copy it manually."
     }
   },
+  "teachingSetup": {
+    "title": "Set up your teaching",
+    "explainer": "Tell us what and how you teach — this shapes the practice games we generate for your students.",
+    "subjectLabel": "Subject you teach",
+    "subjectPlaceholder": "e.g. Portuguese, Math, Piano",
+    "languageLabel": "Lesson language",
+    "languageHint": "Practice questions are generated in this language, even if you record feedback in another one.",
+    "languageNone": "Same as my UI language",
+    "submit": "Save and continue",
+    "skip": "Skip for now",
+    "errors": {
+      "invalid": "Please enter a valid subject.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "gettingStarted": {
+    "title": "How Tutorly works",
+    "subtitle": "Three steps to turn lessons into practice your students will play.",
+    "steps": {
+      "addStudent": {
+        "title": "1. Add a student",
+        "body": "Create a profile for each student you teach."
+      },
+      "feedback": {
+        "title": "2. Write lesson feedback",
+        "body": "After a lesson, jot down notes — we turn them into practice games."
+      },
+      "share": {
+        "title": "3. Share the game link",
+        "body": "Send the invite link so your student can play between sessions."
+      }
+    }
+  },
   "settings": {
     "title": "Account settings",
     "profile": {

@@ -59,6 +59,39 @@
       "inviteCopyFailed": "Não foi possível copiar o link. Abra a página do aluno para copiar manualmente."
     }
   },
+  "teachingSetup": {
+    "title": "Configure seu ensino",
+    "explainer": "Conte o que e como você ensina — isso molda os jogos de prática que geramos para seus alunos.",
+    "subjectLabel": "Matéria que você ensina",
+    "subjectPlaceholder": "ex.: Português, Matemática, Piano",
+    "languageLabel": "Idioma da aula",
+    "languageHint": "As perguntas de prática são geradas neste idioma, mesmo que você grave o feedback em outro.",
+    "languageNone": "Mesmo idioma da interface",
+    "submit": "Salvar e continuar",
+    "skip": "Pular por enquanto",
+    "errors": {
+      "invalid": "Informe uma matéria válida.",
+      "generic": "Algo deu errado. Tente novamente."
+    }
+  },
+  "gettingStarted": {
+    "title": "Como o Tutorly funciona",
+    "subtitle": "Três passos para transformar aulas em prática que seus alunos vão jogar.",
+    "steps": {
+      "addStudent": {
+        "title": "1. Adicione um aluno",
+        "body": "Crie um perfil para cada aluno que você ensina."
+      },
+      "feedback": {
+        "title": "2. Escreva o feedback da aula",
+        "body": "Após a aula, anote observações — nós as transformamos em jogos de prática."
+      },
+      "share": {
+        "title": "3. Compartilhe o link do jogo",
+        "body": "Envie o link de convite para o aluno jogar entre as aulas."
+      }
+    }
+  },
   "settings": {
     "title": "Definições da conta",
     "profile": {

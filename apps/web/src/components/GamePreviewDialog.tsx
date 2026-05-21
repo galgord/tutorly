@@ -97,7 +97,12 @@ function PreviewPlayer({ type, questions, locale, onClose }: PreviewPlayerProps)
 
   const choices = useMemo<string[]>(() => {
     if (!current || type !== 'TIMED_QUIZ') return [];
-    return shuffleSeeded([current.answer, ...current.distractors.slice(0, 3)], current.id);
+    // Drop blank distractors so the grid never renders empty clickable
+    // boxes; cap at one answer + three distractors.
+    const all = [current.answer, ...current.distractors]
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+    return shuffleSeeded(all.slice(0, 4), current.id);
   }, [current, type]);
 
   if (!current) return null;

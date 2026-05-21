@@ -430,7 +430,20 @@
       "sourceManual": "Adicionada manualmente",
       "sourceGoogle": "Do Google Agenda",
       "notFoundTitle": "Aula não encontrada",
-      "notFoundBody": "Essa aula não existe ou não tem acesso a ela."
+      "notFoundBody": "Essa aula não existe ou não tem acesso a ela.",
+      "futureLocked": "O feedback e os jogos de prática ficam disponíveis quando a aula começar ({{date}})."
+    }
+  },
+  "agenda": {
+    "title": "Plano da aula",
+    "subtitle": "Anote o que esta aula vai abordar. Editável a qualquer momento — um plano antes, um registo depois.",
+    "label": "Plano",
+    "placeholder": "Rever o pretérito e depois introduzir o condicional. Levar a ficha de exercícios.",
+    "save": "Guardar plano",
+    "unsaved": "Alterações não guardadas",
+    "charCount": "{{count}} / {{max}} caracteres",
+    "toast": {
+      "saved": "Plano da aula guardado"
     }
   },
   "feedback": {

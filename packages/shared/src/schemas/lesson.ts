@@ -45,6 +45,7 @@ export const LessonResponseSchema = z.object({
   title: z.string().nullable(),
   occurredAt: z.string().datetime(),
   googleEventId: z.string().nullable(),
+  agenda: z.string().nullable(),
   feedbackText: z.string().nullable(),
   feedbackSource: FeedbackSourceSchema,
   transcriptionStatus: TranscriptionStatusSchema,

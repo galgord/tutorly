@@ -110,13 +110,14 @@ export class GamesService {
    */
   private async assertLessonOwned(opts: { lessonId: string; tutorId: string }): Promise<{
     feedbackText: string | null;
+    occurredAt: Date;
   }> {
     const lesson = await this.prisma.lesson.findFirst({
       where: { id: opts.lessonId, deletedAt: null, student: { tutorId: opts.tutorId } },
-      select: { feedbackText: true },
+      select: { feedbackText: true, occurredAt: true },
     });
     if (!lesson) throw new NotFoundException('Lesson not found.');
-    return { feedbackText: lesson.feedbackText };
+    return { feedbackText: lesson.feedbackText, occurredAt: lesson.occurredAt };
   }
 
   /**
@@ -138,6 +139,12 @@ export class GamesService {
       lessonId: opts.lessonId,
       tutorId: opts.tutorId,
     });
+    // A future session hasn't happened — there's nothing to practise yet.
+    if (lesson.occurredAt.getTime() > Date.now()) {
+      throw new BadRequestException(
+        'Cannot generate a game: the session has not started yet.',
+      );
+    }
     if (!lesson.feedbackText || lesson.feedbackText.trim().length === 0) {
       throw new BadRequestException('Cannot generate a game: lesson has no feedback yet.');
     }

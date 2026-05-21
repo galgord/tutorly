@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   FeedbackSource,
   type Lesson,
@@ -176,6 +176,9 @@ export class LessonService {
    * Always re-asserts tenant ownership; tutor B can never write feedback
    * on tutor A's lesson. Voice-source updates (Phase 5) take the same
    * path with `source = FeedbackSource.VOICE`.
+   *
+   * Feedback is the post-lesson write-up, so it's rejected while the
+   * session is still in the future — there is nothing to report on yet.
    */
   async updateFeedback(opts: {
     id: string;
@@ -183,13 +186,33 @@ export class LessonService {
     feedbackText: string;
     source?: FeedbackSource;
   }): Promise<Lesson> {
-    await this.getLessonForTutorOrFail({ id: opts.id, tutorId: opts.tutorId });
+    const lesson = await this.getLessonForTutorOrFail({ id: opts.id, tutorId: opts.tutorId });
+    if (lesson.occurredAt.getTime() > Date.now()) {
+      throw new BadRequestException("Can't write feedback before the session has started.");
+    }
     return this.prisma.lesson.update({
       where: { id: opts.id },
       data: {
         feedbackText: opts.feedbackText,
         feedbackSource: opts.source ?? FeedbackSource.TEXT,
       },
+    });
+  }
+
+  /**
+   * Persist the free-text session agenda/plan. Unlike feedback this is
+   * allowed regardless of `occurredAt` — a tutor plans before the session
+   * and may amend it after. An empty string clears the field.
+   */
+  async updateAgenda(opts: {
+    id: string;
+    tutorId: string;
+    agenda: string;
+  }): Promise<Lesson> {
+    await this.getLessonForTutorOrFail({ id: opts.id, tutorId: opts.tutorId });
+    return this.prisma.lesson.update({
+      where: { id: opts.id },
+      data: { agenda: opts.agenda.length > 0 ? opts.agenda : null },
     });
   }
 }

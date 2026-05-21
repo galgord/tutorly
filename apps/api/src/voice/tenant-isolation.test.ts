@@ -89,7 +89,7 @@ describe('Voice tenant isolation (live db)', () => {
     const la = await lessons.createLesson({
       studentId: sa.id,
       tutorId: a.id,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     tutorA = a.id;

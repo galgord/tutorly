@@ -84,7 +84,7 @@ describe('Game tenant isolation (live db)', () => {
     const la = await lessons.createLesson({
       studentId: sa.id,
       tutorId: a.id,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await lessons.updateFeedback({
@@ -95,7 +95,7 @@ describe('Game tenant isolation (live db)', () => {
     const lb = await lessons.createLesson({
       studentId: sb.id,
       tutorId: b.id,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await lessons.updateFeedback({
@@ -246,7 +246,7 @@ describe('Game tenant isolation (live db)', () => {
     const blank = await lessons.createLesson({
       studentId: studentA,
       tutorId: tutorA,
-      occurredAt: new Date(),
+      occurredAt: new Date(Date.now() - 86_400_000),
       source: LessonSource.MANUAL,
     });
     await expect(

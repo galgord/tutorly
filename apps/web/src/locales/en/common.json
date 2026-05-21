@@ -430,7 +430,20 @@
       "sourceManual": "Added manually",
       "sourceGoogle": "From Google Calendar",
       "notFoundTitle": "Lesson not found",
-      "notFoundBody": "That lesson doesn't exist or you don't have access to it."
+      "notFoundBody": "That lesson doesn't exist or you don't have access to it.",
+      "futureLocked": "Feedback and practice games unlock once the session starts ({{date}})."
+    }
+  },
+  "agenda": {
+    "title": "Lesson plan",
+    "subtitle": "Jot what this session will cover. Editable any time — a plan before, a record after.",
+    "label": "Plan",
+    "placeholder": "Review past tense, then introduce conditional. Bring the worksheet.",
+    "save": "Save plan",
+    "unsaved": "Unsaved changes",
+    "charCount": "{{count}} / {{max}} characters",
+    "toast": {
+      "saved": "Lesson plan saved"
     }
   },
   "feedback": {

@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AgendaEditor } from '../components/AgendaEditor';
 import { Bidi } from '../components/Bidi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { FeedbackEditor } from '../components/FeedbackEditor';
@@ -68,6 +70,9 @@ export function LessonDetailPage() {
   // the editor is showing a suggestion.
   const transcribedNotSaved =
     lesson.transcriptionStatus === 'DONE' && hasFeedback && lesson.feedbackSource !== 'VOICE';
+  // Feedback + game generation are post-lesson actions — locked until the
+  // session has started. The agenda/plan stays editable regardless.
+  const isFuture = new Date(lesson.occurredAt) > new Date();
 
   const lessonLabel = lesson.title
     ? lesson.title
@@ -121,81 +126,105 @@ export function LessonDetailPage() {
         </CardBody>
       </Card>
 
-      {/* Feedback workbench — Text + Voice swap IN PLACE in one slot, so
-          toggling never reflows the page (the old jump). Both stay mounted;
-          only visibility toggles, which also preserves recording state. */}
-      <div className="space-y-4">
-        <div
-          role="tablist"
-          aria-label={t('feedback.modeLabel')}
-          data-testid="feedback-mode-toggle"
-          className="inline-flex overflow-hidden rounded-md border border-line-strong text-sm"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={feedbackMode === 'text'}
-            onClick={() => setFeedbackMode('text')}
-            data-testid="feedback-mode-text"
-            className={
-              feedbackMode === 'text'
-                ? 'bg-brand-500 px-3 py-1.5 font-medium text-white'
-                : 'px-3 py-1.5 text-ink-muted hover:bg-surface-sunken'
-            }
-          >
-            {t('feedback.modeText')}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={feedbackMode === 'voice'}
-            onClick={() => setFeedbackMode('voice')}
-            data-testid="feedback-mode-voice"
-            className={
-              feedbackMode === 'voice'
-                ? 'bg-brand-500 px-3 py-1.5 font-medium text-white'
-                : 'px-3 py-1.5 text-ink-muted hover:bg-surface-sunken'
-            }
-          >
-            {t('feedback.modeVoice')}
-          </button>
-        </div>
+      {/* Lesson plan — always visible, editable before and after the
+          session. Distinct from the post-lesson feedback below. */}
+      <AgendaEditor lessonId={lesson.id} initialAgenda={lesson.agenda ?? ''} />
 
-        <div className={feedbackMode === 'text' ? 'space-y-4' : 'hidden'}>
-          {transcribedNotSaved && (
-            <p
-              data-testid="feedback-transcribed-hint"
-              className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2 text-sm text-sky-900"
-            >
-              {t('feedback.transcribedHint')}
+      {isFuture ? (
+        /* Future session — feedback + games haven't unlocked yet. */
+        <Card>
+          <CardBody
+            data-testid="lesson-future-locked"
+            className="flex items-start gap-3 text-sm text-ink-muted"
+          >
+            <Lock size={18} className="mt-0.5 shrink-0 text-ink-subtle" aria-hidden />
+            <p>
+              {t('lessons.detail.futureLocked', {
+                date: dateFmt.format(new Date(lesson.occurredAt)),
+              })}
             </p>
-          )}
-          <FeedbackEditor
-            lessonId={lesson.id}
-            initialFeedback={lesson.feedbackText ?? ''}
-            onDirtyChange={setFeedbackDirty}
-          />
-        </div>
+          </CardBody>
+        </Card>
+      ) : (
+        <>
+          {/* Feedback workbench — Text + Voice swap IN PLACE in one slot, so
+              toggling never reflows the page (the old jump). Both stay
+              mounted; only visibility toggles, which preserves recording
+              state. */}
+          <div className="space-y-4">
+            <div
+              role="tablist"
+              aria-label={t('feedback.modeLabel')}
+              data-testid="feedback-mode-toggle"
+              className="inline-flex overflow-hidden rounded-md border border-line-strong text-sm"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={feedbackMode === 'text'}
+                onClick={() => setFeedbackMode('text')}
+                data-testid="feedback-mode-text"
+                className={
+                  feedbackMode === 'text'
+                    ? 'bg-brand-500 px-3 py-1.5 font-medium text-white'
+                    : 'px-3 py-1.5 text-ink-muted hover:bg-surface-sunken'
+                }
+              >
+                {t('feedback.modeText')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={feedbackMode === 'voice'}
+                onClick={() => setFeedbackMode('voice')}
+                data-testid="feedback-mode-voice"
+                className={
+                  feedbackMode === 'voice'
+                    ? 'bg-brand-500 px-3 py-1.5 font-medium text-white'
+                    : 'px-3 py-1.5 text-ink-muted hover:bg-surface-sunken'
+                }
+              >
+                {t('feedback.modeVoice')}
+              </button>
+            </div>
 
-        <div className={feedbackMode === 'voice' ? '' : 'hidden'}>
-          <VoiceRecorder
-            lessonId={lesson.id}
-            initialStatus={lesson.transcriptionStatus}
-            initialError={lesson.transcriptionError}
-            disabled={feedbackDirty}
-            onTranscriptionDone={() => {
-              void qc.invalidateQueries({ queryKey: ['lesson', lesson.id] });
-              setFeedbackMode('text');
-            }}
-          />
-        </div>
-      </div>
+            <div className={feedbackMode === 'text' ? 'space-y-4' : 'hidden'}>
+              {transcribedNotSaved && (
+                <p
+                  data-testid="feedback-transcribed-hint"
+                  className="rounded-md border border-sky-300 bg-sky-50 px-3 py-2 text-sm text-sky-900"
+                >
+                  {t('feedback.transcribedHint')}
+                </p>
+              )}
+              <FeedbackEditor
+                lessonId={lesson.id}
+                initialFeedback={lesson.feedbackText ?? ''}
+                onDirtyChange={setFeedbackDirty}
+              />
+            </div>
 
-      <GamesPanel
-        lessonId={lesson.id}
-        canGenerate={hasFeedback}
-        hasUnsavedFeedback={feedbackDirty}
-      />
+            <div className={feedbackMode === 'voice' ? '' : 'hidden'}>
+              <VoiceRecorder
+                lessonId={lesson.id}
+                initialStatus={lesson.transcriptionStatus}
+                initialError={lesson.transcriptionError}
+                disabled={feedbackDirty}
+                onTranscriptionDone={() => {
+                  void qc.invalidateQueries({ queryKey: ['lesson', lesson.id] });
+                  setFeedbackMode('text');
+                }}
+              />
+            </div>
+          </div>
+
+          <GamesPanel
+            lessonId={lesson.id}
+            canGenerate={hasFeedback}
+            hasUnsavedFeedback={feedbackDirty}
+          />
+        </>
+      )}
     </section>
   );
 }

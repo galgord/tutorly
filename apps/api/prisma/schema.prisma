@@ -160,6 +160,10 @@ model Lesson {
   source               LessonSource        @default(MANUAL)
   title                String?
   occurredAt           DateTime
+  // Free-text plan / agenda for the session. Editable at ANY time — before
+  // the lesson as a plan, after as a record of what was covered. Distinct
+  // from `feedbackText` (post-lesson notes that drive game generation).
+  agenda               String?
   feedbackText         String?
   feedbackSource       FeedbackSource      @default(TEXT)
   // Phase 5: storage-relative path to the uploaded audio while

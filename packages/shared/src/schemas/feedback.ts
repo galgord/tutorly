@@ -16,3 +16,14 @@ export const UpdateFeedbackRequestSchema = z.object({
   feedbackText: z.string().trim().min(1, 'Feedback text required.').max(8_000),
 });
 export type UpdateFeedbackRequest = z.infer<typeof UpdateFeedbackRequestSchema>;
+
+/**
+ * Tutor-supplied free-text plan / agenda for a lesson. Unlike feedback this
+ * is editable at any time (before the session as a plan, after as a record
+ * of what was covered) and an empty string is allowed — that clears it.
+ * Capped well under any LLM input limit, consistent with feedback.
+ */
+export const UpdateAgendaRequestSchema = z.object({
+  agenda: z.string().trim().max(4_000),
+});
+export type UpdateAgendaRequest = z.infer<typeof UpdateAgendaRequestSchema>;

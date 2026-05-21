@@ -21,6 +21,7 @@ import {
   LessonListResponseSchema,
   LessonResponseSchema,
   ListLessonsQuerySchema,
+  UpdateAgendaRequestSchema,
   UpdateFeedbackRequestSchema,
   type CalendarItem,
   type LessonResponse,
@@ -289,6 +290,44 @@ export class LessonsController {
 
     return serializeLesson(lesson);
   }
+
+  /**
+   * Persist the lesson's free-text agenda/plan. Allowed at any time —
+   * before the session (a plan) or after (a record of what was covered),
+   * unlike `setFeedback` which is gated on `occurredAt`.
+   */
+  @Patch(':id/agenda')
+  @HttpCode(200)
+  @UseGuards(CsrfGuard)
+  async setAgenda(
+    @CurrentTutor() tutor: CurrentTutorPayload,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: AuthedRequest,
+  ): Promise<LessonResponse> {
+    const parsed = UpdateAgendaRequestSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues);
+
+    const lesson = await this.lessons.updateAgenda({
+      id,
+      tutorId: tutor.id,
+      agenda: parsed.data.agenda,
+    });
+
+    await this.audit.record({
+      tutorId: tutor.id,
+      actorType: ActorType.TUTOR,
+      action: 'lesson.agenda.updated',
+      entityType: 'Lesson',
+      entityId: lesson.id,
+      // Length only — never the body itself (PII).
+      metadata: { length: parsed.data.agenda.length },
+      ipAddress: clientIp(req),
+      userAgent: req.header('user-agent') ?? null,
+    });
+
+    return serializeLesson(lesson);
+  }
 }
 
 export function serializeLesson(l: Lesson): LessonResponse {
@@ -299,6 +338,7 @@ export function serializeLesson(l: Lesson): LessonResponse {
     title: l.title,
     occurredAt: l.occurredAt.toISOString(),
     googleEventId: l.googleEventId,
+    agenda: l.agenda,
     feedbackText: l.feedbackText,
     feedbackSource: l.feedbackSource,
     transcriptionStatus: l.transcriptionStatus,
@@ -319,6 +359,7 @@ export function serializeLessonWithStudent(l: LessonWithStudent): LessonResponse
     title: l.title,
     occurredAt: l.occurredAt.toISOString(),
     googleEventId: l.googleEventId,
+    agenda: l.agenda,
     feedbackText: l.feedbackText,
     feedbackSource: l.feedbackSource,
     transcriptionStatus: l.transcriptionStatus,

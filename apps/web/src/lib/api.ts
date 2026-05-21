@@ -32,6 +32,7 @@ import type {
   SubmitAnswerRequest,
   SubmitAnswerResponse,
   TranscriptionStatusResponse,
+  UpdateAgendaRequest,
   UpdateFeedbackRequest,
   UpdateGameRequest,
   UpdateLessonCalendarsRequest,
@@ -195,6 +196,8 @@ export const api = {
   },
   setLessonFeedback: (id: string, body: UpdateFeedbackRequest): Promise<LessonResponse> =>
     request(`/lessons/${encodeURIComponent(id)}/feedback`, { method: 'PATCH', body }),
+  setLessonAgenda: (id: string, body: UpdateAgendaRequest): Promise<LessonResponse> =>
+    request(`/lessons/${encodeURIComponent(id)}/agenda`, { method: 'PATCH', body }),
 
   // Voice (Phase 5) ------------------------------------------------------
   uploadLessonAudio: async (

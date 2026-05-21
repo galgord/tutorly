@@ -280,6 +280,7 @@
     "open": "Abrir",
     "empty": "Ainda sem aulas. Adicione uma a partir da página de um aluno.",
     "loadError": "Não foi possível carregar a agenda. Tente novamente.",
+    "needsFeedback": "Falta feedback",
     "groups": {
       "upcoming": "Próximas",
       "past": "Anteriores"

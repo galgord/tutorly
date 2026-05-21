@@ -278,8 +278,9 @@
     "subtitle": "Lessons you've added — past and upcoming. Use your Google Calendar for your day-to-day calendar.",
     "addCta": "Add a lesson",
     "open": "Open",
-    "empty": "No lessons yet. Add one from a student's page.",
+    "empty": "No lessons yet. Add your first one.",
     "loadError": "Couldn't load the schedule. Try again.",
+    "needsFeedback": "Needs feedback",
     "groups": {
       "upcoming": "Upcoming",
       "past": "Past"

@@ -14,7 +14,6 @@ import { LocaleSwitcher } from './components/LocaleSwitcher';
 import { useDirection } from './hooks/useDirection';
 import { api } from './lib/api';
 import { DashboardPage } from './pages/Dashboard';
-import { GamePreviewPage } from './pages/GamePreview';
 import { LessonDetailPage } from './pages/LessonDetail';
 import { LoginPage } from './pages/Login';
 import { NotFoundPage } from './pages/NotFound';
@@ -111,13 +110,6 @@ const lessonDetailRoute = createRoute({
   component: LessonDetailPage,
 });
 
-const gamePreviewRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/games/$id/preview',
-  beforeLoad: requireAuth,
-  component: GamePreviewPage,
-});
-
 // --- Students -------------------------------------------------------------
 
 const studentsListRoute = createRoute({
@@ -166,7 +158,6 @@ const routeTree = rootRoute.addChildren([
   scheduleRoute,
   calendarRedirectRoute,
   lessonDetailRoute,
-  gamePreviewRoute,
   studentsListRoute,
   studentsTrashRoute,
   studentDetailRoute,

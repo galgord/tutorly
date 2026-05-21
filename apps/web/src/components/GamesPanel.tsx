@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GameResponse, QuotaExceededResponse } from '@tutor-app/shared';
 import { ApiError, api } from '../lib/api';
 import { useLessonGames } from '../lib/games';
 import { Bidi } from './Bidi';
+import { GamePreviewDialog } from './GamePreviewDialog';
 import { QuestionReviewModal } from './QuestionReviewModal';
 import { Toast } from './Toast';
 
@@ -27,6 +27,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
   const qc = useQueryClient();
   const games = useLessonGames(lessonId);
   const [reviewGameId, setReviewGameId] = useState<string | null>(null);
+  const [previewGameId, setPreviewGameId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   // Persistent banner state when the tutor hits their monthly cap. Stays
   // until the next successful create or until the page is reloaded —
@@ -168,14 +169,14 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
                     : t('games.view')}
                 </button>
                 {g.questionPool.length > 0 && (
-                  <Link
-                    to="/games/$id/preview"
-                    params={{ id: g.id }}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewGameId(g.id)}
                     className="rounded border border-line bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
                     data-testid={`games-preview-${g.id}`}
                   >
                     {t('games.preview')}
-                  </Link>
+                  </button>
                 )}
                 {g.status !== 'ARCHIVED' && (
                   <button
@@ -201,6 +202,8 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
           onClose={() => setReviewGameId(null)}
         />
       )}
+
+      <GamePreviewDialog gameId={previewGameId} onClose={() => setPreviewGameId(null)} />
 
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="games-toast" />}
     </section>

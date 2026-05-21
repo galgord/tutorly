@@ -8,6 +8,9 @@ interface Props {
   data: StudentProgressResponse;
   rtl: boolean;
   locale: string;
+  /** When false, the per-game cards are hidden — the student page shows its
+   *  own "Practice games" grid, so rendering them here would duplicate. */
+  showGames?: boolean;
 }
 
 const TREND_COPY = {
@@ -24,7 +27,7 @@ const TREND_BADGE: Record<keyof typeof TREND_COPY, string> = {
   insufficient: 'bg-surface-muted text-ink-subtle border-line',
 };
 
-export function ProgressOverview({ data, rtl, locale }: Props) {
+export function ProgressOverview({ data, rtl, locale, showGames = true }: Props) {
   const { t } = useTranslation();
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
   const pct = (n: number | null): string =>
@@ -61,7 +64,8 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
         />
       </div>
 
-      {/* Game cards */}
+      {/* Game cards — hidden on the student page, which has its own grid. */}
+      {showGames && (
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
           {t('progress.games.title')}
@@ -130,6 +134,7 @@ export function ProgressOverview({ data, rtl, locale }: Props) {
           </ul>
         )}
       </div>
+      )}
 
       {/* Topic mastery chart */}
       <div data-testid="progress-topics">

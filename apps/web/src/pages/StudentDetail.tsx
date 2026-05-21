@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { AddLessonModal } from '../components/AddLessonModal';
 import { Bidi } from '../components/Bidi';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { GamePreviewDialog } from '../components/GamePreviewDialog';
 import { GameProgressPanel } from '../components/GameProgressPanel';
 import { ProgressOverview } from '../components/ProgressOverview';
 import { RecentAttemptsList } from '../components/RecentAttemptsList';
@@ -37,6 +38,7 @@ export function StudentDetailPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [addLessonOpen, setAddLessonOpen] = useState(false);
+  const [previewGameId, setPreviewGameId] = useState<string | null>(null);
 
   const onCopyShare = async () => {
     if (!detail.data) return;
@@ -181,7 +183,12 @@ export function StudentDetailPage() {
           {gameItems.length > 0 && (
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {gameItems.map((g) => (
-                <StudentGameCard key={g.id} game={g} locale={locale} />
+                <StudentGameCard
+                  key={g.id}
+                  game={g}
+                  locale={locale}
+                  onPreview={() => setPreviewGameId(g.id)}
+                />
               ))}
             </ul>
           )}
@@ -275,6 +282,7 @@ export function StudentDetailPage() {
                   data={progress.data}
                   rtl={i18n.dir(i18n.resolvedLanguage) === 'rtl'}
                   locale={locale}
+                  showGames={false}
                 />
               ) : null}
             </CardBody>
@@ -337,6 +345,8 @@ export function StudentDetailPage() {
         onCreated={(lessonId) => void navigate({ to: '/lessons/$id', params: { id: lessonId } })}
       />
 
+      <GamePreviewDialog gameId={previewGameId} onClose={() => setPreviewGameId(null)} />
+
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} testId="student-toast" />}
     </section>
   );
@@ -345,9 +355,10 @@ export function StudentDetailPage() {
 interface StudentGameCardProps {
   game: StudentGameSummary;
   locale: string;
+  onPreview: () => void;
 }
 
-function StudentGameCard({ game, locale }: StudentGameCardProps) {
+function StudentGameCard({ game, locale, onPreview }: StudentGameCardProps) {
   const { t } = useTranslation();
   const dateFmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
   return (
@@ -394,14 +405,14 @@ function StudentGameCard({ game, locale }: StudentGameCardProps) {
           {t('students.games.open')}
         </Link>
         {game.questionCount > 0 && (
-          <Link
-            to="/games/$id/preview"
-            params={{ id: game.id }}
+          <button
+            type="button"
+            onClick={onPreview}
             className="inline-flex flex-1 items-center justify-center rounded-md bg-brand-50 px-2 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
             data-testid={`student-game-preview-${game.id}`}
           >
             {t('students.games.preview')}
-          </Link>
+          </button>
         )}
       </div>
     </li>

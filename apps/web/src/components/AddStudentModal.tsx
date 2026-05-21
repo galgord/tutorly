@@ -69,14 +69,14 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-student-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-lg bg-surface p-6 shadow-xl"
         data-testid="add-student-modal"
       >
         <div className="flex items-start gap-2">
@@ -86,7 +86,7 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
             onClick={onClose}
             // Close sits on the inline-start edge (visual-left in LTR,
             // visual-right in RTL) per Phase 8 RTL convention.
-            className="me-1 text-slate-400 hover:text-slate-600"
+            className="me-1 text-ink-subtle hover:text-ink-muted"
           >
             ×
           </button>
@@ -105,13 +105,13 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
           dir="auto"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="add-student-name"
           autoFocus
         />
 
         <label htmlFor="new-student-notes" className="mt-4 block text-sm font-medium">
-          {t('students.fields.notes')} <span className="text-xs text-slate-500">{t('common.optional')}</span>
+          {t('students.fields.notes')} <span className="text-xs text-ink-subtle">{t('common.optional')}</span>
         </label>
         <textarea
           id="new-student-notes"
@@ -119,13 +119,13 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="add-student-notes"
         />
 
         <label htmlFor="new-student-native-language" className="mt-4 block text-sm font-medium">
           {t('students.fields.nativeLanguage')}{' '}
-          <span className="text-xs text-slate-500">{t('common.optional')}</span>
+          <span className="text-xs text-ink-subtle">{t('common.optional')}</span>
         </label>
         <LanguageSelect
           id="new-student-native-language"
@@ -134,7 +134,7 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
           onChange={setNativeLanguage}
           testId="add-student-native-language"
         />
-        <p className="mt-1 text-xs text-slate-500">{t('students.fields.nativeLanguageHint')}</p>
+        <p className="mt-1 text-xs text-ink-subtle">{t('students.fields.nativeLanguageHint')}</p>
 
         {errorMessage && (
           <p role="alert" className="mt-3 text-sm text-rose-700" data-testid="add-student-error">
@@ -146,14 +146,14 @@ export function AddStudentModal({ open, onClose, onCreated }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted"
           >
             {t('common.cancel')}
           </button>
           <button
             type="submit"
             disabled={!name.trim() || mutation.isPending}
-            className="rounded bg-slate-900 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded bg-ink px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             data-testid="add-student-submit"
           >
             {mutation.isPending ? t('common.workingOn') : t('students.add.submit')}

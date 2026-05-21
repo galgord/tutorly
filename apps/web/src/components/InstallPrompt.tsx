@@ -79,23 +79,23 @@ export function InstallPrompt() {
   return (
     <aside
       data-testid="pwa-install-prompt"
-      className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm shadow-sm"
+      className="rounded-lg border border-line bg-surface-muted p-4 text-sm shadow-sm"
       role="region"
       aria-labelledby="pwa-install-title"
     >
       <div className="flex items-start gap-3">
         <div className="flex-1">
-          <h2 id="pwa-install-title" className="text-base font-semibold text-slate-900">
+          <h2 id="pwa-install-title" className="text-base font-semibold text-ink">
             {t('pwa.install.title')}
           </h2>
-          <p className="mt-1 text-slate-600">{t('pwa.install.body')}</p>
+          <p className="mt-1 text-ink-muted">{t('pwa.install.body')}</p>
         </div>
         <div className="flex flex-shrink-0 flex-col items-end gap-1">
           <button
             type="button"
             onClick={() => void onInstallClick()}
             data-testid="pwa-install-button"
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-ink/90"
           >
             {t('pwa.install.cta')}
           </button>
@@ -103,7 +103,7 @@ export function InstallPrompt() {
             type="button"
             onClick={persistDismiss}
             data-testid="pwa-install-dismiss"
-            className="text-xs text-slate-500 underline-offset-2 hover:underline"
+            className="text-xs text-ink-subtle underline-offset-2 hover:underline"
           >
             {t('pwa.install.dismiss')}
           </button>

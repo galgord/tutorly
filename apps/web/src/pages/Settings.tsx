@@ -54,7 +54,7 @@ export function SettingsPage() {
 
   if (me.isLoading || !me.data) {
     return (
-      <div data-testid="settings-loading" className="text-sm text-slate-600">
+      <div data-testid="settings-loading" className="text-sm text-ink-muted">
         {t('common.loading')}
       </div>
     );
@@ -71,7 +71,7 @@ export function SettingsPage() {
           e.preventDefault();
           saveMutation.mutate();
         }}
-        className="rounded-lg border border-slate-200 bg-white p-6"
+        className="rounded-lg border border-line bg-surface p-6"
       >
         <h2 className="text-lg font-semibold">{t('settings.profile.title')}</h2>
 
@@ -84,7 +84,7 @@ export function SettingsPage() {
           dir="ltr"
           readOnly
           value={me.data.email}
-          className="mt-1 w-full rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line bg-surface-muted px-3 py-2 text-sm"
         />
 
         <label htmlFor="name" className="mt-4 block text-sm font-medium">
@@ -95,7 +95,7 @@ export function SettingsPage() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="settings-name"
         />
 
@@ -107,7 +107,7 @@ export function SettingsPage() {
           dir="ltr"
           value={locale}
           onChange={(e) => setLocale(e.target.value as Locale)}
-          className="mt-1 rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="settings-locale"
         >
           <option value="en">English</option>
@@ -125,11 +125,11 @@ export function SettingsPage() {
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder={t('settings.profile.subjectPlaceholder')}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="settings-subject"
           maxLength={80}
         />
-        <p className="mt-1 text-xs text-slate-500">{t('settings.profile.subjectHint')}</p>
+        <p className="mt-1 text-xs text-ink-subtle">{t('settings.profile.subjectHint')}</p>
 
         <label htmlFor="teachingLanguage" className="mt-4 block text-sm font-medium">
           {t('settings.profile.teachingLanguage')}
@@ -141,14 +141,14 @@ export function SettingsPage() {
           onChange={setTeachingLanguage}
           testId="settings-teaching-language"
         />
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-ink-subtle">
           {t('settings.profile.teachingLanguageHint')}
         </p>
 
         <button
           type="submit"
           disabled={saveMutation.isPending}
-          className="mt-6 rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="mt-6 rounded bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           data-testid="settings-save"
         >
           {saveMutation.isPending ? t('common.workingOn') : t('settings.profile.save')}

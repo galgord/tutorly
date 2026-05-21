@@ -69,11 +69,11 @@ export function FeedbackEditor({ lessonId, initialFeedback, onDirtyChange, onSav
     <form
       onSubmit={onSubmit}
       data-testid="feedback-editor"
-      className="rounded-lg border border-slate-200 bg-white p-6"
+      className="rounded-lg border border-line bg-surface p-6"
     >
       <header>
         <h2 className="text-lg font-semibold">{t('feedback.title')}</h2>
-        <p className="mt-1 text-sm text-slate-600">{t('feedback.subtitle')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('feedback.subtitle')}</p>
       </header>
 
       <label htmlFor="lesson-feedback-input" className="mt-4 block text-sm font-medium">
@@ -88,10 +88,10 @@ export function FeedbackEditor({ lessonId, initialFeedback, onDirtyChange, onSav
         rows={6}
         maxLength={8_000}
         placeholder={t('feedback.placeholder')}
-        className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
       />
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-subtle">
         <span data-testid="feedback-charcount">
           {t('feedback.charCount', { count: value.length, max: 8_000 })}
         </span>
@@ -106,7 +106,7 @@ export function FeedbackEditor({ lessonId, initialFeedback, onDirtyChange, onSav
         <button
           type="submit"
           disabled={!dirty || value.trim().length === 0 || mutation.isPending}
-          className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           data-testid="feedback-save"
         >
           {mutation.isPending ? t('common.workingOn') : t('feedback.save')}

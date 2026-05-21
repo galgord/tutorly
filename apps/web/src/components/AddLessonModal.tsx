@@ -83,14 +83,14 @@ export function AddLessonModal({ open, studentId, onClose, onCreated }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-lesson-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-lg bg-surface p-6 shadow-xl"
         data-testid="add-lesson-modal"
       >
         <div className="flex items-start gap-2">
@@ -100,7 +100,7 @@ export function AddLessonModal({ open, studentId, onClose, onCreated }: Props) {
             onClick={onClose}
             // Close sits on the inline-start edge (visual-left in LTR,
             // visual-right in RTL) per Phase 8 RTL convention.
-            className="me-1 text-slate-400 hover:text-slate-600"
+            className="me-1 text-ink-subtle hover:text-ink-muted"
           >
             ×
           </button>
@@ -119,7 +119,7 @@ export function AddLessonModal({ open, studentId, onClose, onCreated }: Props) {
           dir="ltr"
           value={occurredAtLocal}
           onChange={(e) => setOccurredAtLocal(e.target.value)}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="add-lesson-occurredAt"
           autoFocus
         />
@@ -133,7 +133,7 @@ export function AddLessonModal({ open, studentId, onClose, onCreated }: Props) {
           dir="auto"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="add-lesson-title"
         />
 
@@ -147,14 +147,14 @@ export function AddLessonModal({ open, studentId, onClose, onCreated }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted"
           >
             {t('common.cancel')}
           </button>
           <button
             type="submit"
             disabled={!occurredAtLocal || mutation.isPending}
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             data-testid="add-lesson-submit"
           >
             {mutation.isPending ? t('common.workingOn') : t('lessons.manualAdd.submit')}

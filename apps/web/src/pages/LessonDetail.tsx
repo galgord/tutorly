@@ -31,7 +31,7 @@ export function LessonDetailPage() {
 
   if (detail.isLoading) {
     return (
-      <p data-testid="lesson-detail-loading" className="text-sm text-slate-600">
+      <p data-testid="lesson-detail-loading" className="text-sm text-ink-muted">
         {t('common.loading')}
       </p>
     );
@@ -41,14 +41,14 @@ export function LessonDetailPage() {
     return (
       <div
         data-testid="lesson-not-found"
-        className="rounded-lg border border-slate-200 bg-white p-6 text-center"
+        className="rounded-lg border border-line bg-surface p-6 text-center"
       >
         <h1 className="text-xl font-semibold">{t('lessons.detail.notFoundTitle')}</h1>
-        <p className="mt-2 text-sm text-slate-600">{t('lessons.detail.notFoundBody')}</p>
+        <p className="mt-2 text-sm text-ink-muted">{t('lessons.detail.notFoundBody')}</p>
         <button
           type="button"
           onClick={() => navigate({ to: '/schedule' })}
-          className="mt-4 rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          className="mt-4 rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted"
         >
           {t('lessons.detail.back')}
         </button>
@@ -71,7 +71,7 @@ export function LessonDetailPage() {
     <section data-testid="lesson-detail" className="space-y-6">
       <Link
         to="/calendar"
-        className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
+        className="text-sm font-medium text-ink-muted underline-offset-2 hover:underline"
         data-testid="lesson-detail-back"
       >
         {t('lessons.detail.back')}
@@ -83,7 +83,7 @@ export function LessonDetailPage() {
             date: dateFmt.format(new Date(lesson.occurredAt)),
           })}
         </h1>
-        <dl className="mt-2 grid grid-cols-1 gap-1 text-sm text-slate-600 sm:grid-cols-2">
+        <dl className="mt-2 grid grid-cols-1 gap-1 text-sm text-ink-muted sm:grid-cols-2">
           <div className="flex gap-2">
             <dt className="font-medium">{t('lessons.detail.dateLabel')}</dt>
             <dd>{dateFmt.format(new Date(lesson.occurredAt))}</dd>
@@ -119,7 +119,7 @@ export function LessonDetailPage() {
         role="tablist"
         aria-label={t('feedback.modeLabel')}
         data-testid="feedback-mode-toggle"
-        className="inline-flex rounded border border-slate-300 bg-white text-sm"
+        className="inline-flex rounded border border-line-strong bg-surface text-sm"
       >
         <button
           type="button"
@@ -129,8 +129,8 @@ export function LessonDetailPage() {
           data-testid="feedback-mode-text"
           className={
             feedbackMode === 'text'
-              ? 'rounded-s px-3 py-1.5 font-medium bg-slate-900 text-white'
-              : 'rounded-s px-3 py-1.5 text-slate-700 hover:bg-slate-50'
+              ? 'rounded-s px-3 py-1.5 font-medium bg-ink text-white'
+              : 'rounded-s px-3 py-1.5 text-ink-muted hover:bg-surface-muted'
           }
         >
           {t('feedback.modeText')}
@@ -143,8 +143,8 @@ export function LessonDetailPage() {
           data-testid="feedback-mode-voice"
           className={
             feedbackMode === 'voice'
-              ? 'rounded-e px-3 py-1.5 font-medium bg-slate-900 text-white'
-              : 'rounded-e px-3 py-1.5 text-slate-700 hover:bg-slate-50'
+              ? 'rounded-e px-3 py-1.5 font-medium bg-ink text-white'
+              : 'rounded-e px-3 py-1.5 text-ink-muted hover:bg-surface-muted'
           }
         >
           {t('feedback.modeVoice')}

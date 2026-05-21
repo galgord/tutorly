@@ -32,7 +32,7 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
     return (
       <div
         data-testid="attempts-empty"
-        className="rounded border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600"
+        className="rounded border border-dashed border-line bg-surface-muted p-4 text-center text-sm text-ink-muted"
       >
         {t('progress.attempts.empty')}
       </div>
@@ -41,7 +41,7 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
 
   return (
     <div data-testid="attempts-list" className="space-y-3">
-      <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+      <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
         {data.items.map((a) => {
           const isOpen = expanded.has(a.id);
           const pct =
@@ -70,14 +70,14 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
                   <p className="font-medium">
                     <Bidi>{a.gameTitle}</Bidi>
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-subtle">
                     {dateFmt.format(new Date(a.startedAt))} ·{' '}
                     {t(`progress.attempts.type_${a.gameType}`)}
                   </p>
                 </div>
                 <div className="shrink-0 text-end">
                   <p className="font-semibold">{pct}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-subtle">
                     {t('progress.attempts.correctOf', {
                       correct: a.correctCount,
                       total: a.questionsAnswered,
@@ -89,10 +89,10 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
               {isOpen && (
                 <ul
                   data-testid={`attempt-detail-${a.id}`}
-                  className="mt-3 space-y-1 border-s-2 border-slate-200 ps-3 text-xs"
+                  className="mt-3 space-y-1 border-s-2 border-line ps-3 text-xs"
                 >
                   {a.results.length === 0 ? (
-                    <li className="text-slate-500">{t('progress.attempts.noAnswers')}</li>
+                    <li className="text-ink-subtle">{t('progress.attempts.noAnswers')}</li>
                   ) : (
                     a.results.map((r) => (
                       <li
@@ -102,7 +102,7 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
                         <p className="font-medium">
                           <Bidi>{r.prompt}</Bidi>
                         </p>
-                        <p className="text-slate-700">
+                        <p className="text-ink-muted">
                           <span>{t('progress.attempts.studentAnswer')}: </span>
                           <Bidi>{r.rawAnswer || '—'}</Bidi>
                           {!r.correct && (
@@ -141,7 +141,7 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
             type="button"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
-            className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded border border-line-strong px-2 py-1 disabled:opacity-50"
             data-testid="attempts-prev"
           >
             {/* Directional arrow — flipped automatically in RTL via the
@@ -151,14 +151,14 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
             </span>
             {t('progress.attempts.prev')}
           </button>
-          <span className="text-slate-600">
+          <span className="text-ink-muted">
             {t('progress.attempts.pageOf', { page, total: totalPages })}
           </span>
           <button
             type="button"
             disabled={!data.hasMore}
             onClick={() => onPageChange(page + 1)}
-            className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded border border-line-strong px-2 py-1 disabled:opacity-50"
             data-testid="attempts-next"
           >
             {t('progress.attempts.next')}
@@ -171,11 +171,11 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
 
       {/* Monthly aggregates for pre-cutoff history */}
       {data.monthlyAggregates.length > 0 && (
-        <div data-testid="attempts-monthly" className="rounded-lg border border-slate-200 bg-white p-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div data-testid="attempts-monthly" className="rounded-lg border border-line bg-surface p-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-subtle">
             {t('progress.attempts.olderHistory')}
           </h4>
-          <ul className="mt-2 grid gap-1 text-xs text-slate-700 sm:grid-cols-2">
+          <ul className="mt-2 grid gap-1 text-xs text-ink-muted sm:grid-cols-2">
             {data.monthlyAggregates.map((m) => (
               <li
                 key={m.month}
@@ -183,7 +183,7 @@ export function RecentAttemptsList({ data, locale, page, onPageChange }: Props) 
                 className="flex justify-between gap-2"
               >
                 <span>{m.month}</span>
-                <span className="text-slate-500">
+                <span className="text-ink-subtle">
                   {t('progress.attempts.monthlySummary', {
                     count: m.attemptCount,
                     avg: m.avgAccuracy === null ? '—' : `${Math.round(m.avgAccuracy * 100)}%`,

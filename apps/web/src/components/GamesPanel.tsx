@@ -62,7 +62,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
   });
 
   return (
-    <section data-testid="games-panel" className="rounded-lg border border-slate-200 bg-white p-6">
+    <section data-testid="games-panel" className="rounded-lg border border-line bg-surface p-6">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold">{t('games.title')}</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -70,7 +70,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
             type="button"
             onClick={() => createMutation.mutate('FILL_BLANK')}
             disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             data-testid="games-generate-fill-blank"
           >
             {createMutation.isPending ? t('common.workingOn') : t('games.generateFillBlank')}
@@ -79,7 +79,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
             type="button"
             onClick={() => createMutation.mutate('TIMED_QUIZ')}
             disabled={!canGenerate || hasUnsavedFeedback || overCap || createMutation.isPending}
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             data-testid="games-generate-timed-quiz"
           >
             {createMutation.isPending ? t('common.workingOn') : t('games.generateTimedQuiz')}
@@ -107,7 +107,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
       )}
 
       {!canGenerate && (
-        <p className="mt-3 text-sm text-slate-600" data-testid="games-need-feedback">
+        <p className="mt-3 text-sm text-ink-muted" data-testid="games-need-feedback">
           {t('games.needFeedback')}
         </p>
       )}
@@ -119,20 +119,20 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
       )}
 
       {games.isLoading && (
-        <p className="mt-4 text-sm text-slate-600">{t('common.loading')}</p>
+        <p className="mt-4 text-sm text-ink-muted">{t('common.loading')}</p>
       )}
 
       {games.data && games.data.items.length === 0 && (
         <p
           data-testid="games-empty"
-          className="mt-4 rounded border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-600"
+          className="mt-4 rounded border border-dashed border-line bg-surface-muted px-3 py-4 text-center text-sm text-ink-muted"
         >
           {t('games.empty')}
         </p>
       )}
 
       {games.data && games.data.items.length > 0 && (
-        <ul className="mt-4 divide-y divide-slate-200 rounded border border-slate-200">
+        <ul className="mt-4 divide-y divide-line rounded border border-line">
           {games.data.items.map((g) => (
             <li
               key={g.id}
@@ -149,7 +149,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
                     {t(`games.status.${g.status}`)}
                   </span>
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-subtle">
                   {g.type === 'FILL_BLANK' ? t('games.typeFillBlank') : t('games.typeTimedQuiz')}
                   {g.questionPool.length > 0 && (
                     <> · {t('games.questionCount', { count: g.questionPool.length })}</>
@@ -160,7 +160,7 @@ export function GamesPanel({ lessonId, canGenerate, hasUnsavedFeedback }: Props)
                 <button
                   type="button"
                   onClick={() => setReviewGameId(g.id)}
-                  className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                  className="rounded border border-line-strong px-2 py-1 text-xs hover:bg-surface-muted"
                   data-testid={`games-open-${g.id}`}
                 >
                   {g.status === 'DRAFT' || g.status === 'FAILED' || g.status === 'GENERATING'
@@ -221,14 +221,14 @@ function statusBadgeClass(status: GameResponse['status']): string {
     case 'GENERATING':
       return 'bg-amber-100 text-amber-900';
     case 'DRAFT':
-      return 'bg-slate-200 text-slate-800';
+      return 'bg-surface-sunken text-ink';
     case 'FAILED':
       return 'bg-rose-100 text-rose-900';
     case 'ASSIGNED':
       return 'bg-emerald-100 text-emerald-900';
     case 'ARCHIVED':
-      return 'bg-slate-100 text-slate-600';
+      return 'bg-surface-sunken text-ink-muted';
     default:
-      return 'bg-slate-100 text-slate-700';
+      return 'bg-surface-sunken text-ink-muted';
   }
 }

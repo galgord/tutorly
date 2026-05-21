@@ -107,13 +107,13 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
     <section
       data-testid="fill-blank-engine"
       data-attempt-id={attempt.attemptId}
-      className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
+      className="space-y-6 rounded-lg border border-line bg-surface p-6"
     >
       <header className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span
             data-testid="play-progress"
-            className="text-sm font-medium text-slate-500"
+            className="text-sm font-medium text-ink-subtle"
           >
             {progress}
           </span>
@@ -124,7 +124,7 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
         <span
           data-testid="play-score"
           aria-live="polite"
-          className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold"
+          className="rounded-full bg-surface-sunken px-3 py-1 text-sm font-semibold"
         >
           {t('play.scoreLabel', { score })}
         </span>
@@ -162,7 +162,7 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-base"
+          className="w-full rounded border border-line-strong px-3 py-2 text-base"
         />
 
         {!answered && (
@@ -171,7 +171,7 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
               type="submit"
               data-testid="play-submit"
               disabled={!value.trim() || submitting}
-              className="rounded bg-slate-900 px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded bg-ink px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
               {submitting ? t('common.workingOn') : t('play.submit')}
             </button>
@@ -205,7 +205,7 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
               data-testid="play-next"
               onClick={next}
               onKeyDown={onNextKeyDown}
-              className="inline-flex items-center gap-2 rounded bg-slate-900 px-5 py-2 text-sm font-medium text-white"
+              className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2 text-sm font-medium text-white"
             >
               {idx + 1 >= total ? t('play.finish') : t('play.next')}
               {idx + 1 < total && (

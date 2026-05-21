@@ -16,7 +16,7 @@ export function LocaleSwitcher() {
       aria-label="Language"
       value={current}
       onChange={(e) => void i18n.changeLanguage(e.target.value)}
-      className="rounded border border-slate-300 bg-white px-2 py-1 text-sm"
+      className="rounded border border-line-strong bg-surface px-2 py-1 text-sm"
       dir="ltr"
     >
       {SUPPORTED_LOCALES.map((loc) => (

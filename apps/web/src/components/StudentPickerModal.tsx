@@ -55,14 +55,14 @@ export function StudentPickerModal({ open, contextLabel, onClose, onPicked }: Pr
       role="dialog"
       aria-modal="true"
       aria-labelledby="picker-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         data-testid="student-picker-modal"
-        className="w-full max-w-md max-h-[80vh] overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        className="w-full max-w-md max-h-[80vh] overflow-auto rounded-lg bg-surface p-6 shadow-xl"
       >
         <div className="flex items-start gap-2">
           <button
@@ -71,7 +71,7 @@ export function StudentPickerModal({ open, contextLabel, onClose, onPicked }: Pr
             onClick={onClose}
             // Close sits on the inline-start edge (visual-left in LTR,
             // visual-right in RTL) per Phase 8 RTL convention.
-            className="me-1 text-slate-400 hover:text-slate-600"
+            className="me-1 text-ink-subtle hover:text-ink-muted"
             data-testid="student-picker-close"
           >
             ×
@@ -82,7 +82,7 @@ export function StudentPickerModal({ open, contextLabel, onClose, onPicked }: Pr
         </div>
 
         {contextLabel && (
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-ink-muted">
             {t('studentPicker.contextLine')} <Bidi>{contextLabel}</Bidi>
           </p>
         )}
@@ -97,31 +97,31 @@ export function StudentPickerModal({ open, contextLabel, onClose, onPicked }: Pr
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('studentPicker.searchPlaceholder')}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="student-picker-query"
           autoFocus
         />
 
         <div className="mt-4">
           {students.isLoading && (
-            <p className="text-sm text-slate-600">{t('common.loading')}</p>
+            <p className="text-sm text-ink-muted">{t('common.loading')}</p>
           )}
           {students.data && items.length === 0 && (
             <p
               data-testid="student-picker-empty"
-              className="rounded border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-600"
+              className="rounded border border-dashed border-line bg-surface-muted px-3 py-4 text-center text-sm text-ink-muted"
             >
               {query ? t('studentPicker.emptySearch') : t('studentPicker.emptyAll')}
             </p>
           )}
           {items.length > 0 && (
-            <ul className="divide-y divide-slate-200 rounded border border-slate-200">
+            <ul className="divide-y divide-line rounded border border-line">
               {items.map((s) => (
                 <li key={s.id}>
                   <button
                     type="button"
                     onClick={() => onPicked(s.id)}
-                    className="block w-full text-start px-3 py-2 text-sm hover:bg-slate-50"
+                    className="block w-full text-start px-3 py-2 text-sm hover:bg-surface-muted"
                     data-testid={`student-picker-row-${s.id}`}
                   >
                     <Bidi>{s.name}</Bidi>

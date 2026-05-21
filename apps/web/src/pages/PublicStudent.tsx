@@ -32,7 +32,7 @@ export function PublicStudentPage() {
 
   if (query.isLoading) {
     return (
-      <p data-testid="public-student-loading" className="text-sm text-slate-600">
+      <p data-testid="public-student-loading" className="text-sm text-ink-muted">
         {t('common.loading')}
       </p>
     );
@@ -49,7 +49,7 @@ export function PublicStudentPage() {
         <button
           type="button"
           onClick={() => query.refetch()}
-          className="mt-3 rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          className="mt-3 rounded bg-ink px-4 py-2 text-sm font-medium text-white"
           data-testid="public-student-retry"
         >
           {t('common.retry')}
@@ -62,10 +62,10 @@ export function PublicStudentPage() {
     return (
       <div
         data-testid="public-student-not-found"
-        className="rounded-lg border border-slate-200 bg-white p-6 text-center"
+        className="rounded-lg border border-line bg-surface p-6 text-center"
       >
         <h1 className="text-xl font-semibold">{t('publicStudent.notFoundTitle')}</h1>
-        <p className="mt-2 text-sm text-slate-600">{t('publicStudent.notFoundBody')}</p>
+        <p className="mt-2 text-sm text-ink-muted">{t('publicStudent.notFoundBody')}</p>
       </div>
     );
   }
@@ -81,13 +81,13 @@ export function PublicStudentPage() {
         <h1 className="text-2xl font-semibold">
           {t('publicStudent.greeting')} <Bidi>{query.data.name}</Bidi>
         </h1>
-        <p className="mt-1 text-sm text-slate-600">{t('publicStudent.subtitle')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('publicStudent.subtitle')}</p>
       </header>
 
       {games.length === 0 ? (
         <div
           data-testid="public-student-empty"
-          className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-600"
+          className="rounded-lg border border-dashed border-line-strong bg-surface p-6 text-center text-sm text-ink-muted"
         >
           {t('publicStudent.emptyGames')}
         </div>
@@ -100,13 +100,13 @@ export function PublicStudentPage() {
               <li
                 key={g.id}
                 data-testid={`public-student-game-${g.id}`}
-                className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4"
+                className="flex items-center justify-between gap-4 rounded-lg border border-line bg-surface p-4"
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-base font-semibold">
                     <Bidi>{g.title}</Bidi>
                   </p>
-                  <p className="flex items-center gap-2 text-xs text-slate-500">
+                  <p className="flex items-center gap-2 text-xs text-ink-subtle">
                     <span>{t(`publicStudent.${typeKey}`)}</span>
                     {g.currentLevel !== undefined && (
                       <span
@@ -117,7 +117,7 @@ export function PublicStudentPage() {
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-subtle">
                     {lastPlayed
                       ? t('publicStudent.lastPlayedOn', { date: dateFormatter.format(lastPlayed) })
                       : t('publicStudent.neverPlayed')}
@@ -128,7 +128,7 @@ export function PublicStudentPage() {
                   to="/s/$shareToken/play/$gameId"
                   params={{ shareToken: token, gameId: g.id }}
                   data-testid={`public-student-play-${g.id}`}
-                  className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                  className="rounded bg-ink px-4 py-2 text-sm font-medium text-white"
                 >
                   {t('publicStudent.play')}
                 </Link>

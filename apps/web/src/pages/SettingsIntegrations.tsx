@@ -118,7 +118,7 @@ export function SettingsIntegrationsPage() {
   const calendarsContent = useMemo(() => {
     if (!connected) return null;
     if (calendarsQuery.isLoading) {
-      return <p className="text-sm text-slate-600">{t('integrations.google.loadingCalendars')}</p>;
+      return <p className="text-sm text-ink-muted">{t('integrations.google.loadingCalendars')}</p>;
     }
     const data = calendarsQuery.data;
     if (!data) {
@@ -144,7 +144,7 @@ export function SettingsIntegrationsPage() {
     return (
       <ul
         data-testid="integrations-google-calendars"
-        className="mt-3 divide-y divide-slate-200 rounded border border-slate-200 bg-white"
+        className="mt-3 divide-y divide-line rounded border border-line bg-surface"
       >
         {data.items.map((c: GoogleCalendarSummary) => {
           const checked = selected.has(c.id);
@@ -167,7 +167,7 @@ export function SettingsIntegrationsPage() {
               <label htmlFor={`cal-${c.id}`} className="flex-1">
                 <Bidi>{c.summary}</Bidi>
                 {c.primary && (
-                  <span className="ms-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">
+                  <span className="ms-2 rounded bg-surface-sunken px-1.5 py-0.5 text-xs text-ink-muted">
                     {t('integrations.google.primaryBadge')}
                   </span>
                 )}
@@ -183,7 +183,7 @@ export function SettingsIntegrationsPage() {
     <section data-testid="integrations" className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold">{t('integrations.title')}</h1>
-        <p className="mt-1 text-sm text-slate-600">{t('integrations.subtitle')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('integrations.subtitle')}</p>
       </header>
 
       {oauthFlash === 'error' && (
@@ -207,18 +207,18 @@ export function SettingsIntegrationsPage() {
       )}
 
       <section
-        className="rounded-lg border border-slate-200 bg-white p-6"
+        className="rounded-lg border border-line bg-surface p-6"
         data-testid="integrations-google"
       >
         <h2 className="text-lg font-semibold">{t('integrations.google.title')}</h2>
-        <p className="mt-1 text-sm text-slate-600">{t('integrations.google.description')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('integrations.google.description')}</p>
 
         {!connected && (
           <button
             type="button"
             onClick={() => connectMutation.mutate()}
             disabled={connectMutation.isPending}
-            className="mt-4 rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="mt-4 rounded bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             data-testid="integrations-google-connect"
           >
             {connectMutation.isPending
@@ -236,7 +236,7 @@ export function SettingsIntegrationsPage() {
               <label className="block text-sm font-medium">
                 {t('integrations.google.selectLabel')}
               </label>
-              <p className="mt-1 text-xs text-slate-500">{t('integrations.google.selectHelp')}</p>
+              <p className="mt-1 text-xs text-ink-subtle">{t('integrations.google.selectHelp')}</p>
               {calendarsContent}
               {selected.size === 0 && status.data?.lessonCalendarIds.length === 0 && (
                 <p className="mt-2 text-xs text-amber-700">{t('integrations.google.noneSelected')}</p>
@@ -247,7 +247,7 @@ export function SettingsIntegrationsPage() {
                 type="button"
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
-                className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded bg-ink px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
                 data-testid="integrations-google-save"
               >
                 {saveMutation.isPending ? t('common.workingOn') : t('integrations.google.save')}
@@ -262,7 +262,7 @@ export function SettingsIntegrationsPage() {
               </button>
               <Link
                 to="/schedule"
-                className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
+                className="text-sm font-medium text-ink-muted underline-offset-2 hover:underline"
               >
                 {t('nav.schedule')}
               </Link>

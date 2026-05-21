@@ -126,14 +126,14 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="review-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         data-testid="question-review-modal"
-        className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-lg bg-white p-6 shadow-xl"
+        className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-lg bg-surface p-6 shadow-xl"
       >
         <div className="flex items-start gap-2">
           <button
@@ -142,7 +142,7 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
             onClick={onClose}
             // Close sits on the inline-start edge (visual-left in LTR,
             // visual-right in RTL) per Phase 8 RTL convention.
-            className="me-1 text-slate-400 hover:text-slate-600"
+            className="me-1 text-ink-subtle hover:text-ink-muted"
             data-testid="review-close"
           >
             ×
@@ -151,7 +151,7 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
             <h2 id="review-title" className="text-lg font-semibold">
               {game ? <Bidi>{game.title}</Bidi> : t('review.loadingTitle')}
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-ink-muted">
               {game?.type === 'FILL_BLANK'
                 ? t('review.subtitleFillBlank')
                 : game?.type === 'TIMED_QUIZ'
@@ -164,10 +164,10 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
         {isGenerating && (
           <div
             data-testid="review-generating"
-            className="mt-6 rounded border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600"
+            className="mt-6 rounded border border-dashed border-line-strong bg-surface-muted p-6 text-center text-sm text-ink-muted"
           >
             <p>{t('review.generating')}</p>
-            <p className="mt-1 text-xs text-slate-500">{t('review.generatingHint')}</p>
+            <p className="mt-1 text-xs text-ink-subtle">{t('review.generatingHint')}</p>
           </div>
         )}
 
@@ -219,12 +219,12 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
               ))}
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
               <button
                 type="button"
                 onClick={() => regenAllMutation.mutate()}
                 disabled={regenAllMutation.isPending || assignMutation.isPending}
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+                className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted disabled:opacity-50"
                 data-testid="review-regenerate-all"
               >
                 {regenAllMutation.isPending ? t('common.workingOn') : t('review.regenerateAll')}
@@ -233,7 +233,7 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
                 type="button"
                 onClick={() => saveMutation.mutate()}
                 disabled={!dirty || saveMutation.isPending || assignMutation.isPending}
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+                className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted disabled:opacity-50"
                 data-testid="review-save"
               >
                 {saveMutation.isPending ? t('common.workingOn') : t('review.saveEdits')}
@@ -251,7 +251,7 @@ export function QuestionReviewModal({ open, gameId, onClose }: Props) {
                   }
                 }}
                 disabled={assignMutation.isPending || saveMutation.isPending}
-                className="rounded bg-slate-900 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded bg-ink px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
                 data-testid="review-assign"
               >
                 {assignMutation.isPending
@@ -287,24 +287,24 @@ function QuestionRow({ index, question, showDistractors, regenerating, onChange,
   return (
     <article
       data-testid={`review-question-${question.id}`}
-      className="rounded border border-slate-200 p-4"
+      className="rounded border border-line p-4"
     >
       <header className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-semibold uppercase text-slate-500">
+        <span className="text-xs font-semibold uppercase text-ink-subtle">
           {t('review.questionLabel', { n: index + 1 })}
         </span>
         <button
           type="button"
           onClick={onRegenerate}
           disabled={regenerating}
-          className="text-xs font-medium text-slate-700 underline-offset-2 hover:underline disabled:opacity-50"
+          className="text-xs font-medium text-ink-muted underline-offset-2 hover:underline disabled:opacity-50"
           data-testid={`review-regenerate-${question.id}`}
         >
           {regenerating ? t('common.workingOn') : t('review.regenerateOne')}
         </button>
       </header>
 
-      <label className="mt-2 block text-xs font-medium text-slate-600">
+      <label className="mt-2 block text-xs font-medium text-ink-muted">
         {t('review.fields.prompt')}
       </label>
       <textarea
@@ -312,11 +312,11 @@ function QuestionRow({ index, question, showDistractors, regenerating, onChange,
         rows={2}
         value={question.prompt}
         onChange={(e) => onChange({ ...question, prompt: e.target.value })}
-        className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+        className="mt-1 w-full rounded border border-line-strong px-2 py-1 text-sm"
         data-testid={`review-prompt-${question.id}`}
       />
 
-      <label className="mt-2 block text-xs font-medium text-slate-600">
+      <label className="mt-2 block text-xs font-medium text-ink-muted">
         {t('review.fields.answer')}
       </label>
       <input
@@ -324,13 +324,13 @@ function QuestionRow({ index, question, showDistractors, regenerating, onChange,
         dir="auto"
         value={question.answer}
         onChange={(e) => onChange({ ...question, answer: e.target.value })}
-        className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+        className="mt-1 w-full rounded border border-line-strong px-2 py-1 text-sm"
         data-testid={`review-answer-${question.id}`}
       />
 
       {showDistractors && (
         <>
-          <label className="mt-2 block text-xs font-medium text-slate-600">
+          <label className="mt-2 block text-xs font-medium text-ink-muted">
             {t('review.fields.distractors')}
           </label>
           <textarea
@@ -346,14 +346,14 @@ function QuestionRow({ index, question, showDistractors, regenerating, onChange,
                   .filter(Boolean),
               })
             }
-            className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded border border-line-strong px-2 py-1 text-sm"
             data-testid={`review-distractors-${question.id}`}
             placeholder={t('review.distractorsHint')}
           />
         </>
       )}
 
-      <label className="mt-2 block text-xs font-medium text-slate-600">
+      <label className="mt-2 block text-xs font-medium text-ink-muted">
         {t('review.fields.alternates')}
       </label>
       <textarea
@@ -369,7 +369,7 @@ function QuestionRow({ index, question, showDistractors, regenerating, onChange,
               .filter(Boolean),
           })
         }
-        className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+        className="mt-1 w-full rounded border border-line-strong px-2 py-1 text-sm"
         data-testid={`review-alternates-${question.id}`}
         placeholder={t('review.alternatesHint')}
       />
@@ -380,7 +380,7 @@ function QuestionRow({ index, question, showDistractors, regenerating, onChange,
             <span
               key={tag}
               dir="ltr"
-              className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
+              className="rounded bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted"
             >
               {tag}
             </span>

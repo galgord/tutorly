@@ -95,7 +95,7 @@ export function StudentDetailPage() {
 
   if (detail.isLoading) {
     return (
-      <p data-testid="student-detail-loading" className="text-sm text-slate-600">
+      <p data-testid="student-detail-loading" className="text-sm text-ink-muted">
         {t('common.loading')}
       </p>
     );
@@ -105,10 +105,10 @@ export function StudentDetailPage() {
     return (
       <div
         data-testid="student-not-found"
-        className="rounded-lg border border-slate-200 bg-white p-6 text-center"
+        className="rounded-lg border border-line bg-surface p-6 text-center"
       >
         <h1 className="text-xl font-semibold">{t('students.detail.notFoundTitle')}</h1>
-        <p className="mt-2 text-sm text-slate-600">{t('students.detail.notFoundBody')}</p>
+        <p className="mt-2 text-sm text-ink-muted">{t('students.detail.notFoundBody')}</p>
         <Link
           to="/students"
           className="mt-4 inline-block text-sm font-medium underline"
@@ -207,7 +207,7 @@ export function StudentDetailPage() {
           e.preventDefault();
           saveMutation.mutate();
         }}
-        className="rounded-lg border border-slate-200 bg-white p-6"
+        className="rounded-lg border border-line bg-surface p-6"
       >
         <h2 className="text-lg font-semibold">{t('students.detail.profileTitle')}</h2>
 
@@ -223,7 +223,7 @@ export function StudentDetailPage() {
             setName(e.target.value);
             setEditing(true);
           }}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="student-name-input"
         />
 
@@ -239,7 +239,7 @@ export function StudentDetailPage() {
             setEditing(true);
           }}
           rows={4}
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded border border-line-strong px-3 py-2 text-sm"
           data-testid="student-notes-input"
         />
 
@@ -256,13 +256,13 @@ export function StudentDetailPage() {
           }}
           testId="student-native-language-input"
         />
-        <p className="mt-1 text-xs text-slate-500">{t('students.fields.nativeLanguageHint')}</p>
+        <p className="mt-1 text-xs text-ink-subtle">{t('students.fields.nativeLanguageHint')}</p>
 
         <div className="mt-6 flex items-center gap-2">
           <button
             type="submit"
             disabled={!editing || saveMutation.isPending}
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             data-testid="student-save"
           >
             {saveMutation.isPending ? t('common.workingOn') : t('students.detail.save')}
@@ -276,7 +276,7 @@ export function StudentDetailPage() {
                 setNotes(student.notes ?? '');
                 setNativeLanguage(student.nativeLanguage ?? null);
               }}
-              className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+              className="rounded border border-line-strong px-3 py-2 text-sm hover:bg-surface-muted"
               data-testid="student-cancel-edit"
             >
               {t('common.cancel')}
@@ -285,21 +285,21 @@ export function StudentDetailPage() {
         </div>
       </form>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
+      <div className="rounded-lg border border-line bg-surface p-6">
         <h2 className="text-lg font-semibold">{t('students.detail.shareTitle')}</h2>
-        <p className="mt-1 text-sm text-slate-600">{t('students.detail.shareBody')}</p>
+        <p className="mt-1 text-sm text-ink-muted">{t('students.detail.shareBody')}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <code
             dir="ltr"
             data-testid="student-share-url"
-            className="block min-w-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded bg-slate-100 px-2 py-1 text-xs"
+            className="block min-w-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded bg-surface-sunken px-2 py-1 text-xs"
           >
             {buildShareUrl(student.shareToken)}
           </code>
           <button
             type="button"
             onClick={onCopyShare}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded border border-line-strong px-3 py-1.5 text-sm hover:bg-surface-muted"
             data-testid="student-copy-share"
           >
             {t('students.actions.copyShare')}
@@ -318,7 +318,7 @@ export function StudentDetailPage() {
       <section data-testid="student-progress-section" className="space-y-6">
         <h2 className="text-lg font-semibold">{t('progress.title')}</h2>
         {progress.isLoading ? (
-          <p className="text-sm text-slate-600">{t('common.loading')}</p>
+          <p className="text-sm text-ink-muted">{t('common.loading')}</p>
         ) : progress.error ? (
           <div
             data-testid="student-progress-error"
@@ -335,11 +335,11 @@ export function StudentDetailPage() {
         ) : null}
 
         <div data-testid="student-game-progress-section" className="space-y-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
             {t('progress.adaptive.title')}
           </h3>
           {gameProgress.isLoading ? (
-            <p className="text-sm text-slate-600">{t('common.loading')}</p>
+            <p className="text-sm text-ink-muted">{t('common.loading')}</p>
           ) : gameProgress.error ? (
             <div
               data-testid="student-game-progress-error"
@@ -353,11 +353,11 @@ export function StudentDetailPage() {
         </div>
 
         <div data-testid="student-attempts-section" className="space-y-2">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
             {t('progress.attempts.title')}
           </h3>
           {attempts.isLoading ? (
-            <p className="text-sm text-slate-600">{t('common.loading')}</p>
+            <p className="text-sm text-ink-muted">{t('common.loading')}</p>
           ) : attempts.error ? (
             <div
               data-testid="student-attempts-error"

@@ -288,7 +288,10 @@ export class LessonsController {
       userAgent: req.header('user-agent') ?? null,
     });
 
-    return serializeLesson(lesson);
+    // Return the lesson WITH its student so the client's cache keeps the
+    // join data (the editor does setQueryData with this response).
+    const withStudent = await this.lessons.getLessonForTutorOrFail({ id, tutorId: tutor.id });
+    return serializeLessonWithStudent(withStudent);
   }
 
   /**
@@ -326,7 +329,9 @@ export class LessonsController {
       userAgent: req.header('user-agent') ?? null,
     });
 
-    return serializeLesson(lesson);
+    // Return the lesson WITH its student so the client cache keeps join data.
+    const withStudent = await this.lessons.getLessonForTutorOrFail({ id, tutorId: tutor.id });
+    return serializeLessonWithStudent(withStudent);
   }
 }
 

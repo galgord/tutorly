@@ -64,10 +64,15 @@
     "todayEmpty": "אין שיעורים מתוכננים להיום."
   },
   "teachingSetup": {
-    "title": "הגדירו את ההוראה שלכם",
+    "title": "הגדירו את החשבון שלכם",
     "explainer": "ספרו לנו מה ואיך אתם מלמדים — זה מעצב את משחקי התרגול שאנחנו מייצרים לתלמידים שלכם.",
     "appLanguageLabel": "שפת האפליקציה",
     "appLanguageHint": "השפה שבה מוצגת ממשק Tutorly.",
+    "nameLabel": "השם שלכם",
+    "namePlaceholder": "לדוגמה: מריה סילבה",
+    "businessNameLabel": "שם העסק",
+    "businessNameHint": "השם של עסק ההוראה הפרטית שלכם.",
+    "businessNamePlaceholder": "לדוגמה: סטודיו השפות של מריה",
     "subjectLabel": "המקצוע שאתם מלמדים",
     "subjectPlaceholder": "לדוגמה: פורטוגזית, מתמטיקה, פסנתר",
     "languageLabel": "שפת השיעור",
@@ -106,6 +111,8 @@
       "email": "דוא\"ל",
       "emailHint": "כתובת הדוא\"ל קבועה ומשמשת להתחברות.",
       "name": "שם",
+      "businessName": "שם העסק",
+      "businessNameHint": "השם של עסק ההוראה הפרטית שלכם.",
       "locale": "שפת הממשק",
       "save": "שמור",
       "saved": "נשמר"

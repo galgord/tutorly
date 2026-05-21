@@ -3,6 +3,7 @@ import { SUPPORTED_LOCALES, type Language, type Locale } from '@tutor-app/shared
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, api } from '../lib/api';
+import { useMe } from '../lib/auth';
 import { LanguageSelect } from './LanguageSelect';
 import { Button, Field, Input, Modal } from './ui';
 
@@ -24,25 +25,31 @@ const CONTROL_CLASS =
 /**
  * First-run setup shown on the Dashboard when the tutor has not yet set a
  * `subject`. Captures, in order: the app's interface language (applied live),
- * the subject, and the teaching language — the latter two shape AI-generated
- * games. Dismissible — these can also be set later from Settings.
+ * the tutor's name + business name, the subject, and the teaching language —
+ * the latter two shape AI-generated games. Dismissible — these can also be set
+ * later from Settings.
  */
 export function TeachingSetupModal({ open, onClose }: Props) {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
+  const me = useMe();
   const [appLocale, setAppLocale] = useState<Locale>(
     (i18n.resolvedLanguage ?? 'en') as Locale,
   );
+  const [name, setName] = useState('');
+  const [businessName, setBusinessName] = useState('');
   const [subject, setSubject] = useState('');
   const [teachingLanguage, setTeachingLanguage] = useState<Language | null>(null);
 
   useEffect(() => {
     if (open) {
       setAppLocale((i18n.resolvedLanguage ?? 'en') as Locale);
+      setName(me.data?.name ?? '');
+      setBusinessName(me.data?.businessName ?? '');
       setSubject('');
       setTeachingLanguage(null);
     }
-  }, [open, i18n.resolvedLanguage]);
+  }, [open, i18n.resolvedLanguage, me.data?.name, me.data?.businessName]);
 
   // Apply the chosen interface language immediately so the rest of the
   // modal — and everything behind it — is in the tutor's language.
@@ -55,6 +62,9 @@ export function TeachingSetupModal({ open, onClose }: Props) {
     mutationFn: () =>
       api.updateMe({
         locale: appLocale,
+        name: name.trim(),
+        // Empty optional field maps to `null` (clear) rather than omitted.
+        businessName: businessName.trim() === '' ? null : businessName.trim(),
         subject: subject.trim(),
         teachingLanguage: teachingLanguage ?? undefined,
       }),
@@ -64,9 +74,11 @@ export function TeachingSetupModal({ open, onClose }: Props) {
     },
   });
 
+  const canSubmit = subject.trim() !== '' && name.trim() !== '';
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!subject.trim()) return;
+    if (!canSubmit) return;
     mutation.mutate();
   };
 
@@ -91,7 +103,7 @@ export function TeachingSetupModal({ open, onClose }: Props) {
           <Button
             type="submit"
             form="teaching-setup-form"
-            disabled={!subject.trim()}
+            disabled={!canSubmit}
             loading={mutation.isPending}
             data-testid="teaching-setup-submit"
           >
@@ -125,6 +137,40 @@ export function TeachingSetupModal({ open, onClose }: Props) {
           )}
         </Field>
 
+        <Field label={t('teachingSetup.nameLabel')}>
+          {(id) => (
+            <Input
+              id={id}
+              type="text"
+              required
+              dir="auto"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('teachingSetup.namePlaceholder')}
+              data-testid="teaching-setup-name"
+              autoFocus
+            />
+          )}
+        </Field>
+
+        <Field
+          label={t('teachingSetup.businessNameLabel')}
+          hint={t('teachingSetup.businessNameHint')}
+        >
+          {(id) => (
+            <Input
+              id={id}
+              type="text"
+              dir="auto"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder={t('teachingSetup.businessNamePlaceholder')}
+              data-testid="teaching-setup-business-name"
+              maxLength={120}
+            />
+          )}
+        </Field>
+
         <Field label={t('teachingSetup.subjectLabel')}>
           {(id) => (
             <Input
@@ -136,7 +182,6 @@ export function TeachingSetupModal({ open, onClose }: Props) {
               onChange={(e) => setSubject(e.target.value)}
               placeholder={t('teachingSetup.subjectPlaceholder')}
               data-testid="teaching-setup-subject"
-              autoFocus
             />
           )}
         </Field>

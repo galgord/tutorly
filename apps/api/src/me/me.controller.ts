@@ -47,6 +47,7 @@ export class MeController {
         id: true,
         email: true,
         name: true,
+        businessName: true,
         locale: true,
         subject: true,
         teachingLanguage: true,
@@ -58,6 +59,7 @@ export class MeController {
       id: row?.id ?? tutor.id,
       email: row?.email ?? tutor.email,
       name: row?.name ?? tutor.name,
+      businessName: row?.businessName ?? null,
       locale: row?.locale ?? tutor.locale,
       subject: row?.subject ?? null,
       teachingLanguage: row?.teachingLanguage ?? null,
@@ -85,6 +87,12 @@ export class MeController {
         // `null` is meaningful (clear the field); `undefined` (key absent)
         // leaves it untouched. Zod gives us `undefined` when the key wasn't
         // sent, so the ternary is safe.
+        businessName:
+          parsed.data.businessName === undefined
+            ? undefined
+            : parsed.data.businessName === null
+              ? null
+              : parsed.data.businessName.trim(),
         subject:
           parsed.data.subject === undefined
             ? undefined
@@ -98,6 +106,7 @@ export class MeController {
         id: true,
         email: true,
         name: true,
+        businessName: true,
         locale: true,
         subject: true,
         teachingLanguage: true,

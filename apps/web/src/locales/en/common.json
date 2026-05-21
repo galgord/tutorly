@@ -64,10 +64,15 @@
     "todayEmpty": "No lessons scheduled for today."
   },
   "teachingSetup": {
-    "title": "Set up your teaching",
+    "title": "Set up your account",
     "explainer": "Tell us what and how you teach — this shapes the practice games we generate for your students.",
     "appLanguageLabel": "App language",
     "appLanguageHint": "The language Tutorly's interface is shown in.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "e.g. Maria Silva",
+    "businessNameLabel": "Business name",
+    "businessNameHint": "The name of your tutoring practice.",
+    "businessNamePlaceholder": "e.g. Maria's Language Studio",
     "subjectLabel": "Subject you teach",
     "subjectPlaceholder": "e.g. Portuguese, Math, Piano",
     "languageLabel": "Lesson language",
@@ -106,6 +111,8 @@
       "email": "Email",
       "emailHint": "Your email is fixed and used to sign in.",
       "name": "Name",
+      "businessName": "Business name",
+      "businessNameHint": "The name of your tutoring practice.",
       "locale": "Interface language",
       "save": "Save",
       "saved": "Saved"

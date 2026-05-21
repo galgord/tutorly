@@ -17,6 +17,7 @@ export function SettingsPage() {
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
+  const [businessName, setBusinessName] = useState('');
   const [locale, setLocale] = useState<Locale>('en');
   const [subject, setSubject] = useState('');
   const [teachingLanguage, setTeachingLanguage] = useState<Language | null>(null);
@@ -25,6 +26,7 @@ export function SettingsPage() {
   useEffect(() => {
     if (me.data) {
       setName(me.data.name ?? '');
+      setBusinessName(me.data.businessName ?? '');
       setLocale(me.data.locale);
       setSubject(me.data.subject ?? '');
       setTeachingLanguage(me.data.teachingLanguage ?? null);
@@ -35,9 +37,10 @@ export function SettingsPage() {
     mutationFn: () =>
       api.updateMe({
         name: name.trim() || undefined,
-        locale,
         // `null` clears the field; empty string from the text input also
-        // maps to `null` so the tutor can blank out a previously-set subject.
+        // maps to `null` so the tutor can blank out a previously-set value.
+        businessName: businessName.trim() === '' ? null : businessName.trim(),
+        locale,
         subject: subject.trim() === '' ? null : subject.trim(),
         teachingLanguage,
       }),
@@ -109,6 +112,23 @@ export function SettingsPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   data-testid="settings-name"
+                />
+              )}
+            </Field>
+
+            <Field
+              label={t('settings.profile.businessName')}
+              hint={t('settings.profile.businessNameHint')}
+            >
+              {(id) => (
+                <Input
+                  id={id}
+                  type="text"
+                  dir="auto"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  data-testid="settings-business-name"
+                  maxLength={120}
                 />
               )}
             </Field>

@@ -17,6 +17,8 @@ export const MeResponseSchema = z.object({
   id: z.string().min(1),
   email: z.string().email(),
   name: z.string().nullable(),
+  // White-labeling (upcoming): the tutor's tutoring-practice brand name.
+  businessName: z.string().nullable(),
   locale: LocaleSchema,
   // Phase 11: tutor's subject + teaching language. Both optional —
   // pre-existing tutors won't have them set until they edit their profile.
@@ -35,6 +37,7 @@ export const UpdateTutorRequestSchema = z
     name: z.string().trim().min(1).max(120).optional(),
     locale: LocaleSchema.optional(),
     // `null` clears the field; omitting the key leaves it as-is.
+    businessName: z.string().trim().min(1).max(120).nullable().optional(),
     subject: z.string().trim().min(1).max(80).nullable().optional(),
     teachingLanguage: LanguageSchema.nullable().optional(),
   })

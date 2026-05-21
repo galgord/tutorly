@@ -16,6 +16,9 @@ model Tutor {
   id                         String    @id @default(cuid())
   email                      String    @unique
   name                       String?
+  // White-labeling (upcoming): the tutor's tutoring-practice brand name.
+  // Students will see this; for now we only store + let the tutor edit it.
+  businessName               String?
   locale                     String    @default("en") // en | pt | he — UI direction
   // Phase 11: what the tutor teaches (free text, e.g. "Portuguese", "Math").
   // Shown to the LLM as context so it generates subject-appropriate

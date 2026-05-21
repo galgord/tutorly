@@ -64,10 +64,15 @@
     "todayEmpty": "Nenhuma aula agendada para hoje."
   },
   "teachingSetup": {
-    "title": "Configure seu ensino",
+    "title": "Configure a sua conta",
     "explainer": "Conte o que e como você ensina — isso molda os jogos de prática que geramos para seus alunos.",
     "appLanguageLabel": "Idioma da aplicação",
     "appLanguageHint": "O idioma em que a interface do Tutorly é apresentada.",
+    "nameLabel": "O seu nome",
+    "namePlaceholder": "ex.: Maria Silva",
+    "businessNameLabel": "Nome do negócio",
+    "businessNameHint": "O nome da sua prática de tutoria.",
+    "businessNamePlaceholder": "ex.: Estúdio de Línguas da Maria",
     "subjectLabel": "Matéria que você ensina",
     "subjectPlaceholder": "ex.: Português, Matemática, Piano",
     "languageLabel": "Idioma da aula",
@@ -106,6 +111,8 @@
       "email": "Email",
       "emailHint": "O seu email é fixo e usado para iniciar sessão.",
       "name": "Nome",
+      "businessName": "Nome do negócio",
+      "businessNameHint": "O nome da sua prática de tutoria.",
       "locale": "Idioma da interface",
       "save": "Guardar",
       "saved": "Guardado"

@@ -310,7 +310,11 @@
     "levelBadge": "רמה {{level}}/{{max}}",
     "reviewMarker": "נראה בעבר",
     "leveledUp": "עליתם רמה!",
-    "summaryNextLevel": "עכשיו משחקים ברמה {{level}}"
+    "summaryNextLevel": "עכשיו משחקים ברמה {{level}}",
+    "streakLabel": "רצף {{count}}",
+    "scorePopPlus": "+{{points}}",
+    "soundOn": "צליל פועל",
+    "soundOff": "צליל כבוי"
   },
   "notFound": {
     "title": "הדף לא נמצא",

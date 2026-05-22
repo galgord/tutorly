@@ -55,6 +55,28 @@
     transform: scaleX(-1);
   }
 
+  /* Reduced-motion backstop for the game "juice" animations. The engines
+     also gate motion in JS (usePrefersReducedMotion), but this guarantees
+     no large motion even if a class is applied — effects collapse to a
+     near-instant settle. Score-pop just disappears (it carries no info the
+     aria-live score badge doesn't already announce). */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-bubble-pop,
+    .animate-pop,
+    .animate-pop-in,
+    .animate-wobble,
+    .animate-streak-pulse,
+    .animate-heart-loss,
+    .animate-float {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+    .animate-score-pop {
+      animation: none !important;
+      display: none !important;
+    }
+  }
+
   /* Pseudo-localization mode marker — a thin striped band at the top of the
      viewport so QA can confirm at a glance that pseudo mode is active. */
   html.pseudo-active::before {

@@ -310,7 +310,11 @@
     "levelBadge": "Nível {{level}}/{{max}}",
     "reviewMarker": "Já visto",
     "leveledUp": "Subiu de nível!",
-    "summaryNextLevel": "Agora a jogar no nível {{level}}"
+    "summaryNextLevel": "Agora a jogar no nível {{level}}",
+    "streakLabel": "{{count}} seguidas",
+    "scorePopPlus": "+{{points}}",
+    "soundOn": "Som ligado",
+    "soundOff": "Som desligado"
   },
   "notFound": {
     "title": "Página não encontrada",

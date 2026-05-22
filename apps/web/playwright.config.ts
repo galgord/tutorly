@@ -9,6 +9,13 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
+    // Run E2E with reduced motion so the games render their deterministic
+    // static layouts (no rising bubbles / particles / count-up). Playwright's
+    // actionability waits for a *stable* element, which a continuously
+    // animating target never is — the animated path is verified manually.
+    // (Set via contextOptions: this Playwright build doesn't expose
+    // reducedMotion as a direct `use` option, only colorScheme.)
+    contextOptions: { reducedMotion: 'reduce' },
   },
   webServer: [
     {

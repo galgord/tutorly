@@ -313,3 +313,29 @@ test.describe('cross-token attempt access', () => {
     expect(r.status()).toBe(404);
   });
 });
+
+test.describe('sound toggle', () => {
+  test('defaults on and persists the mute preference across reload', async ({ page, request }) => {
+    await signInAsTutor(page, request);
+    const seeded = await seedAssignedGame(page, {
+      studentName: 'Muter',
+      gameType: 'FILL_BLANK',
+    });
+    const studentPage = await page.context().newPage();
+    await studentPage.goto(`/s/${seeded.shareToken}/play/${seeded.gameId}`);
+    const toggle = studentPage.getByTestId('play-sound-toggle');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true'); // default ON
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    const persisted = await studentPage.evaluate(() => window.localStorage.getItem('tutorly.sound'));
+    expect(persisted).toBe('off');
+
+    // Survives a reload.
+    await studentPage.reload();
+    await expect(studentPage.getByTestId('play-sound-toggle')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+});

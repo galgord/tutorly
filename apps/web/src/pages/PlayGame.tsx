@@ -8,6 +8,13 @@ import type {
 } from '@tutor-app/shared';
 import { FillBlankEngine } from '../components/games/FillBlankEngine';
 import { TimedQuizEngine } from '../components/games/TimedQuizEngine';
+import {
+  SoundToggle,
+  fireConfetti,
+  isSoundEnabled,
+  playSound,
+  prefersReducedMotion,
+} from '../components/games/juice';
 import { ApiError, api } from '../lib/api';
 import { clearAttemptBuffer, installOnlineFlusher } from '../lib/attempt-buffer';
 
@@ -108,10 +115,8 @@ export function PlayGamePage() {
         summary={summary}
         playAgainLabel={t('play.playAgain')}
         backLabel={t('play.backToDashboard')}
-        scoreLabel={t('play.summaryScore', {
-          score: summary.score,
-          total: summary.total,
-        })}
+        score={summary.score}
+        total={summary.total}
         bestEverLabel={
           summary.bestEver > 0
             ? t('play.summaryBestEver', { best: summary.bestEver })
@@ -148,6 +153,7 @@ export function PlayGamePage() {
         >
           {t('play.backToDashboard')}
         </button>
+        <SoundToggle />
       </header>
       {attempt.type === 'FILL_BLANK' ? (
         <FillBlankEngine
@@ -169,7 +175,8 @@ export function PlayGamePage() {
 interface SummaryProps {
   summary: FinishAttemptResponse;
   title: string;
-  scoreLabel: string;
+  score: number;
+  total: number;
   bestEverLabel: string;
   beatPersonalBest: boolean;
   beatLabel: string;
@@ -185,7 +192,8 @@ interface SummaryProps {
 function SummaryView({
   summary,
   title,
-  scoreLabel,
+  score,
+  total,
   bestEverLabel,
   beatPersonalBest,
   beatLabel,
@@ -196,6 +204,34 @@ function SummaryView({
   onPlayAgain,
   onBack,
 }: SummaryProps) {
+  const { t } = useTranslation();
+  const reduced = prefersReducedMotion();
+  const [shownScore, setShownScore] = useState(reduced ? score : 0);
+
+  // Count the score up from 0 — instant under reduced motion.
+  useEffect(() => {
+    if (reduced || typeof requestAnimationFrame !== 'function') {
+      setShownScore(score);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / 700);
+      setShownScore(Math.round(p * score));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [score, reduced]);
+
+  // Celebrate a level-up or new personal best: confetti (motion only) + chime.
+  useEffect(() => {
+    if (!leveledUp && !beatPersonalBest) return;
+    if (isSoundEnabled()) playSound('levelup');
+    if (!reduced) void fireConfetti('levelup');
+  }, [leveledUp, beatPersonalBest, reduced]);
+
   return (
     <section
       data-testid="play-summary"
@@ -205,7 +241,7 @@ function SummaryView({
     >
       <h1 className="text-2xl font-semibold">{title}</h1>
       <p className="text-4xl font-bold" data-testid="play-summary-score">
-        {scoreLabel}
+        {t('play.summaryScore', { score: shownScore, total })}
       </p>
       {leveledUp && (
         <p

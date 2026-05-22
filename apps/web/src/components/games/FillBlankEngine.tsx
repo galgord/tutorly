@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { PublicQuestion, StartAttemptResponse } from '@tutor-app/shared';
 import { submitBufferedAnswer } from '../../lib/attempt-buffer';
 import { LevelBadge, ReviewMarker } from './LevelBadge';
+import { ScorePop, StreakMeter, useGameJuice } from './juice';
 
 interface Props {
   shareToken: string;
@@ -38,6 +39,10 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const juice = useGameJuice();
+  // The server's cumulative score; we diff it to show the points just earned.
+  const prevScoreRef = useRef(0);
+  const [scorePop, setScorePop] = useState<{ points: number; nonce: number } | null>(null);
 
   const total = attempt.questions.length;
   const current: PublicQuestion | undefined = attempt.questions[idx];
@@ -50,6 +55,13 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
     else nextRef.current?.focus();
   }, [idx, answered]);
 
+  // Auto-dismiss the floating "+N" after its drift-up animation.
+  useEffect(() => {
+    if (!scorePop) return;
+    const id = window.setTimeout(() => setScorePop(null), 850);
+    return () => window.clearTimeout(id);
+  }, [scorePop]);
+
   if (!current) {
     // Out of questions — engine should have transitioned via onFinished.
     return null;
@@ -61,6 +73,7 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
     const trimmed = value.trim();
     if (!trimmed) return;
     setSubmitting(true);
+    juice.unlockAudio(); // first-gesture audio unlock (browser autoplay policy)
     try {
       const r = await submitBufferedAnswer({
         shareToken,
@@ -68,14 +81,22 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
         body: { questionId: current.id, rawAnswer: trimmed },
       });
       if (r.response) {
+        const delta = r.response.scoreSoFar - prevScoreRef.current;
+        prevScoreRef.current = r.response.scoreSoFar;
         setAnswered({
           correct: r.response.correct,
           correctAnswer: r.response.correctAnswer,
           scoreSoFar: r.response.scoreSoFar,
         });
+        // Juice reacts to the SERVER's verdict — it never decides correctness.
+        juice.onAnswer({ correct: r.response.correct });
+        if (r.response.correct && delta > 0) {
+          setScorePop({ points: delta, nonce: Date.now() });
+        }
       } else {
-        // Offline — show a non-committal hint. The server is the
-        // source of truth so we don't fake a correct/incorrect badge.
+        // Offline — show a non-committal hint. The server is the source of
+        // truth so we don't fake a correct/incorrect badge, and we fire no
+        // juice (there's no verdict to celebrate or penalize).
         setAnswered({
           correct: false,
           correctAnswer: t('play.offlineWillSyncLater'),
@@ -95,6 +116,7 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
     setIdx((i) => i + 1);
     setValue('');
     setAnswered(null);
+    setScorePop(null); // don't let the previous question's +N linger
   };
 
   // The "Next" button's keyboard handler: Enter advances, matching the
@@ -110,24 +132,34 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
       className="space-y-6 rounded-lg border border-line bg-surface p-6"
     >
       <header className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span
             data-testid="play-progress"
-            className="text-sm font-medium text-ink-subtle"
+            className="text-sm font-medium text-ink-muted"
           >
             {progress}
           </span>
           {attempt.level !== undefined && (
             <LevelBadge level={attempt.level} levelMax={attempt.levelMax} />
           )}
+          <StreakMeter streak={juice.streak} />
         </div>
-        <span
-          data-testid="play-score"
-          aria-live="polite"
-          className="rounded-full bg-surface-sunken px-3 py-1 text-sm font-semibold"
-        >
-          {t('play.scoreLabel', { score })}
-        </span>
+        <div className="relative">
+          <span
+            data-testid="play-score"
+            aria-live="polite"
+            className="rounded-full bg-surface-sunken px-3 py-1 text-sm font-semibold"
+          >
+            {t('play.scoreLabel', { score })}
+          </span>
+          {scorePop && (
+            <ScorePop
+              key={scorePop.nonce}
+              points={scorePop.points}
+              className="absolute -top-5 end-1 text-base"
+            />
+          )}
+        </div>
       </header>
 
       {current.isReview && (
@@ -172,10 +204,15 @@ export function FillBlankEngine({ shareToken, attempt, onFinished }: Props) {
           value={value}
           disabled={!!answered || submitting}
           onChange={(e) => setValue(e.target.value)}
+          onFocus={() => juice.unlockAudio()}
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="w-full rounded border border-line-strong px-3 py-2 text-base"
+          className={`w-full rounded border px-3 py-2 text-base ${
+            answered && !answered.correct
+              ? 'border-amber-400 animate-wobble'
+              : 'border-line-strong'
+          }`}
         />
 
         {!answered && (

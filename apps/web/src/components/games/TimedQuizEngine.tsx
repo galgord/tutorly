@@ -3,6 +3,17 @@ import { useTranslation } from 'react-i18next';
 import type { PublicQuestion, StartAttemptResponse } from '@tutor-app/shared';
 import { submitBufferedAnswer } from '../../lib/attempt-buffer';
 import { LevelBadge, ReviewMarker } from './LevelBadge';
+import { ScorePop, StreakMeter, useGameJuice } from './juice';
+
+// Per-bubble accent tints for the unanswered state. Full class strings (no
+// interpolation) so Tailwind's content scanner keeps them. Deliberately avoids
+// emerald (= correct) and rose (= wrong) so the answered state reads clearly.
+const BUBBLE_ACCENTS = [
+  'border-sky-300 bg-sky-50 hover:bg-sky-100',
+  'border-violet-300 bg-violet-50 hover:bg-violet-100',
+  'border-amber-300 bg-amber-50 hover:bg-amber-100',
+  'border-fuchsia-300 bg-fuchsia-50 hover:bg-fuchsia-100',
+];
 
 interface Props {
   shareToken: string;
@@ -45,6 +56,13 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const tickRef = useRef<number | null>(null);
   const finishingRef = useRef(false);
+  const juice = useGameJuice();
+  // Hold juice in a ref so `submit`'s useCallback deps stay stable — juice's
+  // object identity changes each render and the timer effect depends on submit.
+  const juiceRef = useRef(juice);
+  juiceRef.current = juice;
+  const prevScoreRef = useRef(0);
+  const [scorePop, setScorePop] = useState<{ points: number; nonce: number } | null>(null);
 
   const currentIndex = order[cursor] ?? 0;
   const current: PublicQuestion | undefined = attempt.questions[currentIndex];
@@ -64,6 +82,7 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
       if (!current || submitting || answered) return;
       setSubmitting(true);
       clearTimer();
+      juiceRef.current.unlockAudio(); // first-gesture audio unlock (autoplay policy)
       try {
         const r = await submitBufferedAnswer({
           shareToken,
@@ -73,6 +92,8 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
             : { questionId: current.id, choiceIndex: pickedIndex },
         });
         if (r.response) {
+          const delta = r.response.scoreSoFar - prevScoreRef.current;
+          prevScoreRef.current = r.response.scoreSoFar;
           setScore(r.response.scoreSoFar);
           if (typeof r.response.livesRemaining === 'number') {
             setLivesRemaining(r.response.livesRemaining);
@@ -86,6 +107,11 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
             gameOver: r.response.gameOver,
             pickedIndex,
           });
+          // Juice reacts to the SERVER verdict; a timeout counts as wrong.
+          juiceRef.current.onAnswer({ correct: r.response.correct, timedOut });
+          if (r.response.correct && delta > 0) {
+            setScorePop({ points: delta, nonce: Date.now() });
+          }
         } else {
           // Offline — treat as wrong so the engine progresses safely;
           // server will reconcile on reconnect via the buffered flush.
@@ -156,7 +182,15 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
       setCursor((c) => c + 1);
     }
     setAnswered(null);
+    setScorePop(null); // don't carry the previous question's +N forward
   }, [answered, attempt.questions, cursor, onFinished, order.length]);
+
+  // Auto-dismiss the floating "+N" after its drift-up animation.
+  useEffect(() => {
+    if (!scorePop) return;
+    const id = window.setTimeout(() => setScorePop(null), 850);
+    return () => window.clearTimeout(id);
+  }, [scorePop]);
 
   // Pre-compute the bar width.
   const barWidthPct = useMemo(() => {
@@ -170,6 +204,36 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
   // slots so the layout doesn't jump when lives are lost.
   const lifeIcons = Array.from({ length: attempt.livesAllowed }, (_, i) => i < livesRemaining);
 
+  // The bubble <button> — identical markup in both the static grid and the
+  // rising-bubble field, so every play-choice-* testid + handler is shared.
+  const renderBubbleButton = (choice: string, i: number) => {
+    const isPicked = answered?.pickedIndex === i;
+    const isCorrect = answered != null && choice === answered.correctAnswer;
+    let stateClass: string;
+    if (!answered) {
+      stateClass = `${BUBBLE_ACCENTS[i % BUBBLE_ACCENTS.length]} text-ink`;
+    } else if (isCorrect) {
+      // The right answer "pops" (pulse, stays visible) when you nailed it.
+      stateClass = `border-emerald-500 bg-emerald-100 text-emerald-900${isPicked ? ' animate-pop' : ''}`;
+    } else if (isPicked) {
+      stateClass = 'border-rose-400 bg-rose-100 text-rose-900 animate-wobble';
+    } else {
+      stateClass = 'border-line bg-surface text-ink-muted opacity-60';
+    }
+    return (
+      <button
+        type="button"
+        data-testid={`play-choice-${i}`}
+        disabled={!!answered || submitting}
+        onClick={() => submit(i)}
+        dir="auto"
+        className={`min-h-[56px] w-full rounded-2xl border-2 px-4 py-3 text-center text-base font-semibold transition-transform hover:scale-[1.02] disabled:cursor-not-allowed ${stateClass}`}
+      >
+        {choice}
+      </button>
+    );
+  };
+
   return (
     <section
       data-testid="timed-quiz-engine"
@@ -177,17 +241,27 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
       className="space-y-6 rounded-lg border border-line bg-surface p-6"
     >
       <header className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span
-            data-testid="play-score"
-            aria-live="polite"
-            className="rounded-full bg-surface-sunken px-3 py-1 text-sm font-semibold"
-          >
-            {t('play.scoreLabel', { score })}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <span
+              data-testid="play-score"
+              aria-live="polite"
+              className="rounded-full bg-surface-sunken px-3 py-1 text-sm font-semibold"
+            >
+              {t('play.scoreLabel', { score })}
+            </span>
+            {scorePop && (
+              <ScorePop
+                key={scorePop.nonce}
+                points={scorePop.points}
+                className="absolute -top-5 end-1 text-base"
+              />
+            )}
+          </div>
           {attempt.level !== undefined && (
             <LevelBadge level={attempt.level} levelMax={attempt.levelMax} />
           )}
+          <StreakMeter streak={juice.streak} />
         </div>
         <ul
           data-testid="play-lives"
@@ -198,7 +272,9 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
             <li
               key={i}
               aria-hidden="true"
-              className={`text-lg ${filled ? 'text-rose-600' : 'text-ink-subtle'}`}
+              className={`text-lg ${filled ? 'text-rose-600' : 'text-ink-subtle'} ${
+                answered && !answered.correct && i === livesRemaining ? 'animate-heart-loss' : ''
+              }`}
               data-testid={`play-life-${i}`}
               data-filled={filled ? 'true' : 'false'}
             >
@@ -248,32 +324,24 @@ export function TimedQuizEngine({ shareToken, attempt, onFinished }: Props) {
         )}
       </div>
 
-      <ul className="grid gap-2">
-        {choicesForCurrent.map((choice, i) => {
-          const isPicked = answered?.pickedIndex === i;
-          const showAsCorrect = answered && choice === answered.correctAnswer;
-          return (
-            <li key={`${current.id}-${i}`}>
-              <button
-                type="button"
-                data-testid={`play-choice-${i}`}
-                disabled={!!answered || submitting}
-                onClick={() => submit(i)}
-                dir="auto"
-                className={`w-full rounded border px-4 py-3 text-start text-base ${
-                  showAsCorrect
-                    ? 'border-emerald-500 bg-emerald-50'
-                    : isPicked
-                      ? 'border-amber-500 bg-amber-50'
-                      : 'border-line-strong hover:bg-surface-sunken'
-                } disabled:cursor-not-allowed`}
-              >
-                {choice}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {/* Answer Blast bubbles. Reduced motion → a plain static grid (also the
+          deterministic E2E layout). Otherwise → the same grid, but each bubble
+          floats with a continuous buoyant bob (staggered per index). The float
+          stops once answered so the pop/shake + feedback read clearly. Both
+          paths share renderBubbleButton, so the play-choice-* testids +
+          handlers are identical. */}
+      <div className="grid grid-cols-2 gap-4">
+        {choicesForCurrent.map((choice, i) => (
+          <div key={`${current.id}-${i}`} className="flex items-center justify-center py-2">
+            <div
+              className={`w-full ${juice.reducedMotion || answered ? '' : 'animate-float will-change-transform'}`}
+              style={juice.reducedMotion || answered ? undefined : { animationDelay: `${-i * 0.7}s` }}
+            >
+              {renderBubbleButton(choice, i)}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {answered && (
         <div

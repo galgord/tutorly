@@ -465,11 +465,14 @@ export class GameGenerationQueue implements OnModuleInit {
     }
     const validated = LlmGenerationResponseSchema.safeParse(parsedJson);
     if (!validated.success) {
+      this.logger.warn(
+        `LLM raw output (first 500 chars): ${result.rawJson.slice(0, 500)}`,
+      );
       throw new LlmInvalidOutputError(
         `LLM output failed schema validation: ${validated.error.issues
-          .slice(0, 2)
-          .map((i) => i.message)
-          .join('; ')}`,
+          .slice(0, 3)
+          .map((i) => `${i.path.join('.') || '<root>'}: ${i.message}`)
+          .join(' | ')}`,
       );
     }
 

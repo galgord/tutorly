@@ -84,9 +84,12 @@ describe('buildGenerationPrompt', () => {
     expect(a.cacheKey).toBe('TIMED_QUIZ|pt|20|-|-');
   });
 
-  it('SYSTEM_PROMPT_BASE forbids markdown fences in output', () => {
-    expect(SYSTEM_PROMPT_BASE.toLowerCase()).toContain('no prose');
-    expect(SYSTEM_PROMPT_BASE.toLowerCase()).toContain('no markdown fences');
+  it('SYSTEM_PROMPT_BASE directs the model to call the submit_questions tool', () => {
+    // Output is routed via Anthropic forced tool_choice (see llm.real.ts),
+    // not free-text JSON. The prompt must name the tool so the model knows
+    // where its envelope (`{ questions: [...] }`) goes.
+    expect(SYSTEM_PROMPT_BASE).toContain('submit_questions');
+    expect(SYSTEM_PROMPT_BASE.toLowerCase()).toContain('do not write any text outside the tool call');
   });
 
   // ---- Phase 11: subject + targetLanguage + studentL1 -------------------
